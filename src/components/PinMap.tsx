@@ -7,7 +7,23 @@ import type { Pin } from "@/lib/types";
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const DROPPED_KEY = "nm_dropped_pin_id";
 
-export function PinMap({ initialPins }: { initialPins: Pin[] }) {
+type PinMapProps = {
+  initialPins: Pin[];
+  initialCenter?: { lat: number; lng: number };
+  initialZoom?: number;
+  countSuffix?: string;
+  emptyLabel?: string;
+  height?: string;
+};
+
+export function PinMap({
+  initialPins,
+  initialCenter = { lat: 20, lng: 10 },
+  initialZoom = 1.4,
+  countSuffix = "on the map",
+  emptyLabel,
+  height = "h-[60vh] sm:h-[70vh]",
+}: PinMapProps) {
   const [pins, setPins] = useState<Pin[]>(initialPins);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -61,10 +77,21 @@ export function PinMap({ initialPins }: { initialPins: Pin[] }) {
     }
   }
 
+  const label =
+    pins.length === 0 && emptyLabel
+      ? emptyLabel
+      : `${pins.length} nomad${pins.length === 1 ? "" : "s"} ${countSuffix}`;
+
   return (
-    <div className="relative h-[60vh] w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 sm:h-[70vh]">
+    <div
+      className={`relative w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 ${height}`}
+    >
       <Map
-        initialViewState={{ longitude: 10, latitude: 20, zoom: 1.4 }}
+        initialViewState={{
+          longitude: initialCenter.lng,
+          latitude: initialCenter.lat,
+          zoom: initialZoom,
+        }}
         mapStyle={MAP_STYLE}
         style={{ width: "100%", height: "100%" }}
       >
@@ -79,7 +106,7 @@ export function PinMap({ initialPins }: { initialPins: Pin[] }) {
       </Map>
 
       <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium text-zinc-700 backdrop-blur dark:bg-black/70 dark:text-zinc-200">
-        {pins.length} nomad{pins.length === 1 ? "" : "s"} on the map
+        {label}
       </div>
 
       <div className="absolute bottom-4 left-1/2 z-10 w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">

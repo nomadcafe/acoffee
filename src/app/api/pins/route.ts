@@ -10,8 +10,23 @@ const PinInput = z.object({
   nickname: z.string().trim().max(40).optional(),
 });
 
-export async function GET() {
-  const pins = await listPins(500);
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const bboxParam = searchParams.get("bbox");
+  let bbox: Parameters<typeof listPins>[0]["bbox"] = undefined;
+  if (bboxParam) {
+    const parts = bboxParam.split(",").map(Number);
+    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
+      const [minLat, minLng, maxLat, maxLng] = parts;
+      bbox = { minLat, minLng, maxLat, maxLng };
+    } else {
+      return NextResponse.json(
+        { error: "bbox must be minLat,minLng,maxLat,maxLng" },
+        { status: 400 },
+      );
+    }
+  }
+  const pins = await listPins({ bbox });
   return NextResponse.json({ pins });
 }
 

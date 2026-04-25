@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PinMap } from "@/components/PinMap";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { listPins } from "@/lib/store";
@@ -5,7 +6,7 @@ import { listPins } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const pins = await listPins(500);
+  const pins = await listPins();
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6 sm:py-14">
@@ -33,8 +34,14 @@ export default async function Home() {
             Available in Chiang Mai when we launch.
           </p>
         </div>
-        <div className="mt-5">
+        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
           <SubscribeForm city="chiang-mai" />
+          <Link
+            href="/chiang-mai"
+            className="text-sm font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400"
+          >
+            Open the Chiang Mai page →
+          </Link>
         </div>
       </section>
 

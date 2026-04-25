@@ -14,13 +14,33 @@ type MemDB = { pins: Pin[]; subscribers: Subscriber[] };
 const g = globalThis as unknown as { __nm_db?: MemDB };
 const mem: MemDB = (g.__nm_db ??= { pins: [], subscribers: [] });
 
-export async function listPins(limit = 500): Promise<Pin[]> {
+export type Bbox = {
+  minLat: number;
+  minLng: number;
+  maxLat: number;
+  maxLng: number;
+};
+
+export async function listPins(
+  options: { limit?: number; bbox?: Bbox } = {},
+): Promise<Pin[]> {
+  const limit = options.limit ?? 500;
+  const { bbox } = options;
+
   if (supabase) {
-    const { data, error } = await supabase
+    let q = supabase
       .from("pins")
       .select("id, lat, lng, nickname, created_at")
       .order("created_at", { ascending: false })
       .limit(limit);
+    if (bbox) {
+      q = q
+        .gte("lat", bbox.minLat)
+        .lte("lat", bbox.maxLat)
+        .gte("lng", bbox.minLng)
+        .lte("lng", bbox.maxLng);
+    }
+    const { data, error } = await q;
     if (error) throw error;
     return (data ?? []).map((r) => ({
       id: r.id as string,
@@ -30,7 +50,18 @@ export async function listPins(limit = 500): Promise<Pin[]> {
       createdAt: r.created_at as string,
     }));
   }
-  return mem.pins.slice(-limit).reverse();
+
+  let pins = mem.pins;
+  if (bbox) {
+    pins = pins.filter(
+      (p) =>
+        p.lat >= bbox.minLat &&
+        p.lat <= bbox.maxLat &&
+        p.lng >= bbox.minLng &&
+        p.lng <= bbox.maxLng,
+    );
+  }
+  return pins.slice(-limit).reverse();
 }
 
 export async function addPin(input: {
