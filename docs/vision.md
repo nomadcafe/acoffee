@@ -1,9 +1,10 @@
 # Nomad Meetup — Vision & MVP 方向
 
-> 状态：草稿 v0.2 / 2026-04-21
+> 状态：草稿 v0.3 / 2026-04-26
 > 用途：对齐产品定位、MVP 范围、启动顺序。技术细节在别处。
 >
 > v0.2 更新：锁定 Phase 1 = Web / PWA，Native App 延至 Phase 2。
+> v0.3 更新：Q1（起点城市 = 清迈）/ Q2（Phase 0 串行先行）/ Q5（栈 = Next 16 + Supabase + MapLibre + OpenFreeMap）已定；Phase 0 落地页 v0 已上线，加入"全球 pin 地图"作为流量钩子。
 
 ---
 
@@ -102,10 +103,14 @@
 
 ## 6. 分阶段路线图
 
-### Phase 0 — 内容 + 社群（现在起）
+### Phase 0 — 内容 + 社群（进行中）
+- **起点城市：清迈**（Q1 已定）
+- **落地页 v0 已上线**：全球"where are nomads right now?"地图（pin 由用户自助投放）+ 清迈邮箱订阅
+  - 全球 pin 是流量钩子；清迈是唯一目标城市
+  - 同时充当起点城市验证工具（看哪个城市自然冒头最多）
 - 启动内容发布节奏（形式和频率待定）
-- 选定 1 个起点城市（见开放问题 Q1），围绕它做内容 + 建 Telegram/Discord 群
-- 目标：形成一个"这个城市的 Nomad 都认这个号"的认知密度
+- 围绕清迈做内容 + 建 Telegram/Discord 群
+- 目标：形成"这个城市的 Nomad 都认这个号"的认知密度
 
 ### Phase 1 — 极简 Web 产品 / PWA（Phase 0 验证有需求后）
 - **平台：Web / PWA，不做 Native App**
@@ -126,7 +131,7 @@
 - 根据 Phase 1 的使用数据决定加什么（不提前规划）
 - **Native App 触发条件**：单城市 Web 日活稳定 + 用户自发问"有 App 吗"。之前做 App 是提前优化。
 
-**Phase 0 和 Phase 1 是否并行，还是 Phase 0 先跑 N 个月——见开放问题 Q2。**
+**Q2 已定：串行。Phase 0 先跑，Phase 1 在 Phase 0 验证有需求后启动。**
 
 ---
 
@@ -149,15 +154,18 @@
 
 ---
 
-## 8. 开放问题（待拍板）
+## 8. 开放问题
 
+### 仍未定
 | # | 问题 | 备选 | 影响 |
 |---|------|------|------|
-| Q1 | 起点城市 | 里斯本 / 清迈 / 其他 | 决定内容和种子用户方向 |
-| Q2 | Phase 0 和 Phase 1 时间关系 | 串行（3 个月内容 → 产品）/ 并行 | 决定资源分配 |
 | Q3 | 商业模式 | 订阅 / 城市赞助 / co-working 分成 / 先不管 | 倒逼判断哪些功能该做 |
 | Q4 | 女性用户验证机制 | LinkedIn 绑定 / 头像真人验证 / 其他 | 影响注册流程设计 |
-| Q5 | Web 技术栈细节 | Next.js / Remix / Astro + Supabase 是合理起点，UI 库 / 状态管理 / 认证细节开工前再定 | 方向已锁（Web），实现细节不影响决策 |
+
+### 已定（2026-04-26）
+- **Q1 起点城市 = 清迈**。中文 Nomad 密度大、信息差大，里斯本被 Nomad List 等英文站覆盖太死。
+- **Q2 Phase 0 / Phase 1 = 串行**。先跑落地页和内容，Phase 1 等需求验证后再启动。
+- **Q5 技术栈 = Next.js 16 (App Router) + TypeScript + Tailwind v4 + MapLibre + react-map-gl + OpenFreeMap tiles + Supabase**。内容/产品同站、SEO 静态生成够、地图免费、Supabase 一揽子。
 
 ---
 
