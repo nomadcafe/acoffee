@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import type { Pin, Subscriber } from "./types";
+import { buildSeedPins } from "./seed-data";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,6 +14,24 @@ if (url && serviceKey) {
 type MemDB = { pins: Pin[]; subscribers: Subscriber[] };
 const g = globalThis as unknown as { __nm_db?: MemDB };
 const mem: MemDB = (g.__nm_db ??= { pins: [], subscribers: [] });
+
+// In dev / no-Supabase mode, seed the map so it's not empty on cold boot.
+// Seeds are spread over the past ~30 days so the 24h filter shows ~ a few.
+if (!supabase && mem.pins.length === 0) {
+  const seeds = buildSeedPins();
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  seeds.forEach((s, i) => {
+    const ageDays = (i % 30) + Math.random() * 0.9;
+    mem.pins.push({
+      id: randomUUID(),
+      lat: s.lat,
+      lng: s.lng,
+      nickname: s.nickname,
+      createdAt: new Date(now - ageDays * day).toISOString(),
+    });
+  });
+}
 
 export type Bbox = {
   minLat: number;

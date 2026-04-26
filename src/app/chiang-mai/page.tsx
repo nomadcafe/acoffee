@@ -7,9 +7,16 @@ import { listPins } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Chiang Mai · Nomad Meetup",
+  title: "Chiang Mai",
   description:
     "See which nomads are in Chiang Mai right now. Drop a pin, get on the list for the meetup app launch.",
+  alternates: { canonical: "/chiang-mai" },
+  openGraph: {
+    title: "Chiang Mai · Nomad Meetup",
+    description:
+      "See which nomads are in Chiang Mai right now. Drop a pin, get on the list for the meetup app launch.",
+    url: "/chiang-mai",
+  },
 };
 
 export default async function ChiangMaiPage() {

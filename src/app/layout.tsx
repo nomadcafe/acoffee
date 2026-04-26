@@ -2,6 +2,12 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 import { SiteNav } from "@/components/SiteNav";
+import {
+  siteDescription,
+  siteName,
+  siteTagline,
+  siteUrl,
+} from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -9,9 +15,28 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "Nomad Meetup — Where are nomads right now?",
-  description:
-    "Drop a pin, see who else just landed in your city. The full meetup app launches in Chiang Mai first.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: `${siteName} — ${siteTagline}`,
+    template: `%s · ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName,
+    title: `${siteName} — ${siteTagline}`,
+    description: siteDescription,
+    url: "/",
+    locale: "en",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteName} — ${siteTagline}`,
+    description: siteDescription,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
