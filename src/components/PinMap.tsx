@@ -43,6 +43,7 @@ export function PinMap({
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [nickname, setNickname] = useState("");
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hovered, setHovered] = useState<Pin | null>(null);
   const [viewState, setViewState] = useState({
@@ -141,9 +142,13 @@ export function PinMap({
           lat,
           lng,
           nickname: nickname.trim() || undefined,
+          website: website || undefined,
         }),
       });
       const json = (await res.json()) as { pin?: Pin; error?: string };
+      if (res.status === 429) {
+        throw new Error("Too many submissions. Try again later.");
+      }
       if (!res.ok || !json.pin) throw new Error(json.error || "failed");
       setPins((prev) => [json.pin!, ...prev]);
       setDone(true);
@@ -281,6 +286,16 @@ export function PinMap({
               placeholder="Nickname (optional)"
               maxLength={40}
               className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-700 dark:bg-zinc-900"
+            />
+            <input
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              name="website"
+              className="absolute -left-[9999px] top-0 h-0 w-0 opacity-0"
             />
             <button
               onClick={dropPin}

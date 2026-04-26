@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { addPin, listPins } from "@/lib/store";
+import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
 
 const PinInput = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),
   nickname: z.string().trim().max(40).optional(),
+  // Honeypot: real users never fill this; bots scraping the form do.
+  // Field name "website" because that's what most form spam expects.
+  website: z.string().max(200).optional(),
 });
 
 export async function GET(req: Request) {
@@ -41,11 +48,37 @@ export async function POST(req: Request) {
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid input" }, { status: 400 });
   }
-  const { lat, lng, nickname } = parsed.data;
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    req.headers.get("x-real-ip") ??
-    null;
+  const { lat, lng, nickname, website } = parsed.data;
+
+  // Honeypot tripped: silently succeed with a fake pin so the bot can't
+  // distinguish real submissions from blocks. Nothing is persisted.
+  if (website && website.length > 0) {
+    return NextResponse.json({
+      pin: {
+        id: "00000000-0000-0000-0000-000000000000",
+        lat,
+        lng,
+        nickname: null,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  }
+
+  const ip = ipFromHeaders(req.headers);
+  const limit = checkRateLimit(`pins:${ip}`, [
+    { windowMs: HOUR, max: 1 },
+    { windowMs: DAY, max: 3 },
+  ]);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "rate limit exceeded" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSec) },
+      },
+    );
+  }
+
   const pin = await addPin({
     lat,
     lng,
