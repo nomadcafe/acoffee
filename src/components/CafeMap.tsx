@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useState } from "react";
 import Map, { Marker, Popup } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { MapFallback } from "@/components/MapFallback";
+import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe } from "@/lib/types";
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
@@ -30,9 +32,21 @@ export function CafeMap({
   nearbyActiveCounts,
 }: CafeMapProps) {
   const [selected, setSelected] = useState<Cafe | null>(null);
+  const webgl = useWebglSupported();
   const selectedActiveCount = selected
     ? nearbyActiveCounts?.[selected.id] ?? 0
     : 0;
+
+  if (webgl === false) {
+    return (
+      <div
+        className={`relative w-full overflow-hidden rounded-2xl border border-bean ${height}`}
+        aria-label={ariaLabel}
+      >
+        <MapFallback />
+      </div>
+    );
+  }
 
   return (
     <div

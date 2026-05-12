@@ -12,6 +12,8 @@ import Supercluster, {
   type PointFeature,
 } from "supercluster";
 import Link from "next/link";
+import { MapFallback } from "@/components/MapFallback";
+import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe, Pin } from "@/lib/types";
 import { timeAgo } from "@/lib/time-ago";
 
@@ -137,6 +139,7 @@ export function PinMap({
   const [bounds, setBounds] = useState<[number, number, number, number]>([
     -180, -85, 180, 85,
   ]);
+  const webgl = useWebglSupported();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -333,6 +336,21 @@ export function PinMap({
       ? `${nearbyCount} nomad${nearbyCount === 1 ? "" : "s"} within ${NEARBY_RADIUS_KM}km${last24h ? " · last 24h" : ""}`
       : null;
   const label = nearbyLabel ?? globalLabel;
+
+  if (webgl === false) {
+    return (
+      <div
+        className={`relative w-full overflow-hidden ${framed ? "rounded-2xl border border-bean" : ""} ${height}`}
+      >
+        <MapFallback />
+        <div className="pointer-events-none absolute left-4 top-4 z-10">
+          <span className="rounded-full bg-surface/90 px-3 py-1.5 text-sm font-medium text-ink/85 shadow-sm backdrop-blur dark:bg-black/70 dark:text-ink">
+            {label}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

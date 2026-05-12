@@ -9,6 +9,8 @@ import Map, {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { quickCheckin } from "@/app/chiang-mai/actions";
+import { MapFallback } from "@/components/MapFallback";
+import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe } from "@/lib/types";
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
@@ -68,6 +70,7 @@ export function CafesMap({
   const [selected, setSelected] = useState<Cafe | null>(null);
   const [checkinPending, startCheckin] = useTransition();
   const [checkinError, setCheckinError] = useState<string | null>(null);
+  const webgl = useWebglSupported();
 
   function handleCheckin(cafe: Cafe) {
     setCheckinError(null);
@@ -100,6 +103,16 @@ export function CafesMap({
   const selectedActiveCount = selected
     ? activeCounts?.[selected.id] ?? 0
     : 0;
+
+  if (webgl === false) {
+    return (
+      <div
+        className={`relative w-full overflow-hidden ${framed ? "rounded-2xl border border-bean" : ""} ${height}`}
+      >
+        <MapFallback />
+      </div>
+    );
+  }
 
   return (
     <div
