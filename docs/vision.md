@@ -1,12 +1,13 @@
 # acoffee — Vision & MVP 方向
 
-> 状态：草稿 v0.5 / 2026-05-12
+> 状态：草稿 v0.6 / 2026-05-12
 > 用途：对齐产品定位、MVP 范围、启动顺序。技术细节在别处。
 >
 > v0.2 更新：锁定 Phase 1 = Web / PWA，Native App 延至 Phase 2。
 > v0.3 更新：Q1（起点城市 = 清迈）/ Q2（Phase 0 串行先行）/ Q5（栈 = Next 16 + Supabase + MapLibre + OpenFreeMap）已定；Phase 0 落地页 v0 已上线，加入"全球 pin 地图"作为流量钩子。
 > v0.4 更新：品牌名定为 **acoffee**（域名 acoffee.com），外层声音软化为"New city? Start with a coffee."；**内核 wedge 不变**——仍然押在"刚落地、一个人、孤独"。Meet Halfway 明确归入 Phase 3，不进 MVP。
 > v0.5 更新：**品牌视觉方向 pivot** — 软咖啡馆调子撑不起视觉冲击，前台**改走"现代 / 自信 / 技术感"**。Hero 用旋转 3D 地球 + 编辑刊物大字（"You just landed. The first move is coffee."），不再是 cozy 调子。**内核 wedge 仍然不变** — 落地破冰仍是增长引擎，但视觉外壳更强势。同步承认：**Phase 1 产品代码已经显著超出 §4 MVP 三动作范围**（roster / 用户提交 café / Near me / live countdown 等都已上线），但仍处于 0 真实用户、0 内容、0 社群的「pre-ship」状态。下一步必须从写代码切回 Phase 0 的内容 + deploy。
+> v0.6 更新：§10 的「明确不做」红线删除——实际执行 24h 内自破，留着只是自我欺骗。改成"按 ROI 排序的参考清单，非强制"。同步在 §10 加一条：pin-drop funnel 接入完成（落 pin 后按城市分流：清迈→cafe 目录；其他覆盖城市→城市订阅；不覆盖→泛订阅），修复了 95% 非清迈访客落地后无处可去的漏洞。
 
 ---
 
@@ -215,19 +216,18 @@
 
 **含义**：产品建得超前但没人能看到 / 用上。再写代码 ROI 已经为 0 — 必须切回 Phase 0。
 
-### 下一步（v0.5 锁定）
+### 下一步（参考排序，按 ROI；非强制）
 
-按 ROI 排：
-
-1. **`vercel deploy` + 接 Supabase + 跑两份 SQL** — 让代码从 localhost 变成可分享 URL。半天。
+1. **Deploy 收尾**：Vercel env 回填 `NEXT_PUBLIC_SITE_URL`、把域名加进 Supabase Auth Redirect URLs、跑两份 SQL。剩约 10 分钟。
 2. **写第一篇 SEO 内容**：「**一个人 nomad 在清迈的破局指南 / The lonely nomad's first 72h in Chiang Mai**」— §5 三条线之一。Wedge 锚定 + acoffee.com 链接。1-2 天。
 3. **加入清迈 nomad TG/Discord 群 + r/digitalnomad**，发文 + 链接 — 不发广告，发那篇内容。
 4. **看真实人怎么用**：哪个动作没人做、哪条路径卡住、哪条 copy 没人懂。
-5. **才回来改代码**——基于真实信号，不是设计师直觉。
+5. **基于信号回来改代码**——不是设计师直觉。
 
-**明确不做（直到第 4 步完成）**：
-- 新功能（PWA、推送、第二城等）
-- UI 微调
-- 文档完善
+> v0.6 起：本清单是 ROI 参考，不是强制顺序。实际执行允许并行修代码（v0.5 的"明确不做"红线被自己 24h 内打破，删去了）。但 **真正的闸门仍然是第 4 步**——5 个真人用过之前，新功能 ROI 默认为 0。
 
-第 4 步是 Phase 0 / Phase 1 切换的真正闸门，不是"产品代码上线"那个时刻。
+### 已完成的存量补丁（不计入新功能）
+
+- **Pin-drop funnel 修复**（2026-05-12）：落 pin 后按 GPS 分流——清迈用户进 cafe 目录、其他覆盖城市进城市订阅、不覆盖进泛订阅。此前 95% 非清迈访客落地无处可去。
+- **WebGL fallback**：MapLibre 在 WebGL 不可用时崩页 → 改为占位 UI。
+- **Auth callback 诊断**：失败 reason 暴露到 UI + 日志，便于排查。

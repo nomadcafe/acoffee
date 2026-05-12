@@ -65,3 +65,21 @@ export const HOMEPAGE_CITIES: City[] = [chiangMai, bangkok, lisbon, bali];
 export const cities: Record<string, City> = Object.fromEntries(
   HOMEPAGE_CITIES.map((c) => [c.slug, c]),
 );
+
+// Resolve a dropped GPS point to a known city by bbox. Used by the pin-drop
+// funnel on the home page to branch its CTA: open city → cafe directory;
+// building city → city-specific subscribe; outside coverage → generic subscribe.
+// First match wins; bboxes don't overlap in practice.
+export function findCityByLatLng(lat: number, lng: number): City | null {
+  for (const c of HOMEPAGE_CITIES) {
+    if (
+      lat >= c.bbox.minLat &&
+      lat <= c.bbox.maxLat &&
+      lng >= c.bbox.minLng &&
+      lng <= c.bbox.maxLng
+    ) {
+      return c;
+    }
+  }
+  return null;
+}

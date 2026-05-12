@@ -13,6 +13,8 @@ import Supercluster, {
 } from "supercluster";
 import Link from "next/link";
 import { MapFallback, MapPlaceholder } from "@/components/MapFallback";
+import { SubscribeForm } from "@/components/SubscribeForm";
+import { findCityByLatLng, type City } from "@/lib/cities";
 import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe, Pin } from "@/lib/types";
 import { timeAgo } from "@/lib/time-ago";
@@ -123,6 +125,9 @@ export function PinMap({
   const [last24h, setLast24h] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Remember where the user just dropped so the post-drop panel can route
+  // them by city (open / building / outside coverage).
+  const [lastDrop, setLastDrop] = useState<{ lat: number; lng: number } | null>(null);
   const [nickname, setNickname] = useState("");
   const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -309,6 +314,7 @@ export function PinMap({
       }
       if (!res.ok || !json.pin) throw new Error(json.error || "failed");
       setPins((prev) => [json.pin!, ...prev]);
+      setLastDrop({ lat, lng });
       setDone(true);
       mapRef.current?.flyTo({ center: [lng, lat], zoom: 12, duration: 700 });
     } catch (e) {
@@ -548,19 +554,14 @@ export function PinMap({
       {showDropPin && (
       <div className="absolute bottom-4 left-1/2 z-10 w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-bean bg-surface/95 p-3 shadow-lg backdrop-blur">
         {done ? (
-          <div className="flex flex-col items-center gap-1 px-2 py-1 text-center text-sm text-ink/85">
-            <p>You&apos;re on the map. Welcome, fellow nomad.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setDone(false);
-                setError(null);
-              }}
-              className="font-mono text-[10px] uppercase tracking-widest text-muted underline-offset-4 hover:text-accent hover:underline"
-            >
-              Drop another →
-            </button>
-          </div>
+          <PostDropPanel
+            drop={lastDrop}
+            onDropAnother={() => {
+              setDone(false);
+              setLastDrop(null);
+              setError(null);
+            }}
+          />
         ) : (
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
@@ -596,6 +597,75 @@ export function PinMap({
         )}
       </div>
       )}
+    </div>
+  );
+}
+
+// After-drop CTA. Routes the user somewhere meaningful based on where they
+// physically are: an open city → the product; a building city → its
+// subscribe list; outside coverage → a generic "we open city by city" form.
+// Replaces the previous dead-end "you're on the map" message.
+function PostDropPanel({
+  drop,
+  onDropAnother,
+}: {
+  drop: { lat: number; lng: number } | null;
+  onDropAnother: () => void;
+}) {
+  const city = drop ? findCityByLatLng(drop.lat, drop.lng) : null;
+
+  return (
+    <div className="flex flex-col gap-3 px-2 py-1 text-sm text-ink/85">
+      <p className="text-center">
+        You&apos;re on the map
+        {city ? <> · in <span className="font-medium">{city.name}</span></> : null}.
+        Welcome, fellow nomad.
+      </p>
+      <PostDropCta city={city} />
+      <button
+        type="button"
+        onClick={onDropAnother}
+        className="self-center font-mono text-[10px] uppercase tracking-widest text-muted underline-offset-4 hover:text-accent hover:underline"
+      >
+        Drop another →
+      </button>
+    </div>
+  );
+}
+
+function PostDropCta({ city }: { city: City | null }) {
+  // Open city: send them straight into the product.
+  if (city?.status === "open") {
+    return (
+      <Link
+        href={`/${city.slug}`}
+        className="self-center rounded-full bg-accent px-5 py-2 text-sm font-medium text-page hover:bg-accent-hover"
+      >
+        See who&apos;s working in {city.name} today →
+      </Link>
+    );
+  }
+
+  // Building city: city-scoped subscribe so we know exactly which one to open.
+  if (city?.status === "building") {
+    return (
+      <div className="flex flex-col gap-2">
+        <p className="text-center text-muted">
+          We&apos;re not open in {city.name} yet — be first to know when we are.
+        </p>
+        <SubscribeForm city={city.slug} />
+      </div>
+    );
+  }
+
+  // Outside our 4 covered cities: keep the lead, no city attribution.
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-center text-muted">
+        We open city by city. Drop your email — we&apos;ll ping you when we
+        get to your area.
+      </p>
+      <SubscribeForm city="outside" />
     </div>
   );
 }
