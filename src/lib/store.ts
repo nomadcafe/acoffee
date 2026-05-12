@@ -99,6 +99,37 @@ export async function listPins(
   return pins.slice(-limit).reverse();
 }
 
+// Global pin count + last-24h subset. Powers the home-page stats strip
+// above the world map ("247 nomads · 23 in 24h"). Unbounded by bbox so the
+// number is honest about the global community, not just covered cities.
+export async function countPinsGlobal(): Promise<{
+  total: number;
+  last24h: number;
+}> {
+  const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  if (supabase) {
+    const [totalRes, recentRes] = await Promise.all([
+      supabase.from("pins").select("id", { count: "exact", head: true }),
+      supabase
+        .from("pins")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", cutoff24h),
+    ]);
+    if (totalRes.error) throw totalRes.error;
+    if (recentRes.error) throw recentRes.error;
+    return {
+      total: totalRes.count ?? 0,
+      last24h: recentRes.count ?? 0,
+    };
+  }
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  return {
+    total: mem.pins.length,
+    last24h: mem.pins.filter((p) => new Date(p.createdAt).getTime() >= cutoff)
+      .length,
+  };
+}
+
 // Count pins inside a bbox. Used by the home page's "cities right now"
 // strip to rank cities by recent activity without any reverse-geocoding —
 // the bbox per city is hard-coded in lib/cities.
