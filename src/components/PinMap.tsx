@@ -15,6 +15,7 @@ import Link from "next/link";
 import { MapFallback, MapPlaceholder } from "@/components/MapFallback";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { findCityByLatLng, type City } from "@/lib/cities";
+import { getCurrentPositionWithRetry } from "@/lib/geo";
 import { friendlyGeoError } from "@/lib/geo-errors";
 import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe, Pin } from "@/lib/types";
@@ -251,50 +252,51 @@ export function PinMap({
     [supercluster],
   );
 
-  function requestNearMe() {
+  async function requestNearMe() {
     setNearbyError(null);
     if (!("geolocation" in navigator)) {
       setNearbyError("Your browser does not support geolocation.");
       return;
     }
+    // Stop the ambient globe rotation immediately — otherwise the camera
+    // drifts while we resolve location + flyTo, and again 30s after the
+    // (transient) lastInteractAt cooldown.
+    rotationRef.current.paused = true;
     setNearbyLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setUserLocation({ lat, lng });
-        setNearbyLoading(false);
-        mapRef.current?.flyTo({
-          center: [lng, lat],
-          zoom: NEARBY_ZOOM,
-          duration: 800,
-        });
-      },
-      (err) => {
-        setNearbyError(friendlyGeoError(err));
-        setNearbyLoading(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000 },
-    );
+    try {
+      const pos = await getCurrentPositionWithRetry();
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      setUserLocation({ lat, lng });
+      setNearbyLoading(false);
+      mapRef.current?.flyTo({
+        center: [lng, lat],
+        zoom: NEARBY_ZOOM,
+        duration: 800,
+      });
+    } catch (err) {
+      setNearbyError(friendlyGeoError(err as GeolocationPositionError));
+      setNearbyLoading(false);
+    }
   }
 
-  function dropPin() {
+  async function dropPin() {
     setError(null);
     if (!("geolocation" in navigator)) {
       setError("Your browser does not support geolocation.");
       return;
     }
+    // Same as requestNearMe — full pause, not just an interaction tick,
+    // so flyTo lands stably and stays there.
+    rotationRef.current.paused = true;
     setSubmitting(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        void submit(pos.coords.latitude, pos.coords.longitude);
-      },
-      (err) => {
-        setError(friendlyGeoError(err));
-        setSubmitting(false);
-      },
-      { enableHighAccuracy: false, timeout: 10000 },
-    );
+    try {
+      const pos = await getCurrentPositionWithRetry();
+      void submit(pos.coords.latitude, pos.coords.longitude);
+    } catch (err) {
+      setError(friendlyGeoError(err as GeolocationPositionError));
+      setSubmitting(false);
+    }
   }
 
   async function submit(lat: number, lng: number) {

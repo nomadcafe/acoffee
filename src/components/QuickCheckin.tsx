@@ -8,6 +8,7 @@ import {
   quickCheckin,
   type NearbyResult,
 } from "@/app/chiang-mai/actions";
+import { getCurrentPositionWithRetry } from "@/lib/geo";
 import { friendlyGeoError } from "@/lib/geo-errors";
 
 type Step = "idle" | "locating" | "picking" | "naming" | "submitting" | "error";
@@ -28,7 +29,7 @@ export function QuickCheckin({
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function startGeolocation() {
+  async function startGeolocation() {
     setError(null);
     if (!("geolocation" in navigator)) {
       setError("Your browser doesn't support geolocation.");
@@ -36,28 +37,27 @@ export function QuickCheckin({
       return;
     }
     setStep("locating");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCoords(c);
-        const result = await findNearbyCafes({
-          lat: c.lat,
-          lng: c.lng,
-          city,
-        });
-        setNearby(result);
-        if (result.snapTarget) {
-          await submitExisting(result.snapTarget.id);
-        } else {
-          setStep("picking");
-        }
-      },
-      (err) => {
-        setError(friendlyGeoError(err));
-        setStep("error");
-      },
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
+    try {
+      const pos = await getCurrentPositionWithRetry({
+        enableHighAccuracy: true,
+      });
+      const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      setCoords(c);
+      const result = await findNearbyCafes({
+        lat: c.lat,
+        lng: c.lng,
+        city,
+      });
+      setNearby(result);
+      if (result.snapTarget) {
+        await submitExisting(result.snapTarget.id);
+      } else {
+        setStep("picking");
+      }
+    } catch (err) {
+      setError(friendlyGeoError(err as GeolocationPositionError));
+      setStep("error");
+    }
   }
 
   async function submitExisting(cafeId: string) {
