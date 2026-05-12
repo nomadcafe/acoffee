@@ -159,7 +159,6 @@ export default async function Home({
       </section>
 
       <GlobalStatsStrip
-        total={globalPins.total}
         last24h={globalPins.last24h}
         workingNow={workingNowAcrossOpenCities}
         workingNowCityName={openCityNames[0] ?? null}
@@ -220,37 +219,23 @@ export default async function Home({
   );
 }
 
-// Three-up ribbon between the hero and the world map. Big-number social
-// proof — "the map isn't empty, the product is alive, people are working
-// right now". Each stat self-hides at zero except `total`, which falls
-// back to a 'be the first' copy so the empty case still reads like an
-// invitation, not a dead site.
+// "What's fresh / what's live" ribbon between the hero and the map. The map
+// itself already carries the cumulative total in its corner chip, so this
+// strip stays out of that lane and only shows differentiated signals: recent
+// pin activity + live cafe presence. Hides entirely when nothing's fresh —
+// the page reads cleaner without a row of zeros.
 function GlobalStatsStrip({
-  total,
   last24h,
   workingNow,
   workingNowCityName,
 }: {
-  total: number;
   last24h: number;
   workingNow: number;
   workingNowCityName: string | null;
 }) {
-  if (total === 0) {
-    return (
-      <section className="mx-auto w-full max-w-5xl border-t border-dashed border-bean px-4 pb-6 pt-10 text-center sm:px-6">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted">
-          The map is empty. Be the first to drop a pin — say you arrived.
-        </p>
-      </section>
-    );
-  }
-
-  const items: { value: number; label: string; pulse?: boolean }[] = [
-    { value: total, label: "nomads on the map" },
-  ];
+  const items: { value: number; label: string; pulse?: boolean }[] = [];
   if (last24h > 0) {
-    items.push({ value: last24h, label: "in the last 24h" });
+    items.push({ value: last24h, label: "pins in the last 24h" });
   }
   if (workingNow > 0 && workingNowCityName) {
     items.push({
@@ -260,9 +245,14 @@ function GlobalStatsStrip({
     });
   }
 
+  if (items.length === 0) return null;
+
+  // Two-up grid when both are present; single centered tile when only one is.
+  const gridCols = items.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-1";
+
   return (
     <section className="mx-auto w-full max-w-5xl border-t border-dashed border-bean px-4 py-10 sm:px-6 sm:py-12">
-      <ul className="grid gap-8 sm:grid-cols-3 sm:gap-10">
+      <ul className={`grid gap-8 ${gridCols} sm:gap-10`}>
         {items.map((it) => (
           <li key={it.label} className="flex flex-col gap-1.5">
             <p
@@ -273,7 +263,7 @@ function GlobalStatsStrip({
             </p>
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
               {it.pulse ? (
-                <span className="mr-1.5 inline-flex h-1.5 w-1.5 align-middle">
+                <span className="relative mr-1.5 inline-flex h-1.5 w-1.5 align-middle">
                   <span className="absolute inline-flex h-1.5 w-1.5 animate-ping rounded-full bg-accent/60" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
                 </span>
