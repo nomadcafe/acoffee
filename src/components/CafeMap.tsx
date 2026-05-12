@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import Map, { Marker, Popup } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { MapFallback } from "@/components/MapFallback";
+import { MapFallback, MapPlaceholder } from "@/components/MapFallback";
 import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe } from "@/lib/types";
 
@@ -37,13 +37,13 @@ export function CafeMap({
     ? nearbyActiveCounts?.[selected.id] ?? 0
     : 0;
 
-  if (webgl === false) {
+  if (webgl !== true) {
     return (
       <div
         className={`relative w-full overflow-hidden rounded-2xl border border-bean ${height}`}
         aria-label={ariaLabel}
       >
-        <MapFallback />
+        {webgl === false ? <MapFallback /> : <MapPlaceholder />}
       </div>
     );
   }

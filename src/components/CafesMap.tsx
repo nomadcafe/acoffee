@@ -9,7 +9,7 @@ import Map, {
 } from "react-map-gl/maplibre";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { quickCheckin } from "@/app/chiang-mai/actions";
-import { MapFallback } from "@/components/MapFallback";
+import { MapFallback, MapPlaceholder } from "@/components/MapFallback";
 import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe } from "@/lib/types";
 
@@ -104,12 +104,12 @@ export function CafesMap({
     ? activeCounts?.[selected.id] ?? 0
     : 0;
 
-  if (webgl === false) {
+  if (webgl !== true) {
     return (
       <div
         className={`relative w-full overflow-hidden ${framed ? "rounded-2xl border border-bean" : ""} ${height}`}
       >
-        <MapFallback />
+        {webgl === false ? <MapFallback /> : <MapPlaceholder />}
       </div>
     );
   }

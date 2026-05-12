@@ -18,3 +18,15 @@ export function MapFallback({ message }: { message?: string }) {
     </div>
   );
 }
+
+// Neutral placeholder shown while the WebGL probe is still pending (one
+// render tick before the useEffect resolves). Distinct from MapFallback so we
+// don't flash the "WebGL unavailable" copy at users whose browsers are fine.
+export function MapPlaceholder() {
+  return (
+    <div
+      aria-hidden
+      className="h-full w-full animate-pulse bg-bean/15 dark:bg-bean/10"
+    />
+  );
+}

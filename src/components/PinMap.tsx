@@ -12,7 +12,7 @@ import Supercluster, {
   type PointFeature,
 } from "supercluster";
 import Link from "next/link";
-import { MapFallback } from "@/components/MapFallback";
+import { MapFallback, MapPlaceholder } from "@/components/MapFallback";
 import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe, Pin } from "@/lib/types";
 import { timeAgo } from "@/lib/time-ago";
@@ -330,17 +330,19 @@ export function PinMap({
       : null;
   const label = nearbyLabel ?? globalLabel;
 
-  if (webgl === false) {
+  if (webgl !== true) {
     return (
       <div
         className={`relative w-full overflow-hidden ${framed ? "rounded-2xl border border-bean" : ""} ${height}`}
       >
-        <MapFallback />
-        <div className="pointer-events-none absolute left-4 top-4 z-10">
-          <span className="rounded-full bg-surface/90 px-3 py-1.5 text-sm font-medium text-ink/85 shadow-sm backdrop-blur dark:bg-black/70 dark:text-ink">
-            {label}
-          </span>
-        </div>
+        {webgl === false ? <MapFallback /> : <MapPlaceholder />}
+        {webgl === false && (
+          <div className="pointer-events-none absolute left-4 top-4 z-10">
+            <span className="rounded-full bg-surface/90 px-3 py-1.5 text-sm font-medium text-ink/85 shadow-sm backdrop-blur dark:bg-black/70 dark:text-ink">
+              {label}
+            </span>
+          </div>
+        )}
       </div>
     );
   }
