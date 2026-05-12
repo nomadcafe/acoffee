@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { CitiesPanel, type CityWithActivity } from "@/components/CitiesPanel";
 import { PinMap } from "@/components/PinMap";
-import { SubscribeForm } from "@/components/SubscribeForm";
 import { cities, HOMEPAGE_CITIES } from "@/lib/cities";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import {
@@ -181,18 +180,6 @@ export default async function Home({
       </div>
 
       <CitiesPanel cities={cityRows} />
-
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-2 border-t border-dashed border-bean px-4 pt-12 sm:px-6 sm:pt-16">
-        <h2 className="font-serif text-2xl font-medium sm:text-3xl">
-          Want acoffee in your city next?
-        </h2>
-        <p className="text-sm text-muted">
-          One email when it opens where you are. No spam.
-        </p>
-        <div className="mt-3 max-w-md">
-          <SubscribeForm city="next" />
-        </div>
-      </section>
 
       <footer className="mx-auto w-full max-w-5xl px-4 pb-12 pt-16 sm:px-6">
         <div className="flex flex-col gap-3 border-t border-bean pt-6">
