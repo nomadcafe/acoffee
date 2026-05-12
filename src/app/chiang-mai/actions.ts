@@ -143,6 +143,14 @@ export async function quickCheckin(
     .maybeSingle();
 
   if (!existing) {
+    // End any other active sessions by this user — one physical cafe at a time.
+    await supabase
+      .from("checkins")
+      .delete()
+      .eq("profile_id", user.id)
+      .neq("cafe_id", cafeId)
+      .gt("expires_at", new Date().toISOString());
+
     const expiresAt = new Date(
       Date.now() + CHECKIN_TTL_HOURS * 60 * 60 * 1000,
     ).toISOString();

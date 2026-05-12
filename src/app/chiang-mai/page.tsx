@@ -242,9 +242,7 @@ export default async function ChiangMaiPage() {
         )}
       </section>
 
-      {sessionUser && (
-        <ActivityFeed items={recentCheckins} cityName="Chiang Mai" />
-      )}
+      <ActivityFeed items={recentCheckins} cityName="Chiang Mai" />
 
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 border-t border-dashed border-bean px-4 pb-16 pt-10 sm:px-6">
         <h2 className="font-mono text-[11px] uppercase tracking-widest text-muted">

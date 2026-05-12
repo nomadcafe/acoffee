@@ -18,7 +18,6 @@ import type { Cafe, Pin } from "@/lib/types";
 import { timeAgo } from "@/lib/time-ago";
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
-const DROPPED_KEY = "nm_dropped_pin_id";
 const DAY_MS = 24 * 60 * 60 * 1000;
 const NEARBY_RADIUS_KM = 50;
 const NEARBY_ZOOM = 10;
@@ -140,11 +139,6 @@ export function PinMap({
     -180, -85, 180, 85,
   ]);
   const webgl = useWebglSupported();
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem(DROPPED_KEY)) setDone(true);
-  }, []);
 
   // Ambient globe rotation: only when `globe`, paused on user interaction,
   // resumes 30s after the last interaction. Uses rAF for smooth motion and
@@ -316,7 +310,6 @@ export function PinMap({
       if (!res.ok || !json.pin) throw new Error(json.error || "failed");
       setPins((prev) => [json.pin!, ...prev]);
       setDone(true);
-      localStorage.setItem(DROPPED_KEY, json.pin.id);
       mapRef.current?.flyTo({ center: [lng, lat], zoom: 12, duration: 700 });
     } catch (e) {
       setError(e instanceof Error ? e.message : "failed to save pin");
@@ -553,9 +546,19 @@ export function PinMap({
       {showDropPin && (
       <div className="absolute bottom-4 left-1/2 z-10 w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-bean bg-surface/95 p-3 shadow-lg backdrop-blur">
         {done ? (
-          <p className="px-2 py-1 text-center text-sm text-ink/85">
-            You&apos;re on the map. Welcome, fellow nomad.
-          </p>
+          <div className="flex flex-col items-center gap-1 px-2 py-1 text-center text-sm text-ink/85">
+            <p>You&apos;re on the map. Welcome, fellow nomad.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setDone(false);
+                setError(null);
+              }}
+              className="font-mono text-[10px] uppercase tracking-widest text-muted underline-offset-4 hover:text-accent hover:underline"
+            >
+              Drop another →
+            </button>
+          </div>
         ) : (
           <div className="flex flex-col gap-2 sm:flex-row">
             <input

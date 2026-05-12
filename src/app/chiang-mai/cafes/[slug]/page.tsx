@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CafeMap } from "@/components/CafeMap";
 import { LiveCountdown } from "@/components/LiveCountdown";
 import { LiveTimeSince } from "@/components/LiveTimeSince";
+import { RefreshAt } from "@/components/RefreshAt";
 import {
   getMyActiveCheckinAtCafe,
   getMyActiveSession,
@@ -267,6 +268,11 @@ export default async function CafeDetailPage({
         signedIn={sessionUser !== null}
         myIntent={myIntent}
         roster={roster}
+        otherCheckin={
+          mySession?.checkin && mySession.checkin.cafeSlug !== cafe.slug
+            ? mySession.checkin
+            : null
+        }
       />
     </main>
   );
@@ -279,6 +285,7 @@ function CheckinSection({
   signedIn,
   myIntent,
   roster,
+  otherCheckin,
 }: {
   cafe: Cafe;
   activeCount: number;
@@ -286,6 +293,7 @@ function CheckinSection({
   signedIn: boolean;
   myIntent: { kind: IntentKind; city: string; expiresAt: string } | null;
   roster: RosterEntry[] | null;
+  otherCheckin: { cafeName: string; cafeSlug: string; expiresAt: string } | null;
 }) {
   return (
     <section className="flex flex-col gap-4 border-t border-dashed border-bean pt-6">
@@ -304,6 +312,7 @@ function CheckinSection({
 
       {myCheckin ? (
         <>
+          <RefreshAt at={myCheckin.expiresAt} />
           <div className="flex flex-col gap-3">
             <p className="text-sm text-ink/85">
               You&apos;re checked in here ·{" "}
@@ -348,6 +357,18 @@ function CheckinSection({
         </>
       ) : signedIn ? (
         <div className="flex flex-col gap-3">
+          {otherCheckin && (
+            <div className="rounded-xl border border-amber-300/50 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+              You&apos;re currently checked in at{" "}
+              <Link
+                href={`/chiang-mai/cafes/${otherCheckin.cafeSlug}`}
+                className="font-medium underline-offset-2 hover:underline"
+              >
+                {otherCheckin.cafeName}
+              </Link>
+              . Checking in here ends that session.
+            </div>
+          )}
           <p className="text-sm text-muted">
             Say you&apos;re here for the next 2 hours so other nomads know
             this spot is alive today.

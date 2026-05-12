@@ -44,6 +44,15 @@ export async function checkIn(formData: FormData): Promise<void> {
     return;
   }
 
+  // One physical cafe at a time. End any other active sessions first so the
+  // rosters and the user's own status strip stay coherent.
+  await supabase
+    .from("checkins")
+    .delete()
+    .eq("profile_id", user.id)
+    .neq("cafe_id", cafeId)
+    .gt("expires_at", new Date().toISOString());
+
   const expiresAt = new Date(
     Date.now() + CHECKIN_TTL_HOURS * 60 * 60 * 1000,
   ).toISOString();
@@ -59,7 +68,8 @@ export async function checkIn(formData: FormData): Promise<void> {
 
   await maybePromoteCafe(cafeId);
 
-  revalidatePath("/chiang-mai/cafes/[slug]", "page");
+  // Other cafe pages render this user in their roster too; broaden the scope.
+  revalidatePath("/chiang-mai", "layout");
 }
 
 export async function checkOut(formData: FormData): Promise<void> {
@@ -71,5 +81,5 @@ export async function checkOut(formData: FormData): Promise<void> {
   // RLS ensures only the owner can delete (checkins_delete_own policy).
   await supabase.from("checkins").delete().eq("id", checkinId);
 
-  revalidatePath("/chiang-mai/cafes/[slug]", "page");
+  revalidatePath("/chiang-mai", "layout");
 }

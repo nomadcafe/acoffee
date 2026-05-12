@@ -144,13 +144,18 @@ export default async function CafesPage({
 
       {allCafes.length === 0 ? (
         <div className="mx-auto w-full max-w-5xl px-4 pb-12 sm:px-6">
-          <p className="border-t border-dashed border-bean pt-6 text-sm text-muted">
-            No cafés loaded yet. If you&apos;re running locally, apply
-            <code className="mx-1 rounded bg-bean/40 px-1.5 py-0.5 text-xs">
-              supabase/seed_chiang_mai_cafes.sql
-            </code>
-            or fall back to the in-memory dev seed by clearing Supabase env vars.
-          </p>
+          <div className="flex flex-col gap-3 border-t border-dashed border-bean pt-6 text-sm text-muted">
+            <p>
+              We&apos;re still mapping cafés in Chiang Mai. Check back soon —
+              or drop a pin on the map so we know you&apos;re here.
+            </p>
+            <Link
+              href="/"
+              className="self-start font-mono text-[11px] uppercase tracking-widest text-accent underline-offset-4 hover:underline"
+            >
+              ← Back to the global map
+            </Link>
+          </div>
         </div>
       ) : (
         <>
