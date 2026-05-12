@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { SiteNav } from "@/components/SiteNav";
 import { UserStatusStrip } from "@/components/UserStatusStrip";
 import {
@@ -62,6 +63,7 @@ export default function RootLayout({
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-page text-ink">
+        <OnboardingBanner />
         <SiteNav />
         <UserStatusStrip />
         {children}

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { signOut } from "@/app/auth/actions";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
 async function readSessionHandle(): Promise<string | null> {
@@ -70,21 +69,13 @@ export async function SiteNav() {
           )}
           {supabaseConfigured &&
             (handle ? (
-              <form action={signOut} className="flex items-center gap-1">
-                <Link
-                  href="/profile"
-                  className="hidden max-w-[8rem] truncate rounded-full px-3 py-1.5 text-muted hover:bg-bean/40 hover:text-ink sm:inline-block sm:max-w-none dark:text-muted/70 dark:hover:bg-bean/40 dark:hover:text-ink"
-                  title={`@${handle} · edit profile`}
-                >
-                  @{handle}
-                </Link>
-                <button
-                  type="submit"
-                  className="rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40 dark:text-ink/85 dark:hover:bg-bean/40"
-                >
-                  Sign out
-                </button>
-              </form>
+              <Link
+                href="/profile"
+                className="max-w-[10rem] truncate rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40 dark:text-ink/85 dark:hover:bg-bean/40"
+                title={`@${handle} · profile & sign out`}
+              >
+                @{handle}
+              </Link>
             ) : (
               <Link
                 href="/auth/signin"

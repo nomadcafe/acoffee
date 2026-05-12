@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { signOut } from "@/app/auth/actions";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
 import { ProfileForm } from "./ProfileForm";
 
@@ -79,6 +80,28 @@ export default async function ProfilePage({
         </p>
       </header>
       <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />
+
+      {!isOnboarding && (
+        <section className="mt-6 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
+            Account
+          </p>
+          <p className="text-sm text-muted">
+            Signed in as{" "}
+            <span className="font-medium text-ink">
+              {sessionUser.email ?? "—"}
+            </span>
+          </p>
+          <form action={signOut} className="self-start">
+            <button
+              type="submit"
+              className="rounded-full border border-bean px-4 py-2 text-sm font-medium text-ink/85 hover:bg-bean/40"
+            >
+              Sign out
+            </button>
+          </form>
+        </section>
+      )}
     </main>
   );
 }

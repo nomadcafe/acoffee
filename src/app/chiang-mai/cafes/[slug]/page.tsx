@@ -5,6 +5,7 @@ import { CafeMap } from "@/components/CafeMap";
 import { LiveCountdown } from "@/components/LiveCountdown";
 import { LiveTimeSince } from "@/components/LiveTimeSince";
 import { RefreshAt } from "@/components/RefreshAt";
+import { ShareCheckin } from "@/components/ShareCheckin";
 import {
   getMyActiveCheckinAtCafe,
   getMyActiveSession,
@@ -350,6 +351,10 @@ function CheckinSection({
                 </button>
               </form>
             </div>
+            <ShareCheckin
+              cafeName={cafe.name}
+              cafeUrl={`${siteUrl}/chiang-mai/cafes/${cafe.slug}`}
+            />
           </div>
 
           {roster && roster.length > 0 && (
