@@ -15,6 +15,7 @@ import Link from "next/link";
 import { MapFallback, MapPlaceholder } from "@/components/MapFallback";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import { findCityByLatLng, type City } from "@/lib/cities";
+import { friendlyGeoError } from "@/lib/geo-errors";
 import { useWebglSupported } from "@/lib/webgl";
 import type { Cafe, Pin } from "@/lib/types";
 import { timeAgo } from "@/lib/time-ago";
@@ -270,7 +271,7 @@ export function PinMap({
         });
       },
       (err) => {
-        setNearbyError(err.message || "Could not get your location.");
+        setNearbyError(friendlyGeoError(err));
         setNearbyLoading(false);
       },
       { enableHighAccuracy: false, timeout: 10000 },
@@ -289,7 +290,7 @@ export function PinMap({
         void submit(pos.coords.latitude, pos.coords.longitude);
       },
       (err) => {
-        setError(err.message || "Could not get your location.");
+        setError(friendlyGeoError(err));
         setSubmitting(false);
       },
       { enableHighAccuracy: false, timeout: 10000 },

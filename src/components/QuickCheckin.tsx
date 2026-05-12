@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
@@ -7,6 +8,7 @@ import {
   quickCheckin,
   type NearbyResult,
 } from "@/app/chiang-mai/actions";
+import { friendlyGeoError } from "@/lib/geo-errors";
 
 type Step = "idle" | "locating" | "picking" | "naming" | "submitting" | "error";
 
@@ -51,7 +53,7 @@ export function QuickCheckin({
         }
       },
       (err) => {
-        setError(err.message || "Could not get your location.");
+        setError(friendlyGeoError(err));
         setStep("error");
       },
       { enableHighAccuracy: true, timeout: 10000 },
@@ -136,12 +138,20 @@ export function QuickCheckin({
         <p className="text-sm text-red-600 dark:text-red-400">
           {error ?? "Something went wrong."}
         </p>
-        <button
-          onClick={reset}
-          className="self-start rounded-full border border-bean px-4 py-2 text-sm font-medium text-ink/85 hover:bg-bean/40"
-        >
-          Try again
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={reset}
+            className="rounded-full border border-bean px-4 py-2 text-sm font-medium text-ink/85 hover:bg-bean/40"
+          >
+            Try again
+          </button>
+          <Link
+            href={`/${city}/cafes`}
+            className="font-mono text-[11px] uppercase tracking-widest text-accent underline-offset-4 hover:underline"
+          >
+            Or pick a café manually →
+          </Link>
+        </div>
       </div>
     );
   }
