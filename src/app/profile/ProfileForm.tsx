@@ -52,7 +52,7 @@ export function ProfileForm({
         name="telegramHandle"
         defaultValue={profile.telegramHandle ?? ""}
         placeholder="@yourhandle"
-        hint="Optional · revealed only after a match"
+        hint="Recommended · 5–32 letters/digits/_, no spaces · revealed only after a match"
         error={errs.telegramHandle}
       />
 
@@ -61,7 +61,7 @@ export function ProfileForm({
         name="whatsappNumber"
         defaultValue={profile.whatsappNumber ?? ""}
         placeholder="+66812345678"
-        hint="Optional · international format, revealed only after a match"
+        hint="Recommended · include country code with + · revealed only after a match"
         error={errs.whatsappNumber}
       />
 

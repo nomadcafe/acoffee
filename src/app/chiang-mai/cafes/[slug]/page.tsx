@@ -17,6 +17,8 @@ import { INTENT_KIND_LABEL, INTENT_KIND_ORDER } from "@/lib/intent-labels";
 import { siteUrl } from "@/lib/site";
 import {
   countActiveCheckins,
+  countActiveIntents,
+  countCheckinsLastWeek,
   getCafeBySlug,
   listActiveCheckinCounts,
   listCafesNear,
@@ -79,21 +81,31 @@ export default async function CafeDetailPage({
   const cafe = await getCafeBySlug(slug);
   if (!cafe) notFound();
 
-  const [activeCount, myCheckin, sessionUser, mySession, roster, nearbyRaw] =
-    await Promise.all([
-      countActiveCheckins(cafe.id),
-      getMyActiveCheckinAtCafe(cafe.id),
-      getSessionUser(),
-      getMyActiveSession(),
-      getRosterAtCafe(cafe.id),
-      listCafesNear({
-        lat: cafe.lat,
-        lng: cafe.lng,
-        radiusKm: 0.5,
-        city: cafe.city,
-        limit: 7,
-      }),
-    ]);
+  const [
+    activeCount,
+    myCheckin,
+    sessionUser,
+    mySession,
+    roster,
+    nearbyRaw,
+    weeklyCheckins,
+    openIntentsInCity,
+  ] = await Promise.all([
+    countActiveCheckins(cafe.id),
+    getMyActiveCheckinAtCafe(cafe.id),
+    getSessionUser(),
+    getMyActiveSession(),
+    getRosterAtCafe(cafe.id),
+    listCafesNear({
+      lat: cafe.lat,
+      lng: cafe.lng,
+      radiusKm: 0.5,
+      city: cafe.city,
+      limit: 7,
+    }),
+    countCheckinsLastWeek(cafe.id),
+    countActiveIntents(cafe.city),
+  ]);
   const myIntent = mySession?.intent ?? null;
   const nearbyCafes = nearbyRaw.filter((c) => c.id !== cafe.id);
   const nearbyActiveCounts = await listActiveCheckinCounts(
@@ -275,6 +287,8 @@ export default async function CafeDetailPage({
             ? mySession.checkin
             : null
         }
+        weeklyCheckins={weeklyCheckins}
+        openIntentsInCity={openIntentsInCity}
       />
     </main>
   );
@@ -288,6 +302,8 @@ function CheckinSection({
   myIntent,
   roster,
   otherCheckin,
+  weeklyCheckins,
+  openIntentsInCity,
 }: {
   cafe: Cafe;
   activeCount: number;
@@ -296,6 +312,8 @@ function CheckinSection({
   myIntent: { kind: IntentKind; city: string; expiresAt: string } | null;
   roster: RosterEntry[] | null;
   otherCheckin: { cafeName: string; cafeSlug: string; expiresAt: string } | null;
+  weeklyCheckins: number;
+  openIntentsInCity: number;
 }) {
   return (
     <section className="flex flex-col gap-4 border-t border-dashed border-bean pt-6">
@@ -400,20 +418,102 @@ function CheckinSection({
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-muted">
-            Sign in to check in and let nearby nomads know this spot is alive
-            today.
-          </p>
-          <Link
-            href={`/auth/signin?next=/chiang-mai/cafes/${cafe.slug}`}
-            className="self-start rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-page hover:bg-accent-hover"
-          >
-            Sign in to check in →
-          </Link>
-        </div>
+        <AnonCheckinPreview
+          cafe={cafe}
+          activeCount={activeCount}
+          weeklyCheckins={weeklyCheckins}
+          openIntentsInCity={openIntentsInCity}
+        />
       )}
     </section>
+  );
+}
+
+// Anon visitor surface — they hit this page from Google ("best cafe in
+// chiang mai akha ama"), a shared link, or the homepage map. The roster is
+// gated behind co-presence per vision §4 ("symmetric reveal"), but we can
+// still hand them honest activity signals (active now, past-week volume,
+// city-wide meet density) without revealing identities. Goal: make sign-in
+// feel like an obvious next step, not a paywall.
+function AnonCheckinPreview({
+  cafe,
+  activeCount,
+  weeklyCheckins,
+  openIntentsInCity,
+}: {
+  cafe: Cafe;
+  activeCount: number;
+  weeklyCheckins: number;
+  openIntentsInCity: number;
+}) {
+  const stats: { value: number; label: string }[] = [];
+  if (activeCount > 0) {
+    stats.push({
+      value: activeCount,
+      label: `${activeCount === 1 ? "nomad" : "nomads"} working here right now`,
+    });
+  }
+  if (weeklyCheckins > 0) {
+    stats.push({
+      value: weeklyCheckins,
+      label: "check-ins in the last 7 days",
+    });
+  }
+  if (openIntentsInCity > 0) {
+    stats.push({
+      value: openIntentsInCity,
+      label: "nomads open to meet in Chiang Mai",
+    });
+  }
+
+  const headline =
+    activeCount > 0
+      ? `${activeCount} ${activeCount === 1 ? "nomad is" : "nomads are"} working at ${cafe.name} right now.`
+      : weeklyCheckins > 0
+        ? `${weeklyCheckins} nomads checked in at ${cafe.name} this week.`
+        : `Be the first to check in at ${cafe.name}.`;
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-base text-ink/85 sm:text-lg">{headline}</p>
+
+      {stats.length > 0 && (
+        <ul className="grid gap-4 sm:grid-cols-3 sm:gap-6">
+          {stats.map((s) => (
+            <li
+              key={s.label}
+              className="flex flex-col gap-1 rounded-2xl border border-dashed border-bean bg-bean/10 px-4 py-3 dark:bg-bean/5"
+            >
+              <p className="font-display text-3xl font-medium leading-none tabular-nums">
+                {s.value.toLocaleString()}
+              </p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted">
+                {s.label}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Link
+          href={`/auth/signin?next=/chiang-mai/cafes/${cafe.slug}`}
+          className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-page hover:bg-accent-hover"
+        >
+          {activeCount > 0 ? "Sign in to join them →" : "Sign in to check in →"}
+        </Link>
+        <Link
+          href="/chiang-mai/cafes"
+          className="font-mono text-xs uppercase tracking-widest text-muted underline-offset-4 hover:text-accent hover:underline"
+        >
+          Other cafés in Chiang Mai →
+        </Link>
+      </div>
+
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted">
+        Roster (who&apos;s here) reveals only to other checked-in nomads.
+      </p>
+    </div>
   );
 }
 

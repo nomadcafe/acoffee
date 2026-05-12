@@ -604,6 +604,23 @@ export async function countActiveCheckins(cafeId: string): Promise<number> {
   return count ?? 0;
 }
 
+// Past-7-day check-in volume for a cafe. Powers the anon-visitor surface
+// on the cafe detail page — "47 check-ins this week" tells an SEO lander
+// the place is alive without revealing handles (which require roster
+// membership). Counts every check-in created in the window, including
+// already-expired ones.
+export async function countCheckinsLastWeek(cafeId: string): Promise<number> {
+  if (!supabase) return devSyntheticCount(cafeId) * 4;
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { count, error } = await supabase
+    .from("checkins")
+    .select("id", { count: "exact", head: true })
+    .eq("cafe_id", cafeId)
+    .gte("created_at", since);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 // Deterministic fake activity for the no-Supabase dev path so the UI has
 // something to render. ~1/3 of cafés get a small non-zero count, stable per id.
 function devSyntheticCount(cafeId: string): number {
