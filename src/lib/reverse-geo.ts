@@ -57,6 +57,11 @@ export async function reverseGeocodeCity(
   // addresses (too granular); lower return country/region (too coarse).
   url.searchParams.set("zoom", "10");
   url.searchParams.set("addressdetails", "1");
+  // Without this, Nominatim returns names in the local script — Lisbon
+  // becomes "Lisboa", Chiang Mai becomes "เชียงใหม่" — which then fails
+  // to match our curated city slugs. accept-language=en stays consistent
+  // with the rest of the product's English-only UI.
+  url.searchParams.set("accept-language", "en");
 
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
