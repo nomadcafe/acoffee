@@ -216,9 +216,9 @@ function MyIntentBlock({ view }: { view: MyIntentView }) {
       <form action={clearIntent} className="self-start">
         <button
           type="submit"
-          className="font-mono text-xs uppercase tracking-widest text-muted underline-offset-4 hover:underline"
+          className="rounded-full border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:bg-bean/40"
         >
-          Withdraw intent
+          End intent
         </button>
       </form>
     </section>

@@ -23,6 +23,7 @@ import {
 import type { Cafe, Checkin, IntentKind } from "@/lib/types";
 import {
   acceptResponse,
+  clearIntent,
   declineResponse,
   respondToIntent,
   setIntent,
@@ -457,7 +458,7 @@ function IntentBroadcastStrip({
 }) {
   if (myIntent) {
     return (
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-ink/85">
           You&apos;re open to{" "}
           <span className="font-medium">
@@ -469,12 +470,22 @@ function IntentBroadcastStrip({
             className="font-mono text-xs text-muted"
           />
         </p>
-        <Link
-          href="/chiang-mai/meet"
-          className="font-mono text-[10px] uppercase tracking-widest text-accent underline-offset-4 hover:underline"
-        >
-          Manage →
-        </Link>
+        <div className="flex items-center gap-2">
+          <form action={clearIntent}>
+            <button
+              type="submit"
+              className="rounded-full border border-bean px-3 py-1 text-xs font-medium text-ink/85 hover:bg-bean/40"
+            >
+              End intent
+            </button>
+          </form>
+          <Link
+            href="/chiang-mai/meet"
+            className="font-mono text-[10px] uppercase tracking-widest text-accent underline-offset-4 hover:underline"
+          >
+            See responses →
+          </Link>
+        </div>
       </div>
     );
   }
