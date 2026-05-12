@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { addPin, listPins } from "@/lib/store";
+import { addPin, listPins, type Bbox } from "@/lib/store";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ const PinInput = z.object({
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const bboxParam = searchParams.get("bbox");
-  let bbox: Parameters<typeof listPins>[0]["bbox"] = undefined;
+  let bbox: Bbox | undefined = undefined;
   if (bboxParam) {
     const parts = bboxParam.split(",").map(Number);
     if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {

@@ -113,22 +113,19 @@ export async function countPinsInBbox(input: {
   const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   if (supabase) {
-    const baseFilter = (
-      q: ReturnType<typeof supabase.from>,
-    ) =>
-      q
+    const bboxFiltered = (cutoff: string) =>
+      supabase!
+        .from("pins")
+        .select("id", { count: "exact", head: true })
         .gte("lat", input.bbox.minLat)
         .lte("lat", input.bbox.maxLat)
         .gte("lng", input.bbox.minLng)
-        .lte("lng", input.bbox.maxLng);
+        .lte("lng", input.bbox.maxLng)
+        .gte("created_at", cutoff);
 
     const [totalRes, recentRes] = await Promise.all([
-      baseFilter(
-        supabase.from("pins").select("id", { count: "exact", head: true }),
-      ).gte("created_at", cutoffWindow),
-      baseFilter(
-        supabase.from("pins").select("id", { count: "exact", head: true }),
-      ).gte("created_at", cutoff24h),
+      bboxFiltered(cutoffWindow),
+      bboxFiltered(cutoff24h),
     ]);
     if (totalRes.error) throw totalRes.error;
     if (recentRes.error) throw recentRes.error;

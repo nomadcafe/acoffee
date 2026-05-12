@@ -6,16 +6,10 @@ import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 
 const CHECKIN_TTL_HOURS = 2;
 
-type Result = { ok: boolean; message?: string };
-
-export async function checkIn(formData: FormData): Promise<Result> {
-  if (!isAuthConfigured()) {
-    return { ok: false, message: "Sign-in isn't configured yet." };
-  }
+export async function checkIn(formData: FormData): Promise<void> {
+  if (!isAuthConfigured()) return;
   const cafeId = formData.get("cafeId");
-  if (typeof cafeId !== "string" || !cafeId) {
-    return { ok: false, message: "Missing café." };
-  }
+  if (typeof cafeId !== "string" || !cafeId) return;
   // Optional public note shown to others on the roster. 80 char DB cap.
   const rawNote = formData.get("note");
   const note =
@@ -27,7 +21,7 @@ export async function checkIn(formData: FormData): Promise<Result> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Sign in to check in." };
+  if (!user) return;
 
   // Idempotency: if the user already has an active checkin here, update the
   // note (if changed) but don't create a duplicate row.
@@ -47,7 +41,7 @@ export async function checkIn(formData: FormData): Promise<Result> {
         .eq("id", existing.id as string);
     }
     revalidatePath("/chiang-mai/cafes/[slug]", "page");
-    return { ok: true };
+    return;
   }
 
   const expiresAt = new Date(
@@ -61,28 +55,21 @@ export async function checkIn(formData: FormData): Promise<Result> {
       note,
       expires_at: expiresAt,
     });
-  if (error) return { ok: false, message: error.message };
+  if (error) return;
 
   await maybePromoteCafe(cafeId);
 
   revalidatePath("/chiang-mai/cafes/[slug]", "page");
-  return { ok: true };
 }
 
-export async function checkOut(formData: FormData): Promise<Result> {
-  if (!isAuthConfigured()) {
-    return { ok: false, message: "Sign-in isn't configured yet." };
-  }
+export async function checkOut(formData: FormData): Promise<void> {
+  if (!isAuthConfigured()) return;
   const checkinId = formData.get("checkinId");
-  if (typeof checkinId !== "string" || !checkinId) {
-    return { ok: false, message: "Missing check-in." };
-  }
+  if (typeof checkinId !== "string" || !checkinId) return;
 
   const supabase = await createSupabaseServer();
   // RLS ensures only the owner can delete (checkins_delete_own policy).
-  const { error } = await supabase.from("checkins").delete().eq("id", checkinId);
-  if (error) return { ok: false, message: error.message };
+  await supabase.from("checkins").delete().eq("id", checkinId);
 
   revalidatePath("/chiang-mai/cafes/[slug]", "page");
-  return { ok: true };
 }
