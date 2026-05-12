@@ -65,9 +65,11 @@ export async function POST(req: Request) {
   }
 
   const ip = ipFromHeaders(req.headers);
+  // Loose limits while debugging / pre-launch; ratchet back once real traffic
+  // arrives. In-memory state resets on cold start so this isn't strict anyway.
   const limit = checkRateLimit(`pins:${ip}`, [
-    { windowMs: HOUR, max: 1 },
-    { windowMs: DAY, max: 3 },
+    { windowMs: HOUR, max: 20 },
+    { windowMs: DAY, max: 60 },
   ]);
   if (!limit.allowed) {
     return NextResponse.json(
