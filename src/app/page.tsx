@@ -202,16 +202,15 @@ export default async function Home({
             so alone.
           </p>
           <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
-            acoffee · tiles by{" "}
+            acoffee ·{" "}
             <a
               className="underline-offset-2 hover:text-accent hover:underline"
-              href="https://openfreemap.org/"
+              href="https://github.com/nomadcafe/acoffee"
               target="_blank"
               rel="noreferrer"
             >
-              OpenFreeMap
-            </a>{" "}
-            · © OSM contributors
+              Open source
+            </a>
           </p>
         </div>
       </footer>
