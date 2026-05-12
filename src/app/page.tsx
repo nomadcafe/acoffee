@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { CitiesPanel, type CityWithActivity } from "@/components/CitiesPanel";
+import { CitiesPanel, type CityRowData } from "@/components/CitiesPanel";
 import { PinMap } from "@/components/PinMap";
-import { cities, HOMEPAGE_CITIES } from "@/lib/cities";
+import { cities, findCityByName, HOMEPAGE_CITIES } from "@/lib/cities";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import {
   countPinsGlobal,
-  countPinsInBbox,
   listPins,
   listTopActiveCafes,
+  listTopCitiesByPins,
 } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -19,39 +19,80 @@ export default async function Home({
 }) {
   const { focus } = await searchParams;
   const focusedCity = focus && cities[focus] ? cities[focus] : null;
-  const [pins, globalPins] = await Promise.all([listPins(), countPinsGlobal()]);
 
-  // Fetch activity for each homepage city in parallel. For OPEN cities we
-  // also pull café activity to surface "X working at Y cafés now" inline.
-  const cityRows: CityWithActivity[] = await Promise.all(
-    HOMEPAGE_CITIES.map(async (city) => {
-      const [pinCounts, topActive] = await Promise.all([
-        countPinsInBbox({ bbox: city.bbox }),
-        city.status === "open"
-          ? listTopActiveCafes(city.slug, 50)
-          : Promise.resolve([]),
-      ]);
+  // Pull pins (for the map), global pin counts (for the strip), and the
+  // top-N cities aggregate (for the CitiesPanel) all in parallel.
+  const [pins, globalPins, topCityAgg] = await Promise.all([
+    listPins(),
+    countPinsGlobal(),
+    listTopCitiesByPins({ limit: 8 }),
+  ]);
+
+  // Build the panel data. For each aggregated city name, try to match a
+  // curated City record (Chiang Mai / Bangkok / Lisbon / Bali) — known
+  // matches get the full status + cafe activity treatment; everything else
+  // surfaces as a discovered row.
+  const knownCafeActivity = new Map<string, { activeCafes: number; workingNow: number }>();
+  await Promise.all(
+    HOMEPAGE_CITIES.filter((c) => c.status === "open").map(async (city) => {
+      const topActive = await listTopActiveCafes(city.slug, 50);
       const workingNow = topActive.reduce((s, t) => s + t.activeCount, 0);
-      return {
-        city,
-        pinCount: pinCounts.total,
-        pinsLast24h: pinCounts.last24h,
-        activeCafes: city.status === "open" ? topActive.length : undefined,
-        workingNow: city.status === "open" ? workingNow : undefined,
-      };
+      knownCafeActivity.set(city.slug, {
+        activeCafes: topActive.length,
+        workingNow,
+      });
     }),
   );
 
+  // Seed: curated cities that had ZERO pins in the 30-day window won't show
+  // up in topCityAgg. Add them explicitly with 0 counts so they're still
+  // visible — otherwise a fresh deploy renders an empty panel even though
+  // the product is open in Chiang Mai.
+  const seenSlugs = new Set<string>();
+  const rows: CityRowData[] = [];
+  for (const agg of topCityAgg) {
+    const known = findCityByName(agg.city);
+    if (known) {
+      const activity = knownCafeActivity.get(known.slug);
+      rows.push({
+        kind: "known",
+        city: known,
+        pinCount: agg.pinCount,
+        pinsLast24h: agg.pinsLast24h,
+        activeCafes: known.status === "open" ? activity?.activeCafes ?? 0 : undefined,
+        workingNow: known.status === "open" ? activity?.workingNow ?? 0 : undefined,
+      });
+      seenSlugs.add(known.slug);
+    } else {
+      rows.push({
+        kind: "discovered",
+        name: agg.city,
+        pinCount: agg.pinCount,
+        pinsLast24h: agg.pinsLast24h,
+      });
+    }
+  }
+  for (const city of HOMEPAGE_CITIES) {
+    if (seenSlugs.has(city.slug)) continue;
+    const activity = knownCafeActivity.get(city.slug);
+    rows.push({
+      kind: "known",
+      city,
+      pinCount: 0,
+      pinsLast24h: 0,
+      activeCafes: city.status === "open" ? activity?.activeCafes ?? 0 : undefined,
+      workingNow: city.status === "open" ? activity?.workingNow ?? 0 : undefined,
+    });
+  }
+
   // Total nomads currently working at a café in any OPEN city — the most
   // concrete "the product is alive" number we can show on the home page.
-  const workingNowAcrossOpenCities = cityRows.reduce(
-    (sum, r) => sum + (r.workingNow ?? 0),
-    0,
-  );
+  const workingNowAcrossOpenCities = Array.from(knownCafeActivity.values())
+    .reduce((sum, a) => sum + a.workingNow, 0);
 
-  const openCityNames = cityRows
-    .filter((r) => r.city.status === "open")
-    .map((r) => r.city.name);
+  const openCityNames = HOMEPAGE_CITIES
+    .filter((c) => c.status === "open")
+    .map((c) => c.name);
 
   const websiteJsonLd = {
     "@context": "https://schema.org",
@@ -164,7 +205,7 @@ export default async function Home({
         />
       </div>
 
-      <CitiesPanel cities={cityRows} />
+      <CitiesPanel rows={rows} />
 
       <footer className="mx-auto w-full max-w-5xl px-4 pb-12 pt-16 sm:px-6">
         <div className="flex flex-col gap-3 border-t border-bean pt-6">

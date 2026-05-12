@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
 import type { Cafe, CafeSubmissionStatus, Pin, Subscriber } from "./types";
+import { reverseGeocodeCity } from "./reverse-geo";
 import { buildSeedPins, seedCafes } from "./seed-data";
 
 // User-submitted cafés are visible immediately with a "newly added" badge.
@@ -191,6 +192,13 @@ export async function addPin(input: {
   nickname: string | null;
   ip: string | null;
 }): Promise<Pin> {
+  // Resolve city BEFORE insert so the row lands fully populated; failure
+  // returns null and the city column stays empty (CitiesPanel filters
+  // those out). 3s timeout cap means worst case this adds 3s to a pin
+  // drop — acceptable since pins are infrequent per-user actions and
+  // there's already a "Locating…" state on the button.
+  const city = await reverseGeocodeCity(input.lat, input.lng);
+
   if (supabase) {
     const { data, error } = await supabase
       .from("pins")
@@ -199,6 +207,7 @@ export async function addPin(input: {
         lng: input.lng,
         nickname: input.nickname,
         ip: input.ip,
+        city,
       })
       .select("id, lat, lng, nickname, created_at")
       .single();
@@ -220,6 +229,78 @@ export async function addPin(input: {
   };
   mem.pins.push(pin);
   return pin;
+}
+
+// Aggregate pins by their resolved city name. Drives the "Where nomads are
+// right now" panel — replaces the prior bbox-per-curated-city approach so
+// cities can surface dynamically as pins come in. Two windows in one
+// query: 30-day total (sort key) and 24h count (recency badge).
+export type CityPinAggregate = {
+  city: string;
+  pinCount: number;
+  pinsLast24h: number;
+};
+
+export async function listTopCitiesByPins(opts?: {
+  limit?: number;
+}): Promise<CityPinAggregate[]> {
+  const limit = opts?.limit ?? 8;
+  const cutoff30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const cutoff24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  if (supabase) {
+    // Pull rows and aggregate in JS — Supabase JS client doesn't expose
+    // GROUP BY directly. At our scale (≤ a few thousand pins in the
+    // 30-day window) this is fine; a SQL view / rpc would be the move
+    // once volume grows.
+    const { data, error } = await supabase
+      .from("pins")
+      .select("city, created_at")
+      .not("city", "is", null)
+      .gte("created_at", cutoff30d);
+    if (error) throw error;
+    return aggregateByCity(
+      (data ?? []).map((r) => ({
+        city: r.city as string,
+        createdAt: r.created_at as string,
+      })),
+      cutoff24h,
+      limit,
+    );
+  }
+
+  // Memory fallback (dev / no Supabase) — derive a fake city by rounding
+  // coords; good enough to not crash the UI in dev mode.
+  const rows = mem.pins
+    .filter((p) => new Date(p.createdAt).getTime() >= Date.parse(cutoff30d))
+    .map((p) => ({
+      city: `~${p.lat.toFixed(1)},${p.lng.toFixed(1)}`,
+      createdAt: p.createdAt,
+    }));
+  return aggregateByCity(rows, cutoff24h, limit);
+}
+
+function aggregateByCity(
+  rows: Array<{ city: string; createdAt: string }>,
+  cutoff24hIso: string,
+  limit: number,
+): CityPinAggregate[] {
+  const cutoff24hMs = Date.parse(cutoff24hIso);
+  const byCity = new Map<string, { total: number; last24h: number }>();
+  for (const row of rows) {
+    const slot = byCity.get(row.city) ?? { total: 0, last24h: 0 };
+    slot.total += 1;
+    if (Date.parse(row.createdAt) >= cutoff24hMs) slot.last24h += 1;
+    byCity.set(row.city, slot);
+  }
+  return Array.from(byCity.entries())
+    .map(([city, { total, last24h }]) => ({
+      city,
+      pinCount: total,
+      pinsLast24h: last24h,
+    }))
+    .sort((a, b) => b.pinCount - a.pinCount)
+    .slice(0, limit);
 }
 
 export async function addSubscriber(input: {

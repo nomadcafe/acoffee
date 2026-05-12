@@ -2,7 +2,13 @@ import Link from "next/link";
 import { SubscribeForm } from "@/components/SubscribeForm";
 import type { City } from "@/lib/cities";
 
-export type CityWithActivity = {
+// Row data is a tagged union: a "known" row carries the full City record
+// (bbox, status, etc.) which unlocks the Enter / Subscribe CTAs; a
+// "discovered" row only has the raw Nominatim city name + pin counts.
+// Discovered rows are the cities the data brought in that we haven't
+// curated — they get a generic "drop a pin / be the first" CTA.
+export type KnownCityRow = {
+  kind: "known";
   city: City;
   pinCount: number;
   pinsLast24h: number;
@@ -10,14 +16,23 @@ export type CityWithActivity = {
   workingNow?: number;
 };
 
-export function CitiesPanel({ cities }: { cities: CityWithActivity[] }) {
-  // Sort: open cities first (they're the actual product), then by pin count
-  // descending. Within "building" the highest density is the lead candidate
-  // for Phase 2.
-  const sorted = [...cities].sort((a, b) => {
-    if (a.city.status !== b.city.status) {
-      return a.city.status === "open" ? -1 : 1;
-    }
+export type DiscoveredCityRow = {
+  kind: "discovered";
+  name: string;
+  pinCount: number;
+  pinsLast24h: number;
+};
+
+export type CityRowData = KnownCityRow | DiscoveredCityRow;
+
+export function CitiesPanel({ rows }: { rows: CityRowData[] }) {
+  // Sort: known + open first (the actual product), then everything else by
+  // pin count desc. Discovered cities and "building" cities co-sort —
+  // whichever has more pins leads.
+  const sorted = [...rows].sort((a, b) => {
+    const aOpen = a.kind === "known" && a.city.status === "open";
+    const bOpen = b.kind === "known" && b.city.status === "open";
+    if (aOpen !== bOpen) return aOpen ? -1 : 1;
     return b.pinCount - a.pinCount;
   });
 
@@ -32,16 +47,28 @@ export function CitiesPanel({ cities }: { cities: CityWithActivity[] }) {
         </p>
       </div>
 
-      <ul className="flex flex-col">
-        {sorted.map((row) => (
-          <li
-            key={row.city.slug}
-            className="border-b border-dashed border-bean py-5 last:border-b-0"
+      {sorted.length === 0 ? (
+        <p className="text-sm text-muted">
+          No pins yet.{" "}
+          <Link
+            href="#world-map"
+            className="font-medium text-accent underline-offset-4 hover:underline"
           >
-            <CityRow row={row} />
-          </li>
-        ))}
-      </ul>
+            Drop the first one ↑
+          </Link>
+        </p>
+      ) : (
+        <ul className="flex flex-col">
+          {sorted.map((row) => (
+            <li
+              key={rowKey(row)}
+              className="border-b border-dashed border-bean py-5 last:border-b-0"
+            >
+              <CityRow row={row} />
+            </li>
+          ))}
+        </ul>
+      )}
 
       <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
         Don&apos;t see your city?{" "}
@@ -57,7 +84,16 @@ export function CitiesPanel({ cities }: { cities: CityWithActivity[] }) {
   );
 }
 
-function CityRow({ row }: { row: CityWithActivity }) {
+function rowKey(row: CityRowData): string {
+  return row.kind === "known" ? `k:${row.city.slug}` : `d:${row.name}`;
+}
+
+function CityRow({ row }: { row: CityRowData }) {
+  if (row.kind === "known") return <KnownRow row={row} />;
+  return <DiscoveredRow row={row} />;
+}
+
+function KnownRow({ row }: { row: KnownCityRow }) {
   const { city, pinCount, pinsLast24h, activeCafes, workingNow } = row;
   const isOpen = city.status === "open";
   const isEmpty = pinCount === 0;
@@ -68,18 +104,7 @@ function CityRow({ row }: { row: CityWithActivity }) {
         <div className="flex flex-wrap items-baseline gap-3">
           <h3 className="font-serif text-2xl font-medium">{city.name}</h3>
           <StatusBadge status={city.status} />
-          {pinsLast24h > 0 && (
-            <span
-              className="flex items-center gap-1 font-mono text-[11px] text-accent"
-              title={`${pinsLast24h} new pin${pinsLast24h === 1 ? "" : "s"} in the last 24h`}
-            >
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inset-0 animate-ping rounded-full bg-accent/60" />
-                <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-              </span>
-              +{pinsLast24h} today
-            </span>
-          )}
+          {pinsLast24h > 0 && <RecencyDot count={pinsLast24h} />}
         </div>
         <p className="font-mono text-xs uppercase tracking-wider text-muted">
           {isEmpty ? (
@@ -135,6 +160,56 @@ function CityRow({ row }: { row: CityWithActivity }) {
   );
 }
 
+// Discovered city: we know its name from reverse-geocoded pins but have no
+// curated page / bbox. Show name + activity, offer generic subscribe so we
+// can capture demand for cities we don't yet serve.
+function DiscoveredRow({ row }: { row: DiscoveredCityRow }) {
+  const { name, pinCount, pinsLast24h } = row;
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+      <div className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h3 className="font-serif text-2xl font-medium">{name}</h3>
+          <span className="rounded-full border border-dashed border-bean px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-muted">
+            New
+          </span>
+          {pinsLast24h > 0 && <RecencyDot count={pinsLast24h} />}
+        </div>
+        <p className="font-mono text-xs uppercase tracking-wider text-muted">
+          {pinCount} pin{pinCount === 1 ? "" : "s"} · demand signal, no
+          product yet
+        </p>
+      </div>
+
+      <div className="shrink-0">
+        <details className="group">
+          <summary className="cursor-pointer list-none rounded-full border border-accent/60 px-4 py-2 text-sm font-medium text-accent hover:bg-accent-soft group-open:bg-accent-soft">
+            Notify me when {name} opens →
+          </summary>
+          <div className="mt-3 max-w-sm">
+            <SubscribeForm city={slugify(name)} />
+          </div>
+        </details>
+      </div>
+    </div>
+  );
+}
+
+function RecencyDot({ count }: { count: number }) {
+  return (
+    <span
+      className="flex items-center gap-1 font-mono text-[11px] text-accent"
+      title={`${count} new pin${count === 1 ? "" : "s"} in the last 24h`}
+    >
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="absolute inset-0 animate-ping rounded-full bg-accent/60" />
+        <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+      </span>
+      +{count} today
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: "open" | "building" }) {
   if (status === "open") {
     return (
@@ -148,4 +223,16 @@ function StatusBadge({ status }: { status: "open" | "building" }) {
       Building
     </span>
   );
+}
+
+// City name → subscribe tag. Stays in this file because it's only the
+// CitiesPanel that needs it; if other surfaces ever need to subscribe by
+// discovered city, promote to lib/.
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }

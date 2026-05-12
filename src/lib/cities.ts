@@ -83,3 +83,12 @@ export function findCityByLatLng(lat: number, lng: number): City | null {
   }
   return null;
 }
+
+// Map a Nominatim-returned city name back to one of our curated cities.
+// Case-insensitive exact match. Used by the CitiesPanel to decide whether
+// a reverse-geocoded pin aggregate belongs to a known city (full Enter /
+// subscribe CTAs) or a discovered one (generic subscribe).
+export function findCityByName(name: string): City | null {
+  const norm = name.trim().toLowerCase();
+  return HOMEPAGE_CITIES.find((c) => c.name.toLowerCase() === norm) ?? null;
+}
