@@ -118,6 +118,17 @@ function SetIntentForm() {
           Pick one. Coffee &amp; cowork stay open 4h; dinner anchors to tonight
           (10pm local); hike anchors to today (11pm local).
         </p>
+        <p className="text-xs text-muted/80">
+          <span aria-hidden>💡</span> Stronger signal: check in at a café first.
+          Responders see «working at X right now» on your intent and reply
+          faster.{" "}
+          <Link
+            href="/chiang-mai/cafes"
+            className="font-medium text-accent underline-offset-4 hover:underline"
+          >
+            Pick a café →
+          </Link>
+        </p>
       </div>
       <div className="flex flex-wrap gap-2">
         {INTENT_KIND_ORDER.map((kind) => (
@@ -215,7 +226,7 @@ function MyIntentBlock({ view }: { view: MyIntentView }) {
 }
 
 function OtherIntentCard({ view }: { view: OtherIntentView }) {
-  const { intent, ownerHandle, ownerContact, myResponse } = view;
+  const { intent, ownerHandle, ownerCheckin, ownerContact, myResponse } = view;
 
   return (
     <article className="flex flex-col gap-3 border-b border-dashed border-bean py-5 last:border-b-0">
@@ -233,6 +244,19 @@ function OtherIntentCard({ view }: { view: OtherIntentView }) {
           className="rounded-full border border-accent/40 px-2.5 py-0.5 font-mono text-xs font-medium text-accent"
         />
       </div>
+
+      {ownerCheckin && (
+        <p className="font-mono text-[11px] text-accent">
+          <span aria-hidden>📍</span> working at{" "}
+          <Link
+            href={`/chiang-mai/cafes/${ownerCheckin.cafeSlug}`}
+            className="font-medium underline-offset-4 hover:underline"
+          >
+            {ownerCheckin.cafeName}
+          </Link>{" "}
+          right now
+        </p>
+      )}
 
       {myResponse?.status === "accepted" ? (
         <div className="rounded-xl bg-accent-soft p-3">

@@ -421,6 +421,10 @@ export type OtherIntentView = {
   intent: Intent;
   ownerHandle: string;
   ownerContact: ContactReveal | null; // only set when my response is accepted
+  // Lightweight presence signal: is this owner currently checked in somewhere?
+  // Helps responders self-filter ("they're actually in town and working
+  // right now" vs "just posted from somewhere"). Null = no active check-in.
+  ownerCheckin: { cafeName: string; cafeSlug: string } | null;
   myResponse: {
     id: string;
     status: IntentResponseStatus;
@@ -472,32 +476,70 @@ export async function listOtherActiveIntentsView(
   if (!intents || intents.length === 0) return [];
 
   const intentIds = intents.map((i) => i.id as string);
-  const { data: myResponses, error: respErr } = await supabase
-    .from("intent_responses")
-    .select("id, intent_id, status")
-    .in("intent_id", intentIds)
-    .eq("responder_id", user.id);
-  if (respErr) throw respErr;
+  const ownerIds = Array.from(
+    new Set(intents.map((i) => i.profile_id as string)),
+  );
+
+  const [myResponsesRes, ownerCheckinsRes] = await Promise.all([
+    supabase
+      .from("intent_responses")
+      .select("id, intent_id, status")
+      .in("intent_id", intentIds)
+      .eq("responder_id", user.id),
+    // Active check-in per owner (most recent if multiple). Most owners have
+    // ≤1 active anyway because checkIn now ends prior sessions; .order +
+    // first-write-wins handles legacy rows.
+    supabase
+      .from("checkins")
+      .select("profile_id, created_at, cafe:cafes(name, slug)")
+      .in("profile_id", ownerIds)
+      .gt("expires_at", nowIso)
+      .order("created_at", { ascending: false }),
+  ]);
+  if (myResponsesRes.error) throw myResponsesRes.error;
+  if (ownerCheckinsRes.error) throw ownerCheckinsRes.error;
 
   const responseByIntent = new Map<
     string,
     { id: string; status: IntentResponseStatus }
   >(
-    (myResponses ?? []).map((r) => [
+    (myResponsesRes.data ?? []).map((r) => [
       r.intent_id as string,
       { id: r.id as string, status: r.status as IntentResponseStatus },
     ]),
   );
 
+  const checkinByOwner = new Map<
+    string,
+    { cafeName: string; cafeSlug: string }
+  >();
+  for (const row of ownerCheckinsRes.data ?? []) {
+    const profileId = row.profile_id as string;
+    if (checkinByOwner.has(profileId)) continue; // first (most recent) wins
+    const join = row.cafe as
+      | { name?: string; slug?: string }
+      | { name?: string; slug?: string }[]
+      | null
+      | undefined;
+    const cafe = Array.isArray(join) ? join[0] : join;
+    if (cafe?.name && cafe?.slug) {
+      checkinByOwner.set(profileId, {
+        cafeName: cafe.name,
+        cafeSlug: cafe.slug,
+      });
+    }
+  }
+
   return Promise.all(
     intents.map(async (i) => {
       const intentId = i.id as string;
+      const profileId = i.profile_id as string;
       const myResp = responseByIntent.get(intentId) ?? null;
       const owner = extractProfileJoin((i as { owner?: unknown }).owner);
       const ownerContact: ContactReveal | null =
         myResp?.status === "accepted"
           ? {
-              email: await lookupEmail(i.profile_id as string),
+              email: await lookupEmail(profileId),
               telegramHandle: owner.telegram_handle ?? null,
               whatsappNumber: owner.whatsapp_number ?? null,
             }
@@ -505,7 +547,7 @@ export async function listOtherActiveIntentsView(
       return {
         intent: {
           id: intentId,
-          profileId: i.profile_id as string,
+          profileId,
           kind: i.kind as IntentKind,
           city: i.city as string,
           expiresAt: i.expires_at as string,
@@ -513,6 +555,7 @@ export async function listOtherActiveIntentsView(
         },
         ownerHandle: owner.handle ?? "unknown",
         ownerContact,
+        ownerCheckin: checkinByOwner.get(profileId) ?? null,
         myResponse: myResp,
       };
     }),
