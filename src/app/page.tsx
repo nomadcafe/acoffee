@@ -113,9 +113,6 @@ export default async function Home({
 
         <ol className="grid gap-12 sm:grid-cols-3 sm:gap-10">
           <li className="flex flex-col gap-3 border-t-2 border-accent pt-4">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-              Step 01
-            </p>
             <h3 className="font-serif text-2xl font-medium sm:text-3xl">
               Drop a pin when you land
             </h3>
@@ -125,9 +122,6 @@ export default async function Home({
             </p>
           </li>
           <li className="flex flex-col gap-3 border-t-2 border-accent pt-4">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-              Step 02
-            </p>
             <h3 className="font-serif text-2xl font-medium sm:text-3xl">
               See who&apos;s working where
             </h3>
@@ -137,9 +131,6 @@ export default async function Home({
             </p>
           </li>
           <li className="flex flex-col gap-3 border-t-2 border-accent pt-4">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-              Step 03
-            </p>
             <h3 className="font-serif text-2xl font-medium sm:text-3xl">
               Set one signal — meet today
             </h3>

@@ -234,7 +234,10 @@ function FilterBar({ filters }: { filters: Filters }) {
             key={it.key}
             href={toggleHref(filters, it.key)}
             aria-pressed={active}
-            className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
+            // min-h-11 (44px) hits WCAG tap-target minimum for touch — the
+            // previous py-1.5 squashed buttons to ~30px which was a thumb
+            // miss on mobile. px-4 gives some lateral breathing room too.
+            className={`inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium transition ${
               active
                 ? "bg-accent text-page hover:bg-accent-hover"
                 : "border border-bean text-ink/85 hover:border-accent/60"

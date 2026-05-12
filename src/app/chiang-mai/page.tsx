@@ -243,18 +243,6 @@ export default async function ChiangMaiPage() {
       </section>
 
       <ActivityFeed items={recentCheckins} cityName="Chiang Mai" />
-
-      <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 border-t border-dashed border-bean px-4 pb-16 pt-10 sm:px-6">
-        <h2 className="font-mono text-[11px] uppercase tracking-widest text-muted">
-          Why Chiang Mai first
-        </h2>
-        <ul className="grid gap-1.5 text-sm text-muted sm:grid-cols-2">
-          <li>· Largest year-round nomad density in Southeast Asia.</li>
-          <li>· Café and co-working culture is the default workspace.</li>
-          <li>· Affordable enough that people stay for months, not days.</li>
-          <li>· High Mandarin-speaking nomad share — underserved by EN tools.</li>
-        </ul>
-      </section>
     </main>
   );
 }
