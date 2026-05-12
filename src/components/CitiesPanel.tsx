@@ -26,15 +26,11 @@ export type DiscoveredCityRow = {
 export type CityRowData = KnownCityRow | DiscoveredCityRow;
 
 export function CitiesPanel({ rows }: { rows: CityRowData[] }) {
-  // Sort: known + open first (the actual product), then everything else by
-  // pin count desc. Discovered cities and "building" cities co-sort —
-  // whichever has more pins leads.
-  const sorted = [...rows].sort((a, b) => {
-    const aOpen = a.kind === "known" && a.city.status === "open";
-    const bOpen = b.kind === "known" && b.city.status === "open";
-    if (aOpen !== bOpen) return aOpen ? -1 : 1;
-    return b.pinCount - a.pinCount;
-  });
+  // Pure pin-count sort. Title is 'Where nomads are right now' — the answer
+  // is data, not which city we happen to have a product page in. Open vs
+  // building shows on the status badge, and 'Enter X →' still lives on
+  // open rows regardless of position, so funnel intent isn't lost.
+  const sorted = [...rows].sort((a, b) => b.pinCount - a.pinCount);
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-5 border-t border-dashed border-bean px-4 pt-12 sm:px-6 sm:pt-16">
