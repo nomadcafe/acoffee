@@ -75,4 +75,7 @@ export type ContactReveal = {
   email: string | null;
   telegramHandle: string | null;
   whatsappNumber: string | null;
+  // Surfaced post-match so the first message has context — saves a "what
+  // do you do?" round-trip. Null if the matched party left bio empty.
+  bio: string | null;
 };

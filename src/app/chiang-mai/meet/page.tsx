@@ -342,22 +342,29 @@ function MatchContact({ contact }: { contact: ContactReveal | null }) {
   }
 
   return (
-    <ul className="mt-2 flex flex-col gap-1">
-      {channels.map((c) => (
-        <li key={c.label} className="text-sm">
-          <span className="font-mono text-xs uppercase tracking-wider text-muted">
-            {c.label}
-          </span>{" "}
-          <a
-            href={c.href}
-            target={c.label === "Email" ? undefined : "_blank"}
-            rel={c.label === "Email" ? undefined : "noreferrer"}
-            className="font-medium text-accent underline-offset-4 hover:underline"
-          >
-            {c.display}
-          </a>
-        </li>
-      ))}
-    </ul>
+    <div className="mt-2 flex flex-col gap-2">
+      {contact.bio && (
+        <p className="border-l-2 border-accent/40 pl-3 text-sm italic text-ink/85">
+          {contact.bio}
+        </p>
+      )}
+      <ul className="flex flex-col gap-1">
+        {channels.map((c) => (
+          <li key={c.label} className="text-sm">
+            <span className="font-mono text-xs uppercase tracking-wider text-muted">
+              {c.label}
+            </span>{" "}
+            <a
+              href={c.href}
+              target={c.label === "Email" ? undefined : "_blank"}
+              rel={c.label === "Email" ? undefined : "noreferrer"}
+              className="font-medium text-accent underline-offset-4 hover:underline"
+            >
+              {c.display}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

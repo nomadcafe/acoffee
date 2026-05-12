@@ -23,47 +23,56 @@ export function ProfileForm({
   const isAutoHandle = AUTO_HANDLE.test(profile.handle);
 
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form action={action} className="flex flex-col gap-7">
       {after && <input type="hidden" name="after" value={after} />}
-      <Field
-        label="Handle"
-        name="handle"
-        defaultValue={isAutoHandle ? "" : profile.handle}
-        placeholder={isAutoHandle ? "pick one · e.g. alex_nomad" : undefined}
-        hint={
-          isAutoHandle
-            ? `Currently auto-assigned · 3–20 chars · a–z, 0–9, _`
-            : "3–20 chars · a–z, 0–9, _"
-        }
-        error={errs.handle}
-        required
-      />
 
-      <FieldArea
-        label="Bio"
-        name="bio"
-        defaultValue={profile.bio ?? ""}
-        hint="Optional · up to 140 chars"
-        error={errs.bio}
-      />
+      <fieldset className="flex flex-col gap-5 border-none p-0">
+        <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
+          Identity
+        </legend>
+        <Field
+          label="Handle"
+          name="handle"
+          defaultValue={isAutoHandle ? "" : profile.handle}
+          placeholder={isAutoHandle ? "pick one · e.g. alex_nomad" : undefined}
+          hint={
+            isAutoHandle
+              ? `Currently auto-assigned · 3–20 chars · a–z, 0–9, _`
+              : "3–20 chars · a–z, 0–9, _"
+          }
+          error={errs.handle}
+          required
+        />
+        <FieldArea
+          label="Bio"
+          name="bio"
+          defaultValue={profile.bio ?? ""}
+          hint="Optional · up to 140 chars · shown to your match alongside contact"
+          error={errs.bio}
+        />
+      </fieldset>
 
-      <Field
-        label="Telegram"
-        name="telegramHandle"
-        defaultValue={profile.telegramHandle ?? ""}
-        placeholder="@yourhandle"
-        hint="Recommended · 5–32 letters/digits/_, no spaces · revealed only after a match"
-        error={errs.telegramHandle}
-      />
-
-      <Field
-        label="WhatsApp"
-        name="whatsappNumber"
-        defaultValue={profile.whatsappNumber ?? ""}
-        placeholder="+66812345678"
-        hint="Recommended · include country code with + · revealed only after a match"
-        error={errs.whatsappNumber}
-      />
+      <fieldset className="flex flex-col gap-5 border-none p-0">
+        <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
+          Contact · revealed only after a match
+        </legend>
+        <Field
+          label="Telegram"
+          name="telegramHandle"
+          defaultValue={profile.telegramHandle ?? ""}
+          placeholder="@yourhandle"
+          hint="Recommended · 5–32 letters/digits/_, no spaces"
+          error={errs.telegramHandle}
+        />
+        <Field
+          label="WhatsApp"
+          name="whatsappNumber"
+          defaultValue={profile.whatsappNumber ?? ""}
+          placeholder="+66812345678"
+          hint="Recommended · include country code with +"
+          error={errs.whatsappNumber}
+        />
+      </fieldset>
 
       <div className="flex items-center gap-3">
         <button

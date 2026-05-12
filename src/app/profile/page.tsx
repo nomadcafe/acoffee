@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
-import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
+import {
+  getMyProfile,
+  getMyProfileStats,
+  getSessionUser,
+} from "@/lib/auth-queries";
 import { ProfileForm } from "./ProfileForm";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +50,10 @@ export default async function ProfilePage({
     );
   }
 
-  const profile = await getMyProfile();
+  const [profile, stats] = await Promise.all([
+    getMyProfile(),
+    getMyProfileStats(),
+  ]);
   if (!profile) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-14">
@@ -82,10 +89,18 @@ export default async function ProfilePage({
       <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />
 
       {!isOnboarding && (
-        <section className="mt-6 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
+        <section className="mt-6 flex flex-col gap-4 border-t border-dashed border-bean pt-6">
           <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
             Account
           </p>
+          {stats && (
+            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <Stat label="Joined" value={formatJoined(stats.joinedAt)} />
+              <Stat label="Check-ins" value={stats.checkinCount.toString()} />
+              <Stat label="Intents" value={stats.intentCount.toString()} />
+              <Stat label="Matches" value={stats.matchCount.toString()} />
+            </dl>
+          )}
           <p className="text-sm text-muted">
             Signed in as{" "}
             <span className="font-medium text-ink">
@@ -103,5 +118,25 @@ export default async function ProfilePage({
         </section>
       )}
     </main>
+  );
+}
+
+// Shows joined date as "May 2026" — month + year is enough granularity for
+// account-age signal; exact day is noise.
+function formatJoined(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en", { month: "short", year: "numeric" });
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="font-mono text-[10px] uppercase tracking-widest text-muted">
+        {label}
+      </dt>
+      <dd className="font-display text-2xl font-medium leading-none tabular-nums">
+        {value}
+      </dd>
+    </div>
   );
 }

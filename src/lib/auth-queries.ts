@@ -339,6 +339,70 @@ export async function getRosterAtCafe(
   }));
 }
 
+// Lightweight Account-section stats for /profile. Joined date comes from
+// profiles.created_at (set by the handle_new_user trigger on signup) so we
+// don't need the auth.admin reveal here. Matches count both directions
+// (host-accepted-someone + I-was-accepted), since both feel like 'matches'
+// to the user.
+export type ProfileStats = {
+  joinedAt: string;
+  checkinCount: number;
+  intentCount: number;
+  matchCount: number;
+};
+
+export async function getMyProfileStats(): Promise<ProfileStats | null> {
+  if (!isAuthConfigured()) return null;
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [
+    profileRes,
+    checkinsRes,
+    intentsRes,
+    matchAsHostRes,
+    matchAsResponderRes,
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("created_at")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", user.id),
+    supabase
+      .from("intents")
+      .select("id", { count: "exact", head: true })
+      .eq("profile_id", user.id),
+    // Matches as host: my intent was accepted.
+    supabase
+      .from("intent_responses")
+      .select("intent!inner(profile_id), id", { count: "exact", head: true })
+      .eq("status", "accepted")
+      .eq("intent.profile_id", user.id),
+    // Matches as responder: I responded and was accepted.
+    supabase
+      .from("intent_responses")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "accepted")
+      .eq("responder_id", user.id),
+  ]);
+
+  if (!profileRes.data) return null;
+
+  return {
+    joinedAt: profileRes.data.created_at as string,
+    checkinCount: checkinsRes.count ?? 0,
+    intentCount: intentsRes.count ?? 0,
+    matchCount: (matchAsHostRes.count ?? 0) + (matchAsResponderRes.count ?? 0),
+  };
+}
+
 export async function getSessionUser(): Promise<{
   id: string;
   email: string | null;
@@ -389,7 +453,7 @@ export async function getMyIntentView(): Promise<MyIntentView | null> {
   const { data: responses, error: respErr } = await supabase
     .from("intent_responses")
     .select(
-      "id, responder_id, status, created_at, responder:profiles!intent_responses_responder_id_fkey(handle, telegram_handle, whatsapp_number)",
+      "id, responder_id, status, created_at, responder:profiles!intent_responses_responder_id_fkey(handle, bio, telegram_handle, whatsapp_number)",
     )
     .eq("intent_id", intent.id)
     .order("created_at", { ascending: true });
@@ -409,6 +473,7 @@ export async function getMyIntentView(): Promise<MyIntentView | null> {
               email: await lookupEmail(responderId),
               telegramHandle: responder.telegram_handle ?? null,
               whatsappNumber: responder.whatsapp_number ?? null,
+              bio: responder.bio ?? null,
             }
           : null;
       return {
@@ -453,6 +518,7 @@ export type OtherIntentView = {
 // depending on the relationship. Normalize to the inner object's fields.
 function extractProfileJoin(raw: unknown): {
   handle?: string;
+  bio?: string | null;
   telegram_handle?: string | null;
   whatsapp_number?: string | null;
 } {
@@ -460,11 +526,13 @@ function extractProfileJoin(raw: unknown): {
   if (!obj || typeof obj !== "object") return {};
   const o = obj as {
     handle?: string;
+    bio?: string | null;
     telegram_handle?: string | null;
     whatsapp_number?: string | null;
   };
   return {
     handle: o.handle,
+    bio: o.bio ?? null,
     telegram_handle: o.telegram_handle ?? null,
     whatsapp_number: o.whatsapp_number ?? null,
   };
@@ -484,7 +552,7 @@ export async function listOtherActiveIntentsView(
   const { data: intents, error } = await supabase
     .from("intents")
     .select(
-      "id, profile_id, kind, city, expires_at, created_at, owner:profiles!intents_profile_id_fkey(handle, telegram_handle, whatsapp_number)",
+      "id, profile_id, kind, city, expires_at, created_at, owner:profiles!intents_profile_id_fkey(handle, bio, telegram_handle, whatsapp_number)",
     )
     .eq("city", city)
     .gt("expires_at", nowIso)
@@ -560,6 +628,7 @@ export async function listOtherActiveIntentsView(
               email: await lookupEmail(profileId),
               telegramHandle: owner.telegram_handle ?? null,
               whatsappNumber: owner.whatsapp_number ?? null,
+              bio: owner.bio ?? null,
             }
           : null;
       return {
