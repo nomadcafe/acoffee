@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
@@ -57,6 +58,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // GA4 only mounts when the measurement ID is present — local dev / preview
+  // deploys without the env var don't ping production analytics. The
+  // <GoogleAnalytics> helper from @next/third-parties handles deferred-load
+  // and avoids blocking LCP.
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
   return (
     <html
       lang="en"
@@ -67,6 +74,7 @@ export default function RootLayout({
         <SiteNav />
         <UserStatusStrip />
         {children}
+        {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
   );
