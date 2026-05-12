@@ -285,7 +285,10 @@ function CafeCard({
               {cafe.name}
             </h3>
             {cafe.submissionStatus === "pending" && (
-              <span className="rounded-full bg-accent-soft px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent">
+              <span
+                className="rounded-full bg-accent-soft px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent"
+                title="Community-submitted · auto-promotes to verified once 3 different nomads have checked in"
+              >
                 Newly added
               </span>
             )}

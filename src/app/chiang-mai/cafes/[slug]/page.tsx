@@ -19,9 +19,11 @@ import {
   countActiveCheckins,
   countActiveIntents,
   countCheckinsLastWeek,
+  countDistinctCheckinUsers,
   getCafeBySlug,
   listActiveCheckinCounts,
   listCafesNear,
+  PROMOTION_THRESHOLD,
 } from "@/lib/store";
 import type { Cafe, Checkin, IntentKind } from "@/lib/types";
 import {
@@ -90,6 +92,7 @@ export default async function CafeDetailPage({
     nearbyRaw,
     weeklyCheckins,
     openIntentsInCity,
+    pendingDistinctUsers,
   ] = await Promise.all([
     countActiveCheckins(cafe.id),
     getMyActiveCheckinAtCafe(cafe.id),
@@ -105,6 +108,11 @@ export default async function CafeDetailPage({
     }),
     countCheckinsLastWeek(cafe.id),
     countActiveIntents(cafe.city),
+    // Only meaningful for pending cafes — gated below. The query is cheap
+    // (single column select, in-memory dedupe) so always running it is fine.
+    cafe.submissionStatus === "pending"
+      ? countDistinctCheckinUsers(cafe.id)
+      : Promise.resolve(0),
   ]);
   const myIntent = mySession?.intent ?? null;
   const nearbyCafes = nearbyRaw.filter((c) => c.id !== cafe.id);
@@ -214,6 +222,23 @@ export default async function CafeDetailPage({
           )}
         </div>
       </header>
+
+      {cafe.submissionStatus === "pending" && (
+        <aside className="rounded-2xl border border-dashed border-accent/50 bg-accent-soft/50 px-4 py-3 text-sm text-ink/85">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-accent">
+            Pending · {Math.min(pendingDistinctUsers, PROMOTION_THRESHOLD)} /
+            {" "}
+            {PROMOTION_THRESHOLD} unique check-ins
+          </p>
+          <p className="mt-1.5 leading-snug">
+            This café was added by another nomad and isn&apos;t verified
+            yet.{" "}
+            {pendingDistinctUsers >= PROMOTION_THRESHOLD
+              ? "Promotion should happen on the next check-in."
+              : `Once ${PROMOTION_THRESHOLD} different people have checked in, it auto-promotes to verified and starts showing in the global directory.`}
+          </p>
+        </aside>
+      )}
 
       <CafeMap
         lat={cafe.lat}

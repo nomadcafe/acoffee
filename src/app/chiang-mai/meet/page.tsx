@@ -9,6 +9,7 @@ import {
   type OtherIntentView,
 } from "@/lib/auth-queries";
 import { INTENT_KIND_LABEL, INTENT_KIND_ORDER } from "@/lib/intent-labels";
+import { countActiveIntents } from "@/lib/store";
 import type { ContactReveal } from "@/lib/types";
 import {
   acceptResponse,
@@ -33,7 +34,10 @@ const KIND_LABEL = INTENT_KIND_LABEL;
 
 export default async function MeetPage() {
   const sessionUser = await getSessionUser();
-  if (!sessionUser) return <SignInGate />;
+  if (!sessionUser) {
+    const openCount = await countActiveIntents("chiang-mai");
+    return <SignInGate openCount={openCount} />;
+  }
 
   const [myIntent, otherIntents] = await Promise.all([
     getMyIntentView(),
@@ -82,27 +86,76 @@ export default async function MeetPage() {
   );
 }
 
-function SignInGate() {
+function SignInGate({ openCount }: { openCount: number }) {
+  // Preview what the user gets behind the auth wall: the 4 intent kinds
+  // (so they know what they're opting into) and a live count of currently
+  // open intents in Chiang Mai (so they can feel whether the room is alive).
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-14 sm:py-20">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-14 sm:px-6 sm:py-20">
       <header className="flex flex-col gap-2">
         <p className="font-mono text-xs uppercase tracking-widest text-accent">
           Chiang Mai · Meet
         </p>
         <h1 className="font-display text-4xl font-medium leading-[1.05] sm:text-5xl">
-          Sign in to meet nomads in Chiang Mai.
+          Meet nomads in Chiang Mai.
         </h1>
         <p className="text-base text-muted">
-          See who&apos;s open for coffee, cowork, or dinner. One tap, no
-          password.
+          One tap on a signal — coffee, cowork, dinner, hike — gets you
+          matched with someone open today. No chat, no swiping.
         </p>
       </header>
-      <Link
-        href="/auth/signin?next=/chiang-mai/meet"
-        className="self-start rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-page hover:bg-accent-hover"
-      >
-        Sign in →
-      </Link>
+
+      <section className="flex flex-col gap-3">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
+          Pick a signal · how it&apos;ll work after you sign in
+        </p>
+        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {INTENT_KIND_ORDER.map((kind) => (
+            <li
+              key={kind}
+              className="flex items-center justify-center rounded-full border border-dashed border-bean bg-bean/10 px-3 py-2 text-sm font-medium text-ink/85 dark:bg-bean/5"
+            >
+              {INTENT_KIND_LABEL[kind]}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {openCount > 0 && (
+        <p className="flex items-baseline gap-2 text-sm text-ink/85">
+          <span className="relative flex h-1.5 w-1.5" aria-hidden>
+            <span className="absolute inset-0 animate-ping rounded-full bg-accent/60" />
+            <span className="relative inline-block h-1.5 w-1.5 rounded-full bg-accent" />
+          </span>
+          <span className="font-display text-3xl font-medium leading-none tabular-nums">
+            {openCount}
+          </span>
+          <span className="text-muted">
+            {openCount === 1 ? "nomad is" : "nomads are"} open in Chiang
+            Mai right now.
+          </span>
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Link
+          href="/auth/signin?next=/chiang-mai/meet"
+          className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-page hover:bg-accent-hover"
+        >
+          {openCount > 0 ? "Sign in to join them →" : "Sign in to set yours →"}
+        </Link>
+        <Link
+          href="/chiang-mai/cafes"
+          className="font-mono text-xs uppercase tracking-widest text-muted underline-offset-4 hover:text-accent hover:underline"
+        >
+          Or browse cafés →
+        </Link>
+      </div>
+
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted">
+        Match accepted → contact channels (Telegram / WhatsApp) reveal
+        directly. Handoff is to the messenger you actually use.
+      </p>
     </main>
   );
 }

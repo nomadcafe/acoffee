@@ -10,7 +10,7 @@ const PUBLIC_CAFE_STATUSES: CafeSubmissionStatus[] = ["approved", "pending"];
 // Distinct users needed for a pending café to auto-promote to approved.
 // 3 is the smallest number that prevents a single account from self-promoting
 // while still being reachable in a real café over a day or two of foot traffic.
-const PROMOTION_THRESHOLD = 3;
+export const PROMOTION_THRESHOLD = 3;
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -480,6 +480,21 @@ export async function countActiveIntents(city: string): Promise<number> {
     .gt("expires_at", new Date().toISOString());
   if (error) throw error;
   return count ?? 0;
+}
+
+// Distinct user count for a cafe's check-in history. Used by the pending-
+// cafe progress hint on the detail page ("N / 3 toward verified"). Cheap
+// to compute — same shape as the maybePromoteCafe query.
+export async function countDistinctCheckinUsers(
+  cafeId: string,
+): Promise<number> {
+  if (!supabase) return 0;
+  const { data, error } = await supabase
+    .from("checkins")
+    .select("profile_id")
+    .eq("cafe_id", cafeId);
+  if (error) return 0;
+  return new Set((data ?? []).map((r) => r.profile_id as string)).size;
 }
 
 // Auto-promote a pending café once enough distinct users have checked in.
