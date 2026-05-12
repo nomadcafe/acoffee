@@ -83,3 +83,31 @@ export async function checkOut(formData: FormData): Promise<void> {
 
   revalidatePath("/chiang-mai", "layout");
 }
+
+// Push expires_at out by another 2h from NOW (not from the existing
+// expires_at — staying past midnight shouldn't grant you a 4-hour window
+// at sunrise). Avoids the checkout+checkin round-trip which would briefly
+// remove the user from the roster.
+export async function extendCheckin(formData: FormData): Promise<void> {
+  if (!isAuthConfigured()) return;
+  const checkinId = formData.get("checkinId");
+  if (typeof checkinId !== "string" || !checkinId) return;
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const newExpiresAt = new Date(
+    Date.now() + CHECKIN_TTL_HOURS * 60 * 60 * 1000,
+  ).toISOString();
+  // RLS: only the owner can update. profile_id check is belt-and-braces.
+  await supabase
+    .from("checkins")
+    .update({ expires_at: newExpiresAt })
+    .eq("id", checkinId)
+    .eq("profile_id", user.id);
+
+  revalidatePath("/chiang-mai", "layout");
+}

@@ -185,6 +185,14 @@ drop policy if exists checkins_delete_own on checkins;
 create policy checkins_delete_own on checkins for delete
   using (auth.uid() = profile_id);
 
+-- UPDATE policy needed for two things: editing the note on an existing
+-- check-in, and extending expires_at by 2h (cafe page 'Extend' button).
+-- Without this, both fail silently — RLS returns 0 rows affected, no error.
+drop policy if exists checkins_update_own on checkins;
+create policy checkins_update_own on checkins for update
+  using (auth.uid() = profile_id)
+  with check (auth.uid() = profile_id);
+
 -- intents: anyone can read; users create/delete only their own.
 drop policy if exists intents_read on intents;
 create policy intents_read on intents for select using (true);

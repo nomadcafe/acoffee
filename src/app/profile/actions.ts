@@ -20,17 +20,26 @@ function safeAfter(raw: FormDataEntryValue | null): string | undefined {
 const ProfileSchema = z.object({
   handle: z
     .string()
-    .min(3, "Handle is at least 3 characters.")
+    .min(3, "Handle needs at least 3 characters.")
     .max(20, "Handle is at most 20 characters.")
-    .regex(/^[a-z0-9_]+$/, "Use lowercase letters, digits, and _ only."),
+    .regex(
+      /^[a-z0-9_]+$/,
+      "Lowercase letters, digits, and _ only — no spaces or symbols.",
+    ),
   bio: z.string().max(140, "Bio is at most 140 characters.").optional(),
   telegramHandle: z
     .string()
-    .regex(/^@?[a-zA-Z0-9_]{5,32}$/, "Telegram handle is 5–32 letters / digits / _.")
+    .regex(
+      /^@?[a-zA-Z0-9_]{5,32}$/,
+      "Telegram username only — 5–32 letters/digits/_, no spaces. The @ is optional.",
+    )
     .optional(),
   whatsappNumber: z
     .string()
-    .regex(/^\+[1-9]\d{6,14}$/, "Use international format, e.g. +66812345678.")
+    .regex(
+      /^\+[1-9]\d{6,14}$/,
+      "Phone needs the + and country code, e.g. +66812345678 (Thailand) or +14155551212 (US).",
+    )
     .optional(),
 });
 

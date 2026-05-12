@@ -31,7 +31,7 @@ import {
   respondToIntent,
   setIntent,
 } from "../../meet/actions";
-import { checkIn, checkOut } from "./actions";
+import { checkIn, checkOut, extendCheckin } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -357,6 +357,15 @@ function CheckinSection({
                   className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-page hover:bg-accent-hover"
                 >
                   Save note
+                </button>
+              </form>
+              <form action={extendCheckin}>
+                <input type="hidden" name="checkinId" value={myCheckin.id} />
+                <button
+                  type="submit"
+                  className="rounded-full border border-accent/60 px-4 py-2 text-sm font-medium text-accent hover:bg-accent-soft"
+                >
+                  Extend · +2h
                 </button>
               </form>
               <form action={checkOut}>
