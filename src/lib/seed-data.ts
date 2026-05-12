@@ -82,3 +82,29 @@ export function buildSeedPins(): SeedPin[] {
   }
   return out;
 }
+
+// Small subset of Phase 1's full 30-row Chiang Mai seed (see
+// supabase/seed_chiang_mai_cafes.sql). Used in dev mode without Supabase so
+// /chiang-mai/cafes isn't empty. Two per neighborhood, varied tags.
+export type SeedCafe = {
+  slug: string;
+  name: string;
+  city: string;
+  neighborhood: string;
+  lat: number;
+  lng: number;
+  hasWifi: boolean;
+  hasOutlets: boolean;
+  laptopFriendly: boolean;
+};
+
+export const seedCafes: SeedCafe[] = [
+  { slug: "camp-maya-mall",        name: "CAMP @ Maya Mall",          city: "chiang-mai", neighborhood: "Nimman",    lat: 18.8021, lng: 98.9678, hasWifi: true, hasOutlets: true,  laptopFriendly: true },
+  { slug: "my-secret-cafe-in-town",name: "My Secret Cafe in Town",    city: "chiang-mai", neighborhood: "Nimman",    lat: 18.7977, lng: 98.9667, hasWifi: true, hasOutlets: true,  laptopFriendly: true },
+  { slug: "graph-cafe",            name: "Graph Café",                city: "chiang-mai", neighborhood: "Old City",  lat: 18.7892, lng: 98.9858, hasWifi: true, hasOutlets: false, laptopFriendly: false },
+  { slug: "free-bird-cafe",        name: "Free Bird Café",            city: "chiang-mai", neighborhood: "Old City",  lat: 18.7949, lng: 98.9849, hasWifi: true, hasOutlets: true,  laptopFriendly: true },
+  { slug: "akha-ama-santitham",    name: "Akha Ama Coffee (Santitham)", city: "chiang-mai", neighborhood: "Santitham", lat: 18.7995, lng: 98.9842, hasWifi: true, hasOutlets: true,  laptopFriendly: true },
+  { slug: "bart-coffee",           name: "Bart Coffee",               city: "chiang-mai", neighborhood: "Santitham", lat: 18.8030, lng: 98.9819, hasWifi: true, hasOutlets: true,  laptopFriendly: true },
+  { slug: "khagee",                name: "Khagee Cafe",               city: "chiang-mai", neighborhood: "East Bank", lat: 18.7837, lng: 98.9981, hasWifi: true, hasOutlets: false, laptopFriendly: false },
+  { slug: "woo-cafe",              name: "Woo Cafe",                  city: "chiang-mai", neighborhood: "East Bank", lat: 18.7898, lng: 99.0001, hasWifi: true, hasOutlets: true,  laptopFriendly: true },
+];

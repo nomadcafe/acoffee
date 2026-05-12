@@ -38,7 +38,7 @@ export function SubscribeForm({ city }: { city: string }) {
 
   if (status === "done") {
     return (
-      <p className="text-sm text-emerald-700 dark:text-emerald-400">{message}</p>
+      <p className="text-sm text-accent">{message}</p>
     );
   }
 
@@ -50,7 +50,7 @@ export function SubscribeForm({ city }: { city: string }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="your@email.com"
-        className="flex-1 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-700 dark:bg-zinc-900"
+        className="flex-1 rounded-full border border-bean bg-surface px-4 py-2 text-sm outline-none focus:border-accent dark:bg-bean/40"
       />
       <input
         type="text"
@@ -65,7 +65,7 @@ export function SubscribeForm({ city }: { city: string }) {
       <button
         type="submit"
         disabled={status === "loading"}
-        className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-60 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+        className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-page hover:opacity-85 disabled:opacity-60"
       >
         {status === "loading" ? "Saving…" : "Notify me"}
       </button>

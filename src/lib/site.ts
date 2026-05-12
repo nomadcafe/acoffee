@@ -4,7 +4,7 @@ export const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 ).replace(/\/$/, "");
 
-export const siteName = "Nomad Meetup";
-export const siteTagline = "Where are nomads right now?";
+export const siteName = "acoffee";
+export const siteTagline = "You just landed. The first move is coffee.";
 export const siteDescription =
-  "Drop a pin, see who else just landed in your city. The full meetup app launches in Chiang Mai first.";
+  "A soft map for digital nomads. Drop a pin in a new city, see who's working at which café, set one signal — coffee, cowork, dinner, hike — and meet someone today. Open in Chiang Mai.";

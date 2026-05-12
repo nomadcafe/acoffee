@@ -1,16 +1,25 @@
-# Nomad Meetup — Vision & MVP 方向
+# acoffee — Vision & MVP 方向
 
-> 状态：草稿 v0.3 / 2026-04-26
+> 状态：草稿 v0.5 / 2026-05-12
 > 用途：对齐产品定位、MVP 范围、启动顺序。技术细节在别处。
 >
 > v0.2 更新：锁定 Phase 1 = Web / PWA，Native App 延至 Phase 2。
 > v0.3 更新：Q1（起点城市 = 清迈）/ Q2（Phase 0 串行先行）/ Q5（栈 = Next 16 + Supabase + MapLibre + OpenFreeMap）已定；Phase 0 落地页 v0 已上线，加入"全球 pin 地图"作为流量钩子。
+> v0.4 更新：品牌名定为 **acoffee**（域名 acoffee.com），外层声音软化为"New city? Start with a coffee."；**内核 wedge 不变**——仍然押在"刚落地、一个人、孤独"。Meet Halfway 明确归入 Phase 3，不进 MVP。
+> v0.5 更新：**品牌视觉方向 pivot** — 软咖啡馆调子撑不起视觉冲击，前台**改走"现代 / 自信 / 技术感"**。Hero 用旋转 3D 地球 + 编辑刊物大字（"You just landed. The first move is coffee."），不再是 cozy 调子。**内核 wedge 仍然不变** — 落地破冰仍是增长引擎，但视觉外壳更强势。同步承认：**Phase 1 产品代码已经显著超出 §4 MVP 三动作范围**（roster / 用户提交 café / Near me / live countdown 等都已上线），但仍处于 0 真实用户、0 内容、0 社群的「pre-ship」状态。下一步必须从写代码切回 Phase 0 的内容 + deploy。
 
 ---
 
 ## 1. 一句话 & 反定位
 
-**Nomad Meetup 是数字游民的线下破冰工具——解决刚落地一个陌生城市时"没人一起吃饭、没人一起 co-work"的孤独感。**
+**acoffee 是数字游民的线下破冰工具——解决刚落地一个陌生城市时"没人一起吃饭、没人一起 co-work"的孤独感。**
+
+> **品牌外壳 vs 内核 wedge（v0.5 决策，替代 v0.4）**
+>
+> - **外壳（acoffee voice）**：**现代、自信、技术感**。首页 hero = 旋转 3D 地球 + 编辑刊物大字「You just landed. The first move is coffee.」。视觉锚点是球体、Fraunces 衬线巨字、章节编号（Issue 01 / Step 01-03），整体气质参考 Stripe / Linear 而非 cozy 咖啡馆。**陌生访客 5 秒内能感知到"这是个认真的产品"，不是 lifestyle blog。**
+> - **内核 wedge（增长引擎）**：仍然是"刚落地 72 小时 + 一个人 + 孤独"。所有 SEO 内容、社群叙事、转化漏斗都押这个痛点——它才是会被搜索、被转发的东西。
+> - **为什么外壳变硬**：v0.4 的"温暖软调"实测后视觉张力不足，陌生访客 first-paint 无法 5 秒识别产品价值。v0.5 把外壳调强让 hero 撑住，但**内核情绪 wedge 不动**——SEO 内容仍然写"一个人 nomad 的破局方式"这类情绪内容，**只有视觉层切硬**。
+> - **保留软元素**：Fraunces 衬线、cream/espresso 调色、虚线票根分隔仍在——避免完全 SaaS dashboard 化失去辨识度。**球体 + 编辑大字** 是新强 element；café 详情页、roster 等内层 UI 保持原节奏。
 
 **不是什么（反定位）：**
 
@@ -175,3 +184,50 @@
 - **技术选轻的**：单一状态源、少依赖、能快速发版
 - **内容和产品必须闭环**：任一侧不能独立做，否则失去护城河
 - **城市为单位运营**：不搞"全球 Nomad 平台"空架子，一次聚焦一个城市
+
+---
+
+## 10. 当前实际状态 vs 计划（v0.5 新增）
+
+**实际偏离原计划的地方**——下任何决策前先看清楚：
+
+### 偏离 1：Phase 1 产品代码已大幅超出 §4 MVP 三动作
+
+§4 写"只做三个核心动作"（城市在线数 / Café check-in / 意向卡片）。实际代码已经包含：
+
+| §4 锚定 | 实际实现 |
+|---|---|
+| ① 城市在线数 | ✅ + 4 城多城面板 + active café 实时数 + activity feed |
+| ② Café check-in | ✅ + roster 同房间对称 reveal + optional note + 用户提交新 café + 自动晋升阈值 + 30m snap |
+| ③ 意向卡片 | ✅ 4 类（含 hike）+ 时间感知 TTL + roster 内一键 respond + accept/decline + match TG/WA 联系方式 reveal |
+| 额外 | Near me 定位、城市 focus 跳转、3D 旋转地球、live countdown、live time-since、café 详情周边层 |
+
+**含义**：当前代码远超 vision §4 的"MVP 砍到最小"红线。这不是错，但**砍不到最小，就要面对 Phase 0 (内容 / 社群) 同步推进的压力更大**——做了的功能没人用，等于 0。
+
+### 偏离 2：Phase 0 / Phase 1 串行被打破
+
+§6 + Q2 (已定 2026-04-26) 决策是「Phase 0 先跑、Phase 1 等需求验证后启动」。实际：
+- Phase 1 代码已上线 95%
+- Phase 0 内容矩阵：**0 篇文章**
+- Phase 0 社群：**0 个清迈 Telegram / Discord 群**
+- 真实用户：**0**
+- 生产部署：**未 deploy**
+
+**含义**：产品建得超前但没人能看到 / 用上。再写代码 ROI 已经为 0 — 必须切回 Phase 0。
+
+### 下一步（v0.5 锁定）
+
+按 ROI 排：
+
+1. **`vercel deploy` + 接 Supabase + 跑两份 SQL** — 让代码从 localhost 变成可分享 URL。半天。
+2. **写第一篇 SEO 内容**：「**一个人 nomad 在清迈的破局指南 / The lonely nomad's first 72h in Chiang Mai**」— §5 三条线之一。Wedge 锚定 + acoffee.com 链接。1-2 天。
+3. **加入清迈 nomad TG/Discord 群 + r/digitalnomad**，发文 + 链接 — 不发广告，发那篇内容。
+4. **看真实人怎么用**：哪个动作没人做、哪条路径卡住、哪条 copy 没人懂。
+5. **才回来改代码**——基于真实信号，不是设计师直觉。
+
+**明确不做（直到第 4 步完成）**：
+- 新功能（PWA、推送、第二城等）
+- UI 微调
+- 文档完善
+
+第 4 步是 Phase 0 / Phase 1 切换的真正闸门，不是"产品代码上线"那个时刻。

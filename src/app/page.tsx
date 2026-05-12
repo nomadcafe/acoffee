@@ -1,64 +1,205 @@
 import Link from "next/link";
+import { CitiesPanel, type CityWithActivity } from "@/components/CitiesPanel";
 import { PinMap } from "@/components/PinMap";
 import { SubscribeForm } from "@/components/SubscribeForm";
-import { listPins } from "@/lib/store";
+import { cities, HOMEPAGE_CITIES } from "@/lib/cities";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
+import {
+  countPinsInBbox,
+  listPins,
+  listTopActiveCafes,
+} from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ focus?: string }>;
+}) {
+  const { focus } = await searchParams;
+  const focusedCity = focus && cities[focus] ? cities[focus] : null;
   const pins = await listPins();
 
+  // Fetch activity for each homepage city in parallel. For OPEN cities we
+  // also pull café activity to surface "X working at Y cafés now" inline.
+  const cityRows: CityWithActivity[] = await Promise.all(
+    HOMEPAGE_CITIES.map(async (city) => {
+      const [pinCounts, topActive] = await Promise.all([
+        countPinsInBbox({ bbox: city.bbox }),
+        city.status === "open"
+          ? listTopActiveCafes(city.slug, 50)
+          : Promise.resolve([]),
+      ]);
+      const workingNow = topActive.reduce((s, t) => s + t.activeCount, 0);
+      return {
+        city,
+        pinCount: pinCounts.total,
+        pinsLast24h: pinCounts.last24h,
+        activeCafes: city.status === "open" ? topActive.length : undefined,
+        workingNow: city.status === "open" ? workingNow : undefined,
+      };
+    }),
+  );
+
+  const openCityNames = cityRows
+    .filter((r) => r.city.status === "open")
+    .map((r) => r.city.name);
+  const openLabel =
+    openCityNames.length === 0
+      ? "Cities opening soon"
+      : openCityNames.length === 1
+        ? `Open in ${openCityNames[0]}`
+        : `Open in ${openCityNames.slice(0, -1).join(", ")} & ${openCityNames[openCityNames.length - 1]}`;
+
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    alternateName: "acoffee — soft map for digital nomads",
+    url: siteUrl,
+    description: siteDescription,
+    inLanguage: "en",
+  };
+
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-4 py-10 sm:px-6 sm:py-14">
-      <header className="flex flex-col gap-3">
-        <p className="text-xs font-medium uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-          Nomad Meetup · Phase 0
+    <main className="flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <section className="mx-auto flex min-h-[88vh] w-full max-w-5xl flex-col justify-center gap-8 px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28">
+        <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+          Issue 01 · {openLabel}
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-5xl">
-          Where are nomads right now?
+        <h1 className="font-display text-[clamp(3.5rem,11vw,9rem)] font-medium leading-[0.92]">
+          You just landed.
+          <br />
+          The first move
+          <br />
+          is coffee.
         </h1>
-        <p className="max-w-xl text-base text-zinc-600 dark:text-zinc-400 sm:text-lg">
-          Drop a pin, see who else just landed in your city. The full meetup app
-          launches in Chiang Mai first — leave your email if you want in.
+        <p className="max-w-2xl text-lg text-muted sm:text-2xl sm:leading-[1.45]">
+          acoffee is a soft map for digital nomads. Drop a pin to say you
+          arrived. See who&apos;s working at which café right now. Set one
+          signal — coffee, cowork, dinner, hike — and meet someone today.
         </p>
-      </header>
-
-      <PinMap initialPins={pins} />
-
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950 sm:p-8">
-        <div className="flex flex-col gap-2">
-          <h2 className="text-xl font-semibold">Chiang Mai · launching first</h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">
-            See which cafés have nomads working right now. Send a one-tap
-            &ldquo;coffee today?&rdquo; to people nearby. No chat, no swiping.
-            Available in Chiang Mai when we launch.
-          </p>
-        </div>
-        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <SubscribeForm city="chiang-mai" />
+        <div className="mt-2 flex flex-wrap items-center gap-3">
+          <Link
+            href="#world-map"
+            className="rounded-full bg-accent px-6 py-3 text-base font-medium text-page shadow-sm hover:bg-accent-hover"
+          >
+            Drop a pin →
+          </Link>
           <Link
             href="/chiang-mai"
-            className="text-sm font-medium text-emerald-700 underline-offset-4 hover:underline dark:text-emerald-400"
+            className="rounded-full border border-accent/60 px-6 py-3 text-base font-medium text-accent hover:bg-accent-soft"
           >
-            Open the Chiang Mai page →
+            Enter Chiang Mai →
           </Link>
         </div>
       </section>
 
-      <footer className="flex flex-col gap-1 border-t border-zinc-200 pt-6 text-xs text-zinc-500 dark:border-zinc-800">
-        <p>Nomad Meetup — landing tool for digital nomads.</p>
-        <p>
-          Map tiles by{" "}
-          <a
-            className="underline hover:text-zinc-900 dark:hover:text-zinc-300"
-            href="https://openfreemap.org/"
-            target="_blank"
-            rel="noreferrer"
-          >
-            OpenFreeMap
-          </a>{" "}
-          · © OpenStreetMap contributors.
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-12 border-t border-dashed border-bean px-4 py-20 sm:px-6 sm:py-28">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="font-display text-4xl font-medium leading-[1] sm:text-6xl">
+            How it works
+          </h2>
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
+            Three signals · No chat · No swiping
+          </p>
+        </div>
+
+        <ol className="grid gap-12 sm:grid-cols-3 sm:gap-10">
+          <li className="flex flex-col gap-3 border-t-2 border-accent pt-4">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+              Step 01
+            </p>
+            <h3 className="font-serif text-2xl font-medium sm:text-3xl">
+              Drop a pin when you land
+            </h3>
+            <p className="text-base text-muted">
+              A soft signal that says &ldquo;I&apos;m here.&rdquo; The map
+              fills in around you — you&apos;re not the only nomad in town.
+            </p>
+          </li>
+          <li className="flex flex-col gap-3 border-t-2 border-accent pt-4">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+              Step 02
+            </p>
+            <h3 className="font-serif text-2xl font-medium sm:text-3xl">
+              See who&apos;s working where
+            </h3>
+            <p className="text-base text-muted">
+              Real-time check-ins on hand-picked cafés. Walk to the spot
+              with 3 other nomads already there. Skip the empty ones.
+            </p>
+          </li>
+          <li className="flex flex-col gap-3 border-t-2 border-accent pt-4">
+            <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
+              Step 03
+            </p>
+            <h3 className="font-serif text-2xl font-medium sm:text-3xl">
+              Set one signal — meet today
+            </h3>
+            <p className="text-base text-muted">
+              Coffee, cowork, dinner, hike. Pick one. See who&apos;s open.
+              Accept a match. Hand off to Telegram or WhatsApp.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <div id="world-map">
+        <PinMap
+          initialPins={pins}
+          initialCenter={focusedCity?.center}
+          initialZoom={focusedCity?.zoom}
+          framed={false}
+          height="h-[75vh] sm:h-[88vh]"
+          emptyLabel={
+            focusedCity
+              ? `Drop the first pin in ${focusedCity.name}`
+              : "Drop the first pin — say you're here"
+          }
+          globe={!focusedCity}
+        />
+      </div>
+
+      <CitiesPanel cities={cityRows} />
+
+      <section className="mx-auto flex w-full max-w-5xl flex-col gap-2 border-t border-dashed border-bean px-4 pt-12 sm:px-6 sm:pt-16">
+        <h2 className="font-serif text-2xl font-medium sm:text-3xl">
+          Want acoffee in your city next?
+        </h2>
+        <p className="text-sm text-muted">
+          One email when it opens where you are. No spam.
         </p>
+        <div className="mt-3 max-w-md">
+          <SubscribeForm city="next" />
+        </div>
+      </section>
+
+      <footer className="mx-auto w-full max-w-5xl px-4 pb-12 pt-16 sm:px-6">
+        <div className="flex flex-col gap-3 border-t border-bean pt-6">
+          <p className="font-serif text-base italic text-ink/85">
+            Made between cafés. If you&apos;re reading this from a new city,
+            welcome — drop a pin so the next person doesn&apos;t feel
+            so alone.
+          </p>
+          <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
+            acoffee · tiles by{" "}
+            <a
+              className="underline-offset-2 hover:text-accent hover:underline"
+              href="https://openfreemap.org/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              OpenFreeMap
+            </a>{" "}
+            · © OSM contributors
+          </p>
+        </div>
       </footer>
     </main>
   );

@@ -11,12 +11,70 @@ import Supercluster, {
   type ClusterFeature,
   type PointFeature,
 } from "supercluster";
-import type { Pin } from "@/lib/types";
+import Link from "next/link";
+import type { Cafe, Pin } from "@/lib/types";
 import { timeAgo } from "@/lib/time-ago";
 
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/positron";
 const DROPPED_KEY = "nm_dropped_pin_id";
 const DAY_MS = 24 * 60 * 60 * 1000;
+const NEARBY_RADIUS_KM = 50;
+const NEARBY_ZOOM = 10;
+
+function wrapLng(lng: number): number {
+  let v = lng;
+  while (v > 180) v -= 360;
+  while (v < -180) v += 360;
+  return v;
+}
+
+function distanceKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number,
+): number {
+  const R = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function CoffeeCupPin() {
+  // Tiny espresso cup glyph rendered in `currentColor`, sized to read at map zoom.
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      aria-hidden
+      focusable="false"
+    >
+      <path
+        d="M3 7h8.5v3a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7z"
+        fill="currentColor"
+      />
+      <path
+        d="M11.5 8h1.2a2 2 0 0 1 0 4h-1.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.3"
+      />
+      <path
+        d="M5.5 5.2c0-.7.5-1 .5-1.7s-.5-1-.5-1.7M8 5.2c0-.7.5-1 .5-1.7s-.5-1-.5-1.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+    </svg>
+  );
+}
 
 type LeafProps = { pinId: string; nickname: string | null; createdAt: string };
 
@@ -27,7 +85,24 @@ type PinMapProps = {
   countSuffix?: string;
   emptyLabel?: string;
   height?: string;
+  framed?: boolean;
+  showNearMe?: boolean;
+  // Optional overlay: active cafés to highlight as prominent markers on top
+  // of the anonymous pin layer. Drop in only the cafés you want shown
+  // (typically `activeCount > 0` filtered upstream).
+  activeCafes?: Array<{ cafe: Cafe; activeCount: number }>;
+  // Whether the floating "drop an anonymous pin" form is rendered inside the
+  // map. False on city pages where the city-aware QuickCheckin lives below
+  // the map and an anonymous pin would just confuse users.
+  showDropPin?: boolean;
+  // Render as a slowly-rotating 3D globe instead of a flat Mercator. Intended
+  // for the homepage hero only — zoomed-in city views look better flat.
+  globe?: boolean;
 };
+
+// Ambient rotation: 360° per 120s = 3°/s = 0.05°/frame at 60fps.
+const GLOBE_ROTATE_DEG_PER_SEC = 3;
+const GLOBE_RESUME_AFTER_MS = 30_000;
 
 export function PinMap({
   initialPins,
@@ -36,6 +111,11 @@ export function PinMap({
   countSuffix = "on the map",
   emptyLabel,
   height = "h-[60vh] sm:h-[70vh]",
+  framed = true,
+  showNearMe = true,
+  activeCafes,
+  showDropPin = true,
+  globe = false,
 }: PinMapProps) {
   const mapRef = useRef<MapRef | null>(null);
   const [pins, setPins] = useState<Pin[]>(initialPins);
@@ -46,6 +126,9 @@ export function PinMap({
   const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [hovered, setHovered] = useState<Pin | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
   const [viewState, setViewState] = useState({
     longitude: initialCenter.lng,
     latitude: initialCenter.lat,
@@ -60,11 +143,62 @@ export function PinMap({
     if (localStorage.getItem(DROPPED_KEY)) setDone(true);
   }, []);
 
+  // Ambient globe rotation: only when `globe`, paused on user interaction,
+  // resumes 30s after the last interaction. Uses rAF for smooth motion and
+  // ties directly to viewState so the controlled <Map> stays in sync.
+  const rotationRef = useRef<{
+    paused: boolean;
+    lastInteractAt: number;
+    rafId: number | null;
+    lastTime: number;
+  }>({ paused: false, lastInteractAt: 0, rafId: null, lastTime: 0 });
+
+  useEffect(() => {
+    if (!globe) return;
+    const state = rotationRef.current;
+
+    const tick = (t: number) => {
+      const last = state.lastTime || t;
+      const dtSec = Math.min(0.1, (t - last) / 1000);
+      state.lastTime = t;
+
+      const idle =
+        state.lastInteractAt === 0 ||
+        t - state.lastInteractAt > GLOBE_RESUME_AFTER_MS;
+      if (idle && !state.paused) {
+        setViewState((s) => ({
+          ...s,
+          longitude: wrapLng(s.longitude + GLOBE_ROTATE_DEG_PER_SEC * dtSec),
+        }));
+      }
+      state.rafId = requestAnimationFrame(tick);
+    };
+    state.rafId = requestAnimationFrame(tick);
+    return () => {
+      if (state.rafId !== null) cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+      state.lastTime = 0;
+    };
+  }, [globe]);
+
+  const onInteract = useCallback(() => {
+    rotationRef.current.lastInteractAt = performance.now();
+  }, []);
+
   const visiblePins = useMemo(() => {
     if (!last24h) return pins;
     const cutoff = Date.now() - DAY_MS;
     return pins.filter((p) => new Date(p.createdAt).getTime() >= cutoff);
   }, [pins, last24h]);
+
+  const nearbyCount = useMemo(() => {
+    if (!userLocation) return null;
+    return visiblePins.filter(
+      (p) =>
+        distanceKm(userLocation.lat, userLocation.lng, p.lat, p.lng) <=
+        NEARBY_RADIUS_KM,
+    ).length;
+  }, [visiblePins, userLocation]);
 
   const supercluster = useMemo(() => {
     const sc = new Supercluster<LeafProps>({ radius: 60, maxZoom: 14 });
@@ -113,6 +247,33 @@ export function PinMap({
     },
     [supercluster],
   );
+
+  function requestNearMe() {
+    setNearbyError(null);
+    if (!("geolocation" in navigator)) {
+      setNearbyError("Your browser does not support geolocation.");
+      return;
+    }
+    setNearbyLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setUserLocation({ lat, lng });
+        setNearbyLoading(false);
+        mapRef.current?.flyTo({
+          center: [lng, lat],
+          zoom: NEARBY_ZOOM,
+          duration: 800,
+        });
+      },
+      (err) => {
+        setNearbyError(err.message || "Could not get your location.");
+        setNearbyLoading(false);
+      },
+      { enableHighAccuracy: false, timeout: 10000 },
+    );
+  }
 
   function dropPin() {
     setError(null);
@@ -166,18 +327,27 @@ export function PinMap({
     count === 0 && emptyLabel
       ? emptyLabel
       : `${count} nomad${count === 1 ? "" : "s"} ${countSuffix}`;
-  const label = last24h && count > 0 ? `${baseLabel} · last 24h` : baseLabel;
+  const globalLabel = last24h && count > 0 ? `${baseLabel} · last 24h` : baseLabel;
+  const nearbyLabel =
+    nearbyCount !== null
+      ? `${nearbyCount} nomad${nearbyCount === 1 ? "" : "s"} within ${NEARBY_RADIUS_KM}km${last24h ? " · last 24h" : ""}`
+      : null;
+  const label = nearbyLabel ?? globalLabel;
 
   return (
     <div
-      className={`relative w-full overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 ${height}`}
+      className={`relative w-full overflow-hidden ${framed ? "rounded-2xl border border-bean" : ""} ${height}`}
     >
       <Map
         ref={mapRef}
         {...viewState}
         onMove={onMove}
         onLoad={onLoad}
+        onMouseDown={globe ? onInteract : undefined}
+        onTouchStart={globe ? onInteract : undefined}
+        onWheel={globe ? onInteract : undefined}
         mapStyle={MAP_STYLE}
+        projection={globe ? { type: "globe" } : undefined}
         style={{ width: "100%", height: "100%" }}
       >
         {clusters.map((c) => {
@@ -199,7 +369,7 @@ export function PinMap({
                   onClick={() =>
                     expandCluster(cluster.id as number, lng, lat)
                   }
-                  className="flex items-center justify-center rounded-full bg-emerald-500/90 font-semibold text-white shadow-md ring-2 ring-white transition hover:bg-emerald-500"
+                  className="flex items-center justify-center rounded-full bg-accent/90 font-semibold text-white shadow-md ring-2 ring-white transition hover:bg-accent"
                   style={{ width: size, height: size, fontSize: size > 40 ? 14 : 12 }}
                   aria-label={`${cluster.properties.point_count} nomads here, click to zoom`}
                 >
@@ -229,12 +399,59 @@ export function PinMap({
                   setHovered((h) => (h?.id === pin.id ? null : h))
                 }
                 onClick={() => setHovered(pin)}
-                className="block h-3 w-3 rounded-full bg-emerald-500 shadow ring-2 ring-white transition hover:scale-125"
+                className="block text-accent drop-shadow-[0_1px_1px_rgba(0,0,0,0.25)] transition hover:scale-125"
                 aria-label={pin.nickname ?? "Anonymous nomad"}
-              />
+              >
+                <CoffeeCupPin />
+              </button>
             </Marker>
           );
         })}
+
+        {activeCafes?.map(({ cafe, activeCount }) => (
+          <Marker
+            key={`cafe-${cafe.id}`}
+            longitude={cafe.lng}
+            latitude={cafe.lat}
+            anchor="center"
+          >
+            <Link
+              href={`/chiang-mai/cafes/${cafe.slug}`}
+              aria-label={`${cafe.name} — ${activeCount} ${activeCount === 1 ? "nomad" : "nomads"} working here right now`}
+              className="relative block text-accent drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] transition hover:scale-110"
+            >
+              <span
+                className="absolute inset-[-6px] animate-ping rounded-full bg-accent/30"
+                aria-hidden
+              />
+              <span className="relative block">
+                <svg width="26" height="26" viewBox="0 0 18 18" aria-hidden>
+                  <path
+                    d="M3 7h8.5v3a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V7z"
+                    fill="currentColor"
+                  />
+                  <path
+                    d="M11.5 8h1.2a2 2 0 0 1 0 4h-1.2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.3"
+                  />
+                  <path
+                    d="M5.5 5.2c0-.7.5-1 .5-1.7s-.5-1-.5-1.7M8 5.2c0-.7.5-1 .5-1.7s-.5-1-.5-1.7"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    strokeLinecap="round"
+                    opacity="0.7"
+                  />
+                </svg>
+              </span>
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 font-mono text-[10px] font-bold leading-none text-page shadow-sm ring-1 ring-page">
+                {activeCount}
+              </span>
+            </Link>
+          </Marker>
+        ))}
 
         {hovered && (
           <Popup
@@ -248,34 +465,77 @@ export function PinMap({
             className="!p-0"
           >
             <div className="px-1 py-0.5 text-xs">
-              <div className="font-medium text-zinc-900">
+              <div className="font-medium text-ink">
                 {hovered.nickname ?? "Anonymous nomad"}
               </div>
-              <div className="text-zinc-500">{timeAgo(hovered.createdAt)}</div>
+              <div className="text-muted">{timeAgo(hovered.createdAt)}</div>
             </div>
           </Popup>
         )}
+
+        {userLocation && (
+          <Marker
+            longitude={userLocation.lng}
+            latitude={userLocation.lat}
+            anchor="center"
+          >
+            <span className="relative block h-3 w-3" aria-label="You are here">
+              <span className="absolute inset-0 animate-ping rounded-full bg-accent/40" />
+              <span className="absolute inset-0 rounded-full bg-accent ring-2 ring-page" />
+            </span>
+          </Marker>
+        )}
       </Map>
 
-      <div className="pointer-events-none absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1.5 text-sm font-medium text-zinc-700 backdrop-blur dark:bg-black/70 dark:text-zinc-200">
-        {label}
+      <div className="absolute left-4 top-4 z-10 flex flex-col items-start gap-1">
+        <span className="pointer-events-none rounded-full bg-surface/90 px-3 py-1.5 text-sm font-medium text-ink/85 shadow-sm backdrop-blur dark:bg-black/70 dark:text-ink">
+          {label}
+        </span>
+        {userLocation && (
+          <button
+            onClick={() => {
+              setUserLocation(null);
+              setNearbyError(null);
+            }}
+            className="font-mono text-[10px] uppercase tracking-widest text-muted underline-offset-4 hover:text-accent hover:underline"
+          >
+            ← Back to global
+          </button>
+        )}
       </div>
 
-      <button
-        onClick={() => setLast24h((v) => !v)}
-        className={`absolute right-4 top-4 z-10 rounded-full px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur transition ${
-          last24h
-            ? "bg-emerald-500 text-white hover:bg-emerald-600"
-            : "bg-white/90 text-zinc-700 hover:bg-white dark:bg-black/70 dark:text-zinc-200"
-        }`}
-        aria-pressed={last24h}
-      >
-        Last 24h
-      </button>
+      <div className="absolute right-4 top-4 z-10 flex flex-col items-end gap-2">
+        {showNearMe && !userLocation && (
+          <button
+            onClick={requestNearMe}
+            disabled={nearbyLoading}
+            className="rounded-full bg-accent px-3 py-1.5 text-sm font-medium text-page shadow-sm transition hover:bg-accent-hover disabled:opacity-60"
+          >
+            {nearbyLoading ? "Locating…" : "📍 Near me"}
+          </button>
+        )}
+        <button
+          onClick={() => setLast24h((v) => !v)}
+          className={`rounded-full px-3 py-1.5 text-sm font-medium shadow-sm backdrop-blur transition ${
+            last24h
+              ? "bg-accent text-page hover:bg-accent-hover"
+              : "bg-surface/90 text-ink/85 hover:bg-surface dark:bg-black/70 dark:text-ink"
+          }`}
+          aria-pressed={last24h}
+        >
+          Last 24h
+        </button>
+        {nearbyError && (
+          <span className="max-w-[180px] rounded-md bg-surface/95 px-2 py-1 text-right text-[11px] text-red-600 shadow-sm backdrop-blur dark:bg-black/70 dark:text-red-400">
+            {nearbyError}
+          </span>
+        )}
+      </div>
 
-      <div className="absolute bottom-4 left-1/2 z-10 w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-zinc-200 bg-white/95 p-3 shadow-lg backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/90">
+      {showDropPin && (
+      <div className="absolute bottom-4 left-1/2 z-10 w-[min(92vw,520px)] -translate-x-1/2 rounded-2xl border border-bean bg-surface/95 p-3 shadow-lg backdrop-blur">
         {done ? (
-          <p className="px-2 py-1 text-center text-sm text-zinc-700 dark:text-zinc-300">
+          <p className="px-2 py-1 text-center text-sm text-ink/85">
             You&apos;re on the map. Welcome, fellow nomad.
           </p>
         ) : (
@@ -285,7 +545,7 @@ export function PinMap({
               onChange={(e) => setNickname(e.target.value)}
               placeholder="Nickname (optional)"
               maxLength={40}
-              className="flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500 dark:border-zinc-700 dark:bg-zinc-900"
+              className="flex-1 rounded-full border border-bean bg-surface px-4 py-2 text-sm outline-none focus:border-accent dark:bg-bean/40"
             />
             <input
               type="text"
@@ -300,7 +560,7 @@ export function PinMap({
             <button
               onClick={dropPin}
               disabled={submitting}
-              className="rounded-full bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-60"
+              className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-60"
             >
               {submitting ? "Locating…" : "I'm here"}
             </button>
@@ -312,6 +572,7 @@ export function PinMap({
           </p>
         )}
       </div>
+      )}
     </div>
   );
 }

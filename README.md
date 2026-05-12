@@ -1,8 +1,9 @@
-# Nomad Meetup
+# acoffee
 
-Phase 0 landing site: a global "where are nomads right now?" map where anyone
-can drop a pin, plus an email list for the Chiang Mai launch of the full
-meetup app. Product direction lives in [`docs/vision.md`](docs/vision.md).
+A soft coffee map for digital nomads. Phase 0 landing site: a global map
+where anyone can drop a pin to say "I just landed," plus an email list for
+the Chiang Mai launch of the full app. Product direction lives in
+[`docs/vision.md`](docs/vision.md).
 
 ## Stack
 
