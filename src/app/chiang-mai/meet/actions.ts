@@ -60,6 +60,34 @@ export async function clearIntent(): Promise<void> {
   revalidatePath("/chiang-mai/meet");
 }
 
+// Push the user's active intent expiry out from NOW (not from current
+// expires_at — staying past midnight shouldn't grant a 4h window in the
+// morning). Used by the "expiring soon + 0 responses" nudge; safe to
+// call any time the user has an active intent.
+const INTENT_EXTEND_HOURS = 2;
+
+export async function extendIntent(): Promise<void> {
+  if (!isAuthConfigured()) return;
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const newExpiresAt = new Date(
+    Date.now() + INTENT_EXTEND_HOURS * 60 * 60 * 1000,
+  ).toISOString();
+  // Only touch a still-active row — don't resurrect an expired intent
+  // (that would let the user "extend" something that's already gone).
+  await supabase
+    .from("intents")
+    .update({ expires_at: newExpiresAt })
+    .eq("profile_id", user.id)
+    .gt("expires_at", new Date().toISOString());
+
+  revalidatePath("/chiang-mai", "layout");
+}
+
 export async function respondToIntent(formData: FormData): Promise<void> {
   if (!isAuthConfigured()) return;
   const intentId = formData.get("intentId");

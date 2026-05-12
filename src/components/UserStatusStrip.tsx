@@ -1,7 +1,15 @@
 import Link from "next/link";
+import { extendIntent } from "@/app/chiang-mai/meet/actions";
 import { LiveCountdown } from "@/components/LiveCountdown";
 import { getMyActiveSession } from "@/lib/auth-queries";
 import { INTENT_KIND_LABEL } from "@/lib/intent-labels";
+
+// Show the "Extend" nudge when the intent is about to expire AND no one
+// has responded yet. Inside this window, the user is at high risk of
+// dropping out frustrated ("set intent, waited, nothing happened"); the
+// affordance lets them buy more time in one tap instead of withdrawing
+// and re-posting.
+const EXTEND_NUDGE_THRESHOLD_MS = 30 * 60 * 1000;
 
 export async function UserStatusStrip() {
   const session = await getMyActiveSession();
@@ -46,6 +54,14 @@ export async function UserStatusStrip() {
   }
 
   const pending = session.intent?.pendingResponseCount ?? 0;
+  const intentMsLeft = session.intent
+    ? new Date(session.intent.expiresAt).getTime() - Date.now()
+    : Infinity;
+  const showExtendNudge =
+    session.intent !== null &&
+    pending === 0 &&
+    intentMsLeft > 0 &&
+    intentMsLeft < EXTEND_NUDGE_THRESHOLD_MS;
 
   return (
     <div className="sticky top-0 z-20 border-b border-dashed border-accent/40 bg-accent-soft/80 backdrop-blur">
@@ -77,29 +93,42 @@ export async function UserStatusStrip() {
         )}
 
         {session.intent && (
-          <Link
-            href="/chiang-mai/meet"
-            className="flex items-center gap-2 transition hover:text-accent"
-          >
-            <span className="text-ink">
-              Open to{" "}
-              <span className="font-medium">
-                {INTENT_KIND_LABEL[session.intent.kind]}
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/chiang-mai/meet"
+              className="flex items-center gap-2 transition hover:text-accent"
+            >
+              <span className="text-ink">
+                Open to{" "}
+                <span className="font-medium">
+                  {INTENT_KIND_LABEL[session.intent.kind]}
+                </span>
               </span>
-            </span>
-            {pending > 0 && (
-              <span
-                className="rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-page"
-                aria-label={`${pending} pending response${pending === 1 ? "" : "s"}`}
-              >
-                {pending} new {pending === 1 ? "reply" : "replies"}
-              </span>
+              {pending > 0 && (
+                <span
+                  className="rounded-full bg-accent px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-page"
+                  aria-label={`${pending} pending response${pending === 1 ? "" : "s"}`}
+                >
+                  {pending} new {pending === 1 ? "reply" : "replies"}
+                </span>
+              )}
+              <LiveCountdown
+                expiresAt={session.intent.expiresAt}
+                className="font-mono text-xs text-muted"
+              />
+            </Link>
+            {showExtendNudge && (
+              <form action={extendIntent}>
+                <button
+                  type="submit"
+                  className="rounded-full border border-accent/60 bg-surface px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent hover:bg-accent hover:text-page"
+                  title="Push your intent out by 2 hours"
+                >
+                  Extend +2h
+                </button>
+              </form>
             )}
-            <LiveCountdown
-              expiresAt={session.intent.expiresAt}
-              className="font-mono text-xs text-muted"
-            />
-          </Link>
+          </div>
         )}
       </div>
     </div>

@@ -205,6 +205,14 @@ drop policy if exists intents_delete_own on intents;
 create policy intents_delete_own on intents for delete
   using (auth.uid() = profile_id);
 
+-- UPDATE needed for the "extend intent" button (pushing expires_at out
+-- when the TTL is about to elapse with 0 responses). Without this the
+-- update silently no-ops under RLS (0 rows affected, no error).
+drop policy if exists intents_update_own on intents;
+create policy intents_update_own on intents for update
+  using (auth.uid() = profile_id)
+  with check (auth.uid() = profile_id);
+
 -- intent_responses: visible to intent owner + responder; responder writes own.
 drop policy if exists responses_read_parties on intent_responses;
 create policy responses_read_parties on intent_responses for select

@@ -63,7 +63,6 @@ export type IntentResponse = {
 export type MyProfile = {
   handle: string;
   bio: string | null;
-  currentCity: string | null;
   telegramHandle: string | null;
   whatsappNumber: string | null;
 };

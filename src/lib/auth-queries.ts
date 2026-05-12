@@ -52,7 +52,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   if (!user) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("handle, bio, current_city, telegram_handle, whatsapp_number")
+    .select("handle, bio, telegram_handle, whatsapp_number")
     .eq("id", user.id)
     .maybeSingle();
   if (error) throw error;
@@ -60,7 +60,6 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   return {
     handle: data.handle as string,
     bio: (data.bio as string | null) ?? null,
-    currentCity: (data.current_city as string | null) ?? null,
     telegramHandle: (data.telegram_handle as string | null) ?? null,
     whatsappNumber: (data.whatsapp_number as string | null) ?? null,
   };
