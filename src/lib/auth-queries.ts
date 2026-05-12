@@ -70,7 +70,15 @@ export async function getMyProfile(): Promise<MyProfile | null> {
 // under the nav. Returns null when nothing's live so the strip can short-circuit.
 export type ActiveSession = {
   checkin: { cafeName: string; cafeSlug: string; expiresAt: string } | null;
-  intent: { kind: IntentKind; city: string; expiresAt: string } | null;
+  intent: {
+    kind: IntentKind;
+    city: string;
+    expiresAt: string;
+    // Count of OTHER users still in 'pending' state on this intent — the
+    // "you have responses waiting" badge in the status strip. Goes to 0 once
+    // the owner accepts one (acceptResponse auto-declines the rest).
+    pendingResponseCount: number;
+  } | null;
   // Most recent accepted match the viewer is in, either as host (someone
   // responded to my intent and I accepted) or responder (I responded to
   // someone's intent and they accepted). Surfaces in the sticky strip so
@@ -144,11 +152,21 @@ export async function getMyActiveSession(): Promise<ActiveSession | null> {
       : null;
 
   const intentRow = intentResult.data;
+  let pendingResponseCount = 0;
+  if (intentRow) {
+    const { count } = await supabase
+      .from("intent_responses")
+      .select("id", { count: "exact", head: true })
+      .eq("intent_id", intentRow.id as string)
+      .eq("status", "pending");
+    pendingResponseCount = count ?? 0;
+  }
   const intent = intentRow
     ? {
         kind: intentRow.kind as IntentKind,
         city: intentRow.city as string,
         expiresAt: intentRow.expires_at as string,
+        pendingResponseCount,
       }
     : null;
 
