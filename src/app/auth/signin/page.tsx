@@ -19,9 +19,14 @@ function safeNext(raw: string | undefined): string | undefined {
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{
+    next?: string;
+    error?: string;
+    reason?: string;
+    detail?: string;
+  }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, reason, detail } = await searchParams;
   const safe = safeNext(next);
 
   return (
@@ -39,9 +44,18 @@ export default async function SignInPage({
         </p>
       </header>
       {error === "callback" && (
-        <div className="rounded-2xl border border-red-300/60 bg-red-50/60 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-300">
-          That sign-in link didn&apos;t work — it may have expired or been used
-          already. Request a fresh one below.
+        <div className="flex flex-col gap-2 rounded-2xl border border-red-300/60 bg-red-50/60 px-4 py-3 text-sm text-red-700 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-300">
+          <p>
+            That sign-in link didn&apos;t work — it may have expired or been
+            used already. Request a fresh one below.
+          </p>
+          {(reason || detail) && (
+            <p className="font-mono text-[11px] opacity-75">
+              {reason ? `reason: ${reason}` : null}
+              {reason && detail ? " · " : null}
+              {detail ? `detail: ${detail}` : null}
+            </p>
+          )}
         </div>
       )}
       <SignInForm next={safe} />

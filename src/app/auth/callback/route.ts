@@ -23,14 +23,32 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
   const next = safeNext(searchParams.get("next"));
 
-  if (!code || !isAuthConfigured()) {
-    return NextResponse.redirect(`${origin}/auth/signin?error=callback`);
+  // Surface a structured `reason` on every failure path so the signin page
+  // and Vercel logs can tell us which step broke without us guessing.
+  const fail = (reason: string, detail?: string) => {
+    console.error("[auth/callback] failed", { reason, detail, url: request.url });
+    const params = new URLSearchParams({ error: "callback", reason });
+    if (detail) params.set("detail", detail.slice(0, 200));
+    return NextResponse.redirect(
+      `${origin}/auth/signin?${params.toString()}`,
+    );
+  };
+
+  if (!isAuthConfigured()) return fail("not_configured");
+  if (!code) {
+    // Supabase's verify endpoint can also redirect with ?error=... directly.
+    const supabaseError = searchParams.get("error");
+    const supabaseErrorDesc = searchParams.get("error_description");
+    return fail(
+      "no_code",
+      supabaseError ? `${supabaseError}: ${supabaseErrorDesc ?? ""}` : undefined,
+    );
   }
 
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) {
-    return NextResponse.redirect(`${origin}/auth/signin?error=callback`);
+    return fail("exchange_failed", `${error.code ?? ""} ${error.message}`);
   }
 
   // Check whether the user still has the auto-generated handle. If so, this
