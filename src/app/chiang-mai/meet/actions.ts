@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { emailIntentAccepted, emailIntentResponse } from "@/lib/email";
 import { computeIntentExpiry } from "@/lib/intent-ttl";
+import { lookupEmail } from "@/lib/store";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
+import type { IntentKind } from "@/lib/types";
 
 const SetIntentSchema = z.object({
   kind: z.enum(["coffee", "cowork", "dinner", "hike"]),
@@ -79,14 +82,57 @@ export async function respondToIntent(formData: FormData): Promise<void> {
     return;
   }
 
-  await supabase.from("intent_responses").insert({
-    intent_id: intentId,
-    responder_id: user.id,
-    status: "pending",
-  });
-  // Roster on café pages also surfaces respond state, so broaden the
-  // revalidate scope to cover both /meet and /cafes/[slug].
+  const { error: insertErr } = await supabase
+    .from("intent_responses")
+    .insert({
+      intent_id: intentId,
+      responder_id: user.id,
+      status: "pending",
+    });
+  // Revalidate before sending email so the UI is fresh even if the email
+  // path is slow / down. Email is fire-and-forget downstream.
   revalidatePath("/chiang-mai", "layout");
+  if (insertErr) return;
+
+  await notifyIntentOwnerOfResponse(supabase, intentId, user.id);
+}
+
+// Side-channel notification so the intent owner gets pulled back even if
+// they navigated away from /meet. Fire-and-forget — never throws back to
+// the caller; failure is logged inside emailIntent* helpers.
+async function notifyIntentOwnerOfResponse(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  intentId: string,
+  responderId: string,
+) {
+  try {
+    const { data: intentRow } = await supabase
+      .from("intents")
+      .select("profile_id, kind")
+      .eq("id", intentId)
+      .maybeSingle();
+    if (!intentRow) return;
+    const ownerId = intentRow.profile_id as string;
+    if (ownerId === responderId) return; // shouldn't happen, defensive
+
+    const [{ data: responderProfile }, ownerEmail] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("handle")
+        .eq("id", responderId)
+        .maybeSingle(),
+      lookupEmail(ownerId),
+    ]);
+    if (!ownerEmail || !responderProfile?.handle) return;
+
+    await emailIntentResponse({
+      to: ownerEmail,
+      responderHandle: responderProfile.handle as string,
+      intentKind: intentRow.kind as IntentKind,
+    });
+  } catch (e) {
+    console.error("[meet/notify response] failed", e);
+  }
 }
 
 // No DELETE policy on intent_responses; withdrawing is just UPDATE → declined.
@@ -117,6 +163,11 @@ export async function acceptResponse(formData: FormData): Promise<void> {
     return;
   }
   const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
   await supabase
     .from("intent_responses")
     .update({ status: "accepted" })
@@ -128,4 +179,49 @@ export async function acceptResponse(formData: FormData): Promise<void> {
     .neq("id", responseId)
     .eq("status", "pending");
   revalidatePath("/chiang-mai", "layout");
+
+  await notifyResponderOfAccept(supabase, responseId, intentId, user.id);
+}
+
+// THE match moment — email the responder so they don't wait for a refresh
+// to find out they were accepted. Drives them straight to the contact
+// reveal screen.
+async function notifyResponderOfAccept(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  responseId: string,
+  intentId: string,
+  hostId: string,
+) {
+  try {
+    const [{ data: respRow }, { data: intentRow }, { data: hostProfile }] =
+      await Promise.all([
+        supabase
+          .from("intent_responses")
+          .select("responder_id")
+          .eq("id", responseId)
+          .maybeSingle(),
+        supabase
+          .from("intents")
+          .select("kind")
+          .eq("id", intentId)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("handle")
+          .eq("id", hostId)
+          .maybeSingle(),
+      ]);
+    if (!respRow || !intentRow || !hostProfile?.handle) return;
+    const responderId = respRow.responder_id as string;
+    const responderEmail = await lookupEmail(responderId);
+    if (!responderEmail) return;
+
+    await emailIntentAccepted({
+      to: responderEmail,
+      hostHandle: hostProfile.handle as string,
+      intentKind: intentRow.kind as IntentKind,
+    });
+  } catch (e) {
+    console.error("[meet/notify accept] failed", e);
+  }
 }
