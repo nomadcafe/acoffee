@@ -55,12 +55,12 @@ export async function sendMagicLink(
   const ip = ipFromHeaders(await headers());
   const emailKey = parsed.data.email.toLowerCase();
   const ipLimit = checkRateLimit(`signin:ip:${ip}`, [
-    { windowMs: HOUR_MS, max: 3 },
-    { windowMs: DAY_MS, max: 10 },
+    { windowMs: HOUR_MS, max: 20 },
+    { windowMs: DAY_MS, max: 60 },
   ]);
   const emailLimit = checkRateLimit(`signin:email:${emailKey}`, [
-    { windowMs: HOUR_MS, max: 2 },
-    { windowMs: DAY_MS, max: 5 },
+    { windowMs: HOUR_MS, max: 20 },
+    { windowMs: DAY_MS, max: 60 },
   ]);
   if (!ipLimit.allowed || !emailLimit.allowed) {
     const retryAfterSec = Math.max(
