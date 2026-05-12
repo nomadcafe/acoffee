@@ -71,7 +71,7 @@ export default async function Home({
       />
       <section className="mx-auto flex min-h-[88vh] w-full max-w-5xl flex-col justify-center gap-8 px-4 pb-16 pt-20 sm:px-6 sm:pb-24 sm:pt-28">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-accent">
-          Issue 01 · Open source · Check in as you travel
+          Open source · Check in as you travel
         </p>
         <h1 className="font-display text-[clamp(3.5rem,11vw,9rem)] font-medium leading-[0.92]">
           You just landed.
