@@ -6,11 +6,15 @@ import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 // route the user to /profile once before letting them in.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
-// Same allow-list as the sign-in form: only same-origin paths.
+// Same allow-list as the sign-in form: only same-origin paths. Default
+// lands new users on /chiang-mai (the active city) instead of the home
+// page — they've already seen home if they're signing in, and the city
+// page is where the actual product lives.
 function safeNext(raw: string | null): string {
-  if (!raw) return "/";
-  if (!raw.startsWith("/")) return "/";
-  if (raw.startsWith("//")) return "/"; // protocol-relative
+  const fallback = "/chiang-mai";
+  if (!raw) return fallback;
+  if (!raw.startsWith("/")) return fallback;
+  if (raw.startsWith("//")) return fallback; // protocol-relative
   return raw;
 }
 

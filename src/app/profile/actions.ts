@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { emailWelcome } from "@/lib/email";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
+
+const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
 function safeAfter(raw: FormDataEntryValue | null): string | undefined {
   if (typeof raw !== "string" || !raw) return undefined;
@@ -84,6 +87,20 @@ export async function updateProfile(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Sign in to edit your profile." };
 
+  // Read the previous handle BEFORE the update so we can detect the
+  // auto-handle → real-handle transition (= onboarding completion) and
+  // fire the welcome email exactly once.
+  const { data: priorProfile } = await supabase
+    .from("profiles")
+    .select("handle")
+    .eq("id", user.id)
+    .maybeSingle();
+  const priorHandle = (priorProfile?.handle as string | undefined) ?? null;
+  const isOnboardingCompletion =
+    priorHandle !== null &&
+    AUTO_HANDLE.test(priorHandle) &&
+    !AUTO_HANDLE.test(parsed.data.handle);
+
   const telegram = parsed.data.telegramHandle?.replace(/^@/, "") ?? null;
   const { error } = await supabase
     .from("profiles")
@@ -109,6 +126,12 @@ export async function updateProfile(
 
   revalidatePath("/profile");
   revalidatePath("/", "layout"); // SiteNav uses handle, lives in layout.
+
+  if (isOnboardingCompletion && user.email) {
+    // Fire-and-forget — never throw back into the form. Failures land in
+    // Vercel logs via the email helper's catch.
+    await emailWelcome({ to: user.email, handle: parsed.data.handle });
+  }
 
   // Onboarding hand-off: if the user came in via /auth/callback's first-time
   // path, finish by sending them where they were originally trying to go.

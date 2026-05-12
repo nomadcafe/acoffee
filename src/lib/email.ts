@@ -70,6 +70,42 @@ export async function emailIntentResponse(args: {
   });
 }
 
+// First email after a user finishes onboarding (picks a real handle).
+// Fires once — guarded by the auto-handle → real-handle transition in
+// updateProfile. Aim: re-engage anyone who signs up, gets distracted,
+// and would otherwise never come back. Three concrete next actions, not
+// a wall of feature copy.
+export async function emailWelcome(args: {
+  to: string;
+  handle: string;
+}) {
+  const cafesUrl = `${siteUrl}/chiang-mai/cafes`;
+  const meetUrl = `${siteUrl}/chiang-mai/meet`;
+  await sendEmail({
+    to: args.to,
+    subject: `Welcome, @${args.handle} · 3 quick next steps on ${siteName}`,
+    text:
+      `Welcome to ${siteName}, @${args.handle}.\n\n` +
+      `Three quick things to try:\n\n` +
+      `1. Pick a café you're working from today: ${cafesUrl}\n` +
+      `2. Check in so others know the spot is alive — and you appear on the roster.\n` +
+      `3. Set one signal on /meet — coffee, cowork, dinner, hike — to find someone today: ${meetUrl}\n\n` +
+      `When someone responds, you'll get an email like this one.\n\n— ${siteName}`,
+    html: `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
+<p style="font-size:16px;margin:0 0 18px">Welcome to <strong>${siteName}</strong>, <strong>@${args.handle}</strong>.</p>
+<p style="font-size:14px;color:#555;margin:0 0 12px">Three quick things to try while the trail is warm:</p>
+<ol style="font-size:14px;padding-left:20px;margin:0 0 24px">
+  <li style="margin-bottom:8px">Pick a café you're working from today &mdash; <a href="${cafesUrl}" style="color:#b45309">browse Chiang Mai cafés &rarr;</a></li>
+  <li style="margin-bottom:8px">Check in so others know the spot is alive &mdash; you'll appear on its roster, and they'll appear on yours.</li>
+  <li style="margin-bottom:8px">Set one signal on <a href="${meetUrl}" style="color:#b45309">/meet</a> &mdash; coffee, cowork, dinner, hike &mdash; to match with someone open today.</li>
+</ol>
+<p style="margin:0 0 28px"><a href="${cafesUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:9999px;text-decoration:none;font-weight:500">Start at a café &rarr;</a></p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You're receiving this because you just signed up.</p>
+</body></html>`,
+  });
+}
+
 // "Your match accepted you." Sent to the responder when the host taps Accept.
 // THE magic-moment email — should land within a minute of the accept and
 // click straight into the contact reveal.
