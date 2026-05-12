@@ -29,14 +29,16 @@ export const chiangMai: City = {
   utcOffsetHours: 7, // ICT
 };
 
-export const bangkok: City = {
-  slug: "bangkok",
-  name: "Bangkok",
+export const osaka: City = {
+  slug: "osaka",
+  name: "Osaka",
   status: "building",
-  center: { lat: 13.7563, lng: 100.5018 },
+  center: { lat: 34.6937, lng: 135.5023 },
   zoom: 11,
-  bbox: { minLat: 13.55, minLng: 100.4, maxLat: 13.95, maxLng: 100.75 },
-  utcOffsetHours: 7, // ICT
+  // Osaka metropolitan area — Umeda / Namba core plus the inner ring.
+  // Generous on the east so Higashi-Osaka pins still count.
+  bbox: { minLat: 34.55, minLng: 135.35, maxLat: 34.85, maxLng: 135.65 },
+  utcOffsetHours: 9, // JST, no DST
 };
 
 export const lisbon: City = {
@@ -60,7 +62,7 @@ export const bali: City = {
   utcOffsetHours: 8, // WITA
 };
 
-export const HOMEPAGE_CITIES: City[] = [chiangMai, bangkok, lisbon, bali];
+export const HOMEPAGE_CITIES: City[] = [chiangMai, osaka, lisbon, bali];
 
 export const cities: Record<string, City> = Object.fromEntries(
   HOMEPAGE_CITIES.map((c) => [c.slug, c]),

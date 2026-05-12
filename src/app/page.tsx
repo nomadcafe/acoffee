@@ -29,7 +29,7 @@ export default async function Home({
   ]);
 
   // Build the panel data. For each aggregated city name, try to match a
-  // curated City record (Chiang Mai / Bangkok / Lisbon / Bali) — known
+  // curated City record (Chiang Mai / Osaka / Lisbon / Bali) — known
   // matches get the full status + cafe activity treatment; everything else
   // surfaces as a discovered row.
   const knownCafeActivity = new Map<string, { activeCafes: number; workingNow: number }>();
