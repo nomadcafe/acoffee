@@ -1,80 +1,21 @@
-export type Pin = {
-  id: string;
-  lat: number;
-  lng: number;
-  nickname: string | null;
-  createdAt: string;
-};
+// v0.7 Coffee Card kinds. Stored on profiles.coffee_chat_kinds as text[] with
+// a CHECK constraint matching this union. UI renders one chip per value.
+export const COFFEE_CHAT_KINDS = [
+  "coffee",
+  "cowork",
+  "dinner",
+  "hike",
+  "work_talk",
+] as const;
 
-export type Subscriber = {
-  id: string;
-  email: string;
-  city: string | null;
-  createdAt: string;
-};
-
-export type CafeSubmissionStatus = "approved" | "pending" | "rejected";
-
-export type Cafe = {
-  id: string;
-  slug: string;
-  name: string;
-  city: string;
-  neighborhood: string | null;
-  lat: number;
-  lng: number;
-  hasWifi: boolean;
-  hasOutlets: boolean;
-  laptopFriendly: boolean;
-  submissionStatus: CafeSubmissionStatus;
-};
-
-export type Checkin = {
-  id: string;
-  profileId: string;
-  cafeId: string;
-  note: string | null;
-  expiresAt: string;
-  createdAt: string;
-};
-
-export type IntentKind = "coffee" | "cowork" | "dinner" | "hike";
-
-export type Intent = {
-  id: string;
-  profileId: string;
-  kind: IntentKind;
-  city: string;
-  expiresAt: string;
-  createdAt: string;
-};
-
-export type IntentResponseStatus = "pending" | "accepted" | "declined";
-
-export type IntentResponse = {
-  id: string;
-  intentId: string;
-  responderId: string;
-  status: IntentResponseStatus;
-  contactVia: "telegram" | "whatsapp" | null;
-  createdAt: string;
-};
+export type CoffeeChatKind = (typeof COFFEE_CHAT_KINDS)[number];
 
 export type MyProfile = {
   handle: string;
   bio: string | null;
+  city: string | null;
+  coffeeChatKinds: CoffeeChatKind[];
   telegramHandle: string | null;
   whatsappNumber: string | null;
-};
-
-// Contact channels revealed to the other party AFTER a match is accepted.
-// Any field can be null — Telegram/WhatsApp are optional, email is the
-// fallback that's always available.
-export type ContactReveal = {
-  email: string | null;
-  telegramHandle: string | null;
-  whatsappNumber: string | null;
-  // Surfaced post-match so the first message has context — saves a "what
-  // do you do?" round-trip. Null if the matched party left bio empty.
-  bio: string | null;
+  emailContact: string | null;
 };

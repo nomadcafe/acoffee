@@ -1,6 +1,10 @@
 "use client";
-import { useActionState } from "react";
-import type { MyProfile } from "@/lib/types";
+import { useActionState, useState } from "react";
+import {
+  COFFEE_CHAT_KINDS,
+  type CoffeeChatKind,
+  type MyProfile,
+} from "@/lib/types";
 import { updateProfile, type ProfileState } from "./actions";
 
 const INITIAL: ProfileState = { status: "idle" };
@@ -10,6 +14,14 @@ const INITIAL: ProfileState = { status: "idle" };
 // typing. Let placeholder guide instead, so the field starts empty and the
 // real handle gets typed in one go.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
+
+const KIND_LABELS: Record<CoffeeChatKind, { emoji: string; label: string }> = {
+  coffee: { emoji: "☕", label: "Coffee" },
+  cowork: { emoji: "💻", label: "Cowork" },
+  dinner: { emoji: "🍜", label: "Dinner" },
+  hike: { emoji: "🥾", label: "Hike" },
+  work_talk: { emoji: "💼", label: "Work talk" },
+};
 
 export function ProfileForm({
   profile,
@@ -21,6 +33,9 @@ export function ProfileForm({
   const [state, action, pending] = useActionState(updateProfile, INITIAL);
   const errs = state.fieldErrors ?? {};
   const isAutoHandle = AUTO_HANDLE.test(profile.handle);
+  const [selectedKinds, setSelectedKinds] = useState<Set<CoffeeChatKind>>(
+    () => new Set(profile.coffeeChatKinds),
+  );
 
   return (
     <form action={action} className="flex flex-col gap-7">
@@ -43,18 +58,69 @@ export function ProfileForm({
           error={errs.handle}
           required
         />
+        <Field
+          label="City"
+          name="city"
+          defaultValue={profile.city ?? ""}
+          placeholder="Chiang Mai"
+          hint="Where you want to be found — leave blank if you're between cities"
+          error={errs.city}
+        />
         <FieldArea
-          label="Bio"
+          label="Status"
           name="bio"
           defaultValue={profile.bio ?? ""}
-          hint="Optional · up to 140 chars · shown to your match alongside contact"
+          hint="One line · ≤ 140 chars · what you're doing, what you're up for"
           error={errs.bio}
         />
       </fieldset>
 
+      <fieldset className="flex flex-col gap-3 border-none p-0">
+        <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
+          What you&apos;re up for
+        </legend>
+        <div className="flex flex-wrap gap-2">
+          {COFFEE_CHAT_KINDS.map((k) => {
+            const meta = KIND_LABELS[k];
+            const active = selectedKinds.has(k);
+            return (
+              <label
+                key={k}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  active
+                    ? "border-accent bg-accent-soft text-accent"
+                    : "border-bean bg-surface text-ink/85 hover:border-accent/60"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  name="coffeeChatKinds"
+                  value={k}
+                  checked={active}
+                  onChange={(e) => {
+                    setSelectedKinds((prev) => {
+                      const next = new Set(prev);
+                      if (e.target.checked) next.add(k);
+                      else next.delete(k);
+                      return next;
+                    });
+                  }}
+                  className="sr-only"
+                />
+                <span aria-hidden>{meta.emoji}</span>
+                <span>{meta.label}</span>
+              </label>
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted">
+          Pick any. Shown as chips on your public card.
+        </p>
+      </fieldset>
+
       <fieldset className="flex flex-col gap-5 border-none p-0">
         <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
-          Contact · revealed only after a match
+          Contact · revealed only after invite
         </legend>
         <Field
           label="Telegram"
@@ -71,6 +137,15 @@ export function ProfileForm({
           placeholder="+66812345678"
           hint="Recommended · include country code with +"
           error={errs.whatsappNumber}
+        />
+        <Field
+          label="Email"
+          name="emailContact"
+          type="email"
+          defaultValue={profile.emailContact ?? ""}
+          placeholder="you@example.com"
+          hint="Optional · a public contact email — can differ from sign-in"
+          error={errs.emailContact}
         />
       </fieldset>
 
@@ -100,6 +175,7 @@ export function ProfileForm({
 function Field({
   label,
   name,
+  type,
   defaultValue,
   placeholder,
   hint,
@@ -108,6 +184,7 @@ function Field({
 }: {
   label: string;
   name: string;
+  type?: string;
   defaultValue?: string;
   placeholder?: string;
   hint?: string;
@@ -121,6 +198,7 @@ function Field({
       </span>
       <input
         name={name}
+        type={type ?? "text"}
         defaultValue={defaultValue}
         placeholder={placeholder}
         required={required}

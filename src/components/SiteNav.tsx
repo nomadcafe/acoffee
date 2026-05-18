@@ -33,53 +33,27 @@ export async function SiteNav() {
 
   return (
     <nav className="border-b border-bean bg-page/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="font-serif text-lg font-medium text-ink hover:opacity-80 dark:text-ink"
+          className="text-lg font-semibold tracking-tight text-ink hover:opacity-80"
         >
           acoffee
         </Link>
         <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
-          <Link
-            href="/"
-            className="rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40 dark:text-ink/85 dark:hover:bg-bean/40"
-          >
-            World map
-          </Link>
-          <Link
-            href="/chiang-mai"
-            className="rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40 dark:text-ink/85 dark:hover:bg-bean/40"
-          >
-            Chiang Mai
-          </Link>
-          {handle && (
-            <Link
-              href="/chiang-mai/meet"
-              className="hidden rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40 sm:inline dark:text-ink/85 dark:hover:bg-bean/40"
-            >
-              Meet
-            </Link>
-          )}
-          {supabaseConfigured && (
-            <span
-              className="mx-1 hidden h-4 w-px bg-bean dark:bg-bean sm:inline-block"
-              aria-hidden
-            />
-          )}
           {supabaseConfigured &&
             (handle ? (
               <Link
-                href="/profile"
-                className="max-w-[10rem] truncate rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40 dark:text-ink/85 dark:hover:bg-bean/40"
-                title={`@${handle} · profile & sign out`}
+                href={`/${handle}`}
+                className="max-w-[10rem] truncate rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40"
+                title={`@${handle} · your public card`}
               >
                 @{handle}
               </Link>
             ) : (
               <Link
                 href="/auth/signin"
-                className="rounded-full bg-accent px-3 py-1.5 font-medium text-page hover:bg-accent-hover"
+                className="rounded-2xl bg-accent px-4 py-2 font-medium text-page shadow-sm hover:bg-accent-hover hover:shadow-md"
               >
                 Sign in
               </Link>

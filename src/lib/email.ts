@@ -1,11 +1,9 @@
 import { Resend } from "resend";
-import { INTENT_KIND_LABEL } from "./intent-labels";
 import { siteName, siteUrl } from "./site";
-import type { IntentKind } from "./types";
 
 // Email is best-effort. RESEND_API_KEY + EMAIL_FROM missing → skip; send
 // failure → log only, never throw. We don't want a flaky email provider
-// blocking the underlying DB write (intent response / accept).
+// blocking the underlying DB write.
 //
 // EMAIL_FROM example: "acoffee <hello@acoffee.com>". Verify the domain in
 // Resend dashboard before setting; un-verified domains will 403.
@@ -46,98 +44,39 @@ async function sendEmail(opts: {
   }
 }
 
-// "Someone responded to your intent." Sent to the intent owner after a
-// responder taps "I'm in" on /meet or the cafe roster. Drives them back to
-// /meet to accept or decline.
-export async function emailIntentResponse(args: {
-  to: string;
-  responderHandle: string;
-  intentKind: IntentKind;
-}) {
-  const kind = INTENT_KIND_LABEL[args.intentKind];
-  const url = `${siteUrl}/chiang-mai/meet`;
-  await sendEmail({
-    to: args.to,
-    subject: `@${args.responderHandle} responded to your ${kind} on ${siteName}`,
-    text:
-      `@${args.responderHandle} is in for ${kind}.\n\n` +
-      `Accept or decline on ${siteName}: ${url}\n\n— ${siteName}`,
-    html: emailShell(
-      `@${args.responderHandle} is in for <strong>${kind}</strong>.`,
-      url,
-      "Open acoffee to accept or decline →",
-    ),
-  });
-}
-
-// First email after a user finishes onboarding (picks a real handle).
-// Fires once — guarded by the auto-handle → real-handle transition in
-// updateProfile. Aim: re-engage anyone who signs up, gets distracted,
-// and would otherwise never come back. Three concrete next actions, not
-// a wall of feature copy.
+// First email after a user finishes onboarding (picks a real handle). Fires
+// once — guarded by the auto-handle → real-handle transition in
+// updateProfile. Aim: re-engage anyone who signs up, gets distracted, and
+// would otherwise never come back. Two concrete next actions, not a wall of
+// feature copy.
 export async function emailWelcome(args: {
   to: string;
   handle: string;
 }) {
-  const cafesUrl = `${siteUrl}/chiang-mai/cafes`;
-  const meetUrl = `${siteUrl}/chiang-mai/meet`;
+  const cardUrl = `${siteUrl}/${args.handle}`;
+  const profileUrl = `${siteUrl}/profile`;
   await sendEmail({
     to: args.to,
-    subject: `Welcome, @${args.handle} · 3 quick next steps on ${siteName}`,
+    subject: `Welcome, @${args.handle} · your acoffee card is live`,
     text:
       `Welcome to ${siteName}, @${args.handle}.\n\n` +
-      `Three quick things to try:\n\n` +
-      `1. Pick a café you're working from today: ${cafesUrl}\n` +
-      `2. Check in so others know the spot is alive — and you appear on the roster.\n` +
-      `3. Set one signal on /meet — coffee, cowork, dinner, hike — to find someone today: ${meetUrl}\n\n` +
-      `When someone responds, you'll get an email like this one.\n\n— ${siteName}`,
+      `Your card is now live at ${cardUrl}.\n\n` +
+      `Two quick things to do:\n\n` +
+      `1. Fill the card — city, a one-line status, what you're up for: ${profileUrl}\n` +
+      `2. Share the link in a Slack, a tweet, or DM to a friend in your next city.\n\n` +
+      `When someone clicks "Invite for coffee", they get your contact channels.\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
 <p style="font-size:16px;margin:0 0 18px">Welcome to <strong>${siteName}</strong>, <strong>@${args.handle}</strong>.</p>
-<p style="font-size:14px;color:#555;margin:0 0 12px">Three quick things to try while the trail is warm:</p>
+<p style="font-size:14px;color:#555;margin:0 0 12px">Your card is now live:</p>
+<p style="font-size:15px;margin:0 0 18px"><a href="${cardUrl}" style="color:#b45309;font-weight:500">${cardUrl} &rarr;</a></p>
+<p style="font-size:14px;color:#555;margin:0 0 12px">Two quick things to do:</p>
 <ol style="font-size:14px;padding-left:20px;margin:0 0 24px">
-  <li style="margin-bottom:8px">Pick a café you're working from today &mdash; <a href="${cafesUrl}" style="color:#b45309">browse Chiang Mai cafés &rarr;</a></li>
-  <li style="margin-bottom:8px">Check in so others know the spot is alive &mdash; you'll appear on its roster, and they'll appear on yours.</li>
-  <li style="margin-bottom:8px">Set one signal on <a href="${meetUrl}" style="color:#b45309">/meet</a> &mdash; coffee, cowork, dinner, hike &mdash; to match with someone open today.</li>
+  <li style="margin-bottom:8px">Fill the card &mdash; city, a one-line status, what you're up for &mdash; <a href="${profileUrl}" style="color:#b45309">edit your card &rarr;</a></li>
+  <li style="margin-bottom:8px">Share the link in a Slack, a tweet, or DM to a friend in your next city.</li>
 </ol>
-<p style="margin:0 0 28px"><a href="${cafesUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:9999px;text-decoration:none;font-weight:500">Start at a café &rarr;</a></p>
+<p style="margin:0 0 28px"><a href="${cardUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">See my card &rarr;</a></p>
 <p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You're receiving this because you just signed up.</p>
 </body></html>`,
   });
-}
-
-// "Your match accepted you." Sent to the responder when the host taps Accept.
-// THE magic-moment email — should land within a minute of the accept and
-// click straight into the contact reveal.
-export async function emailIntentAccepted(args: {
-  to: string;
-  hostHandle: string;
-  intentKind: IntentKind;
-}) {
-  const kind = INTENT_KIND_LABEL[args.intentKind];
-  const url = `${siteUrl}/chiang-mai/meet`;
-  await sendEmail({
-    to: args.to,
-    subject: `🎉 @${args.hostHandle} accepted you for ${kind} on ${siteName}`,
-    text:
-      `@${args.hostHandle} accepted you for ${kind}. Their contact channels are now revealed.\n\n` +
-      `Open ${siteName} to message them: ${url}\n\n— ${siteName}`,
-    html: emailShell(
-      `🎉 <strong>@${args.hostHandle}</strong> accepted you for <strong>${kind}</strong>.<br/><br/>Their contact channels (Telegram / WhatsApp) are now revealed.`,
-      url,
-      "Open acoffee to message them →",
-    ),
-  });
-}
-
-// Minimal HTML shell — plain inline styles only, no external CSS. Loud
-// branded shells get spam-filtered; this stays close to plain text so it
-// lands in the inbox and reads cleanly on dark mode clients.
-function emailShell(bodyHtml: string, ctaHref: string, ctaText: string): string {
-  return `<!doctype html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.5;max-width:520px;margin:0 auto;padding:24px">
-<p style="font-size:16px;margin:0 0 16px">${bodyHtml}</p>
-<p style="margin:0 0 32px"><a href="${ctaHref}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:9999px;text-decoration:none;font-weight:500">${ctaText}</a></p>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} · You're receiving this because you're signed up on acoffee.</p>
-</body></html>`;
 }

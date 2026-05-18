@@ -94,12 +94,18 @@ export default async function ProfilePage({
             Account
           </p>
           {stats && (
-            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <Stat label="Joined" value={formatJoined(stats.joinedAt)} />
-              <Stat label="Check-ins" value={stats.checkinCount.toString()} />
-              <Stat label="Intents" value={stats.intentCount.toString()} />
-              <Stat label="Matches" value={stats.matchCount.toString()} />
-            </dl>
+            <div className="flex flex-col gap-2 text-sm text-muted">
+              <p>
+                Your card:{" "}
+                <Link
+                  href={`/${profile.handle}`}
+                  className="font-medium text-accent hover:underline"
+                >
+                  acoffee.com/{profile.handle}
+                </Link>
+              </p>
+              <p>Joined {formatJoined(stats.joinedAt)}</p>
+            </div>
           )}
           <p className="text-sm text-muted">
             Signed in as{" "}
@@ -128,15 +134,3 @@ function formatJoined(iso: string): string {
   return d.toLocaleDateString("en", { month: "short", year: "numeric" });
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <dt className="font-mono text-[10px] uppercase tracking-widest text-muted">
-        {label}
-      </dt>
-      <dd className="font-display text-2xl font-medium leading-none tabular-nums">
-        {value}
-      </dd>
-    </div>
-  );
-}

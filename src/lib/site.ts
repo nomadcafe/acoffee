@@ -5,6 +5,6 @@ export const siteUrl = (
 ).replace(/\/$/, "");
 
 export const siteName = "acoffee";
-export const siteTagline = "You just landed. The first move is coffee.";
+export const siteTagline = "Coffee in bio.";
 export const siteDescription =
-  "A soft map for digital nomads. Drop a pin in a new city, see who's working at which café, set one signal — coffee, cowork, dinner, hike — and meet someone today. Open in Chiang Mai.";
+  "Your friendly coffee chat page. Make your card at acoffee.com/{handle}, share it once, and get invited for coffee, online or in person — by builders, nomads, and interesting people.";

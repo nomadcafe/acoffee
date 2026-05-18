@@ -5,8 +5,28 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { emailWelcome } from "@/lib/email";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
+import { COFFEE_CHAT_KINDS } from "@/lib/types";
 
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
+
+// Handles that would shadow / conflict with top-level routes if claimed.
+// Kept in sync with the same list in app/[handle]/page.tsx — they enforce
+// the same rule from two ends (signup-time vs render-time).
+const RESERVED_HANDLES = new Set([
+  "api",
+  "auth",
+  "profile",
+  "chiang-mai",
+  "osaka",
+  "lisbon",
+  "bali",
+  "settings",
+  "admin",
+  "about",
+  "help",
+  "terms",
+  "privacy",
+]);
 
 function safeAfter(raw: FormDataEntryValue | null): string | undefined {
   if (typeof raw !== "string" || !raw) return undefined;
@@ -18,8 +38,11 @@ function safeAfter(raw: FormDataEntryValue | null): string | undefined {
 // Constraints chosen to match the DB:
 //  - handle: a-z 0-9 _ only, 3-20 chars, unique
 //  - bio: ≤ 140 chars (matches profiles bio CHECK)
+//  - city: free-form, ≤ 60 chars
+//  - coffee_chat_kinds: subset of COFFEE_CHAT_KINDS
 //  - telegram_handle: stored without leading @
 //  - whatsapp_number: stored E.164 (+ + 7-15 digits, leading non-zero)
+//  - email_contact: standard email, ≤ 120 chars
 const ProfileSchema = z.object({
   handle: z
     .string()
@@ -30,6 +53,14 @@ const ProfileSchema = z.object({
       "Lowercase letters, digits, and _ only — no spaces or symbols.",
     ),
   bio: z.string().max(140, "Bio is at most 140 characters.").optional(),
+  city: z
+    .string()
+    .max(60, "City is at most 60 characters.")
+    .optional(),
+  coffeeChatKinds: z
+    .array(z.enum(COFFEE_CHAT_KINDS))
+    .max(COFFEE_CHAT_KINDS.length)
+    .optional(),
   telegramHandle: z
     .string()
     .regex(
@@ -43,6 +74,11 @@ const ProfileSchema = z.object({
       /^\+[1-9]\d{6,14}$/,
       "Phone needs the + and country code, e.g. +66812345678 (Thailand) or +14155551212 (US).",
     )
+    .optional(),
+  emailContact: z
+    .string()
+    .email("That doesn't look like a valid email.")
+    .max(120, "Email is at most 120 characters.")
     .optional(),
 });
 
@@ -66,11 +102,21 @@ export async function updateProfile(
     return { status: "error", message: "Sign-in isn't configured yet." };
   }
 
+  // coffeeChatKinds arrives as multiple form values under the same name —
+  // checkbox-style submission from the chip group. Filter to non-empty
+  // strings before Zod validates against the union.
+  const rawKinds = formData
+    .getAll("coffeeChatKinds")
+    .filter((v): v is string => typeof v === "string" && v.length > 0);
+
   const parsed = ProfileSchema.safeParse({
     handle: trimOrUndefined(formData.get("handle")),
     bio: trimOrUndefined(formData.get("bio")),
+    city: trimOrUndefined(formData.get("city")),
+    coffeeChatKinds: rawKinds,
     telegramHandle: trimOrUndefined(formData.get("telegramHandle")),
     whatsappNumber: trimOrUndefined(formData.get("whatsappNumber")),
+    emailContact: trimOrUndefined(formData.get("emailContact")),
   });
   if (!parsed.success) {
     const fieldErrors: ProfileState["fieldErrors"] = {};
@@ -79,6 +125,14 @@ export async function updateProfile(
       if (k && !fieldErrors[k]) fieldErrors[k] = issue.message;
     }
     return { status: "error", message: "Please fix the highlighted fields.", fieldErrors };
+  }
+
+  if (RESERVED_HANDLES.has(parsed.data.handle)) {
+    return {
+      status: "error",
+      message: "That handle is reserved.",
+      fieldErrors: { handle: "That handle is reserved — try another." },
+    };
   }
 
   const supabase = await createSupabaseServer();
@@ -107,8 +161,11 @@ export async function updateProfile(
     .update({
       handle: parsed.data.handle,
       bio: parsed.data.bio ?? null,
+      city: parsed.data.city ?? null,
+      coffee_chat_kinds: parsed.data.coffeeChatKinds ?? [],
       telegram_handle: telegram,
       whatsapp_number: parsed.data.whatsappNumber ?? null,
+      email_contact: parsed.data.emailContact ?? null,
     })
     .eq("id", user.id);
 

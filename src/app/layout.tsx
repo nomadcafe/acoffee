@@ -4,7 +4,6 @@ import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
 import { SiteNav } from "@/components/SiteNav";
-import { UserStatusStrip } from "@/components/UserStatusStrip";
 import {
   siteDescription,
   siteName,
@@ -72,7 +71,6 @@ export default function RootLayout({
       <body className="min-h-full bg-page text-ink">
         <OnboardingBanner />
         <SiteNav />
-        <UserStatusStrip />
         {children}
         {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
