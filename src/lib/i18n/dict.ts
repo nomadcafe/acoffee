@@ -30,7 +30,6 @@ export const en = {
   // How it works — home page section
   "how.eyebrow": "How it works",
   "how.h2": "Three steps. One card. No swiping.",
-  "how.step.label": "Step",
   "how.step1.title": "Claim your handle",
   "how.step1.body.pre":
     "Sign in once. Pick the URL others will recognise you by — ",
@@ -391,7 +390,6 @@ export const zh: Record<DictKey, string> = {
 
   "how.eyebrow": "怎么用",
   "how.h2": "三步。一张名片。不用刷选。",
-  "how.step.label": "第",
   "how.step1.title": "认领你的 handle",
   "how.step1.body.pre": "登录一次。挑一个别人能记住的 URL —— ",
   "how.step1.body.post": "。这就是你以后的名片。",
@@ -686,7 +684,6 @@ export const ja: Record<DictKey, string> = {
 
   "how.eyebrow": "使い方",
   "how.h2": "3 ステップ。1 枚のカード。スワイプなし。",
-  "how.step.label": "ステップ",
   "how.step1.title": "ハンドルを決める",
   "how.step1.body.pre":
     "一度サインインして、他の人が見つけられる URL を選ぶ —— ",

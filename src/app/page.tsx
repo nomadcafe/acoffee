@@ -130,27 +130,34 @@ export async function HomeView({ locale }: { locale: Locale }) {
           </h2>
         </div>
 
-        <ol className="grid gap-6 sm:grid-cols-3 sm:gap-6">
+        <ol className="grid gap-5 sm:grid-cols-3">
           {steps.map((step) => (
             <li
               key={step.n}
-              className="flex flex-col gap-4 rounded-2xl border border-bean bg-surface p-6 shadow-[0_8px_24px_-18px_rgba(42,31,24,0.25)]"
+              className="group relative isolate flex flex-col gap-4 overflow-hidden rounded-3xl border border-bean bg-surface p-7 shadow-[0_8px_24px_-20px_rgba(42,31,24,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-accent/50 hover:shadow-[0_24px_48px_-24px_rgba(42,31,24,0.4)]"
             >
-              <div className="flex items-center gap-3">
-                <span
-                  aria-hidden
-                  className="grid h-10 w-10 place-items-center rounded-2xl bg-accent-soft text-xl"
-                >
-                  {step.emoji}
-                </span>
-                <span className="text-sm font-medium text-muted">
-                  {t(locale, "how.step.label")} {step.n}
-                </span>
-              </div>
-              <h3 className="text-xl font-semibold tracking-tight text-ink">
+              {/* Decorative serif numeral sits behind the content. Italic
+                  Fraunces in accent at low opacity acts as a visual anchor
+                  without competing with the title; deepens on hover so
+                  the whole card feels alive. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-1 -top-2 select-none font-serif text-[7rem] font-semibold italic leading-none text-accent/15 transition-all duration-500 group-hover:text-accent/30"
+              >
+                {step.n}
+              </span>
+
+              <span
+                aria-hidden
+                className="origin-left text-3xl transition-transform duration-300 group-hover:scale-110"
+              >
+                {step.emoji}
+              </span>
+
+              <h3 className="relative pr-12 text-xl font-semibold leading-[1.2] tracking-tight text-ink">
                 {step.title}
               </h3>
-              <p className="text-base leading-[1.55] text-ink/75">
+              <p className="relative text-base leading-[1.6] text-ink/75">
                 {step.body}
               </p>
             </li>

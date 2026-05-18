@@ -62,9 +62,21 @@ export async function SiteNav() {
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
         <Link
           href="/"
-          className="text-lg font-semibold tracking-tight text-ink hover:opacity-80"
+          aria-label="aCoffee — home"
+          className="inline-flex items-baseline text-lg tracking-tight text-ink hover:opacity-80"
         >
-          acoffee
+          {/* Wordmark `aCoffee`. Two serif glyphs in accent colour bookend
+              the sans 'offee' centre: a Fraunces italic 'a' (the article)
+              and an upright Fraunces 'C' (the noun's capital). Same
+              x-height bump (1.25em) keeps them visually paired without
+              looking like two separate words. */}
+          <span className="font-serif text-[1.25em] italic font-medium leading-none text-accent">
+            a
+          </span>
+          <span className="font-serif text-[1.25em] font-medium leading-none text-accent">
+            C
+          </span>
+          <span className="font-semibold">offee</span>
         </Link>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
           {supabaseConfigured && session && pendingCount > 0 && (
