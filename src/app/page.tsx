@@ -1,22 +1,13 @@
 import Link from "next/link";
 import { SampleCard } from "@/components/SampleCard";
-import { HOMEPAGE_CITIES } from "@/lib/cities";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
-
-export default async function Home() {
-  // The "primary" open city anchors the hero status pill. Only one city is
-  // open today (Chiang Mai); when a second opens we'll either pick by activity
-  // or surface both — revisit then. The live-activity readout that used to
-  // appear inside the pill was dropped with the v0.5 check-in surface.
-  const primaryOpenCity = HOMEPAGE_CITIES.find((c) => c.status === "open") ?? null;
-
+export default function Home() {
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
     name: siteName,
-    alternateName: "acoffee — soft map for digital nomads",
+    alternateName: "acoffee — coffee in bio",
     url: siteUrl,
     description: siteDescription,
     inLanguage: "en",
@@ -30,15 +21,10 @@ export default async function Home() {
       />
       <section className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pb-16 pt-16 sm:px-6 sm:pb-20 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pt-24">
         <div className="flex flex-col gap-6">
-          {primaryOpenCity && (
-            <span className="inline-flex w-fit items-center gap-2 rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
-              <span className="relative inline-flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-1.5 w-1.5 animate-ping rounded-full bg-accent/60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-              </span>
-              Now in {primaryOpenCity.name} · open beta
-            </span>
-          )}
+          <span className="inline-flex w-fit items-center gap-2 rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
+            <span aria-hidden>☕</span>
+            Meet builders, nomads &amp; interesting people
+          </span>
           <h1 className="text-[clamp(2.75rem,6.5vw,5.25rem)] font-semibold leading-[1] tracking-tight text-ink">
             Coffee in bio.
           </h1>

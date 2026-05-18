@@ -1,11 +1,14 @@
 import { ImageResponse } from "next/og";
-import { siteName, siteTagline } from "@/lib/site";
+import { siteName } from "@/lib/site";
 
 export const runtime = "edge";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = `${siteName} — ${siteTagline}`;
+export const alt = `${siteName} — Coffee in bio`;
 
+// Site-wide OG. Per-handle pages override this with `/[handle]/opengraph-image`
+// so a shared Card URL gets the user's avatar + name + status instead of the
+// generic site preview.
 export default function OGImage() {
   return new ImageResponse(
     (
@@ -17,9 +20,8 @@ export default function OGImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "72px",
-          background:
-            "radial-gradient(circle at 30% 20%, #3a2418 0%, #0c0807 70%)",
-          color: "#faf6f1",
+          background: "#f4ede1",
+          color: "#2a1f18",
           fontFamily: "system-ui, sans-serif",
         }}
       >
@@ -27,44 +29,46 @@ export default function OGImage() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 16,
-            fontSize: 28,
-            color: "#d4a574",
-            letterSpacing: 2,
+            gap: 14,
+            fontSize: 26,
+            fontWeight: 600,
+            color: "#b5563a",
+            letterSpacing: 0.5,
           }}
         >
           <span
             style={{
-              width: 18,
-              height: 18,
+              width: 16,
+              height: 16,
               borderRadius: 999,
-              background: "#b8763d",
-              boxShadow: "0 0 0 6px rgba(184,118,61,0.25)",
+              background: "#b5563a",
             }}
           />
-          {siteName}
+          acoffee
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 24,
-          }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <div
             style={{
-              fontSize: 96,
+              fontSize: 152,
               fontWeight: 700,
-              lineHeight: 1.05,
-              letterSpacing: -2,
-              maxWidth: 980,
+              lineHeight: 1,
+              letterSpacing: -3,
+              maxWidth: 1056,
             }}
           >
-            {siteTagline}
+            Coffee in bio.
           </div>
-          <div style={{ fontSize: 36, color: "#a8a29e", maxWidth: 900 }}>
-            Drop a pin. See who else just landed in your city.
+          <div
+            style={{
+              fontSize: 36,
+              color: "#7a6a5a",
+              maxWidth: 980,
+              lineHeight: 1.35,
+            }}
+          >
+            Your friendly coffee chat page. Share your link once — get
+            invited for coffee, online or in person.
           </div>
         </div>
 
@@ -73,11 +77,12 @@ export default function OGImage() {
             display: "flex",
             justifyContent: "space-between",
             fontSize: 24,
-            color: "#78716c",
+            color: "#7a6a5a",
+            fontWeight: 500,
           }}
         >
-          <span>Launching in Chiang Mai first</span>
-          <span>acoffee.com</span>
+          <span>acoffee.com/{`{handle}`}</span>
+          <span>Open beta · Chiang Mai</span>
         </div>
       </div>
     ),

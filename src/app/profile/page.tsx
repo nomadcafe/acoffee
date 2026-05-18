@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
+import { CardSharePanel } from "@/components/CardSharePanel";
 import {
   getMyProfile,
   getMyProfileStats,
   getSessionUser,
 } from "@/lib/auth-queries";
+import { siteUrl } from "@/lib/site";
 import { ProfileForm } from "./ProfileForm";
+
+// Trigger-generated handles look like "user_a1b2c3d4" — those aren't worth
+// showing the share panel for, the URL would point at a placeholder.
+const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
 export const dynamic = "force-dynamic";
 
@@ -69,23 +75,30 @@ export default async function ProfilePage({
     );
   }
 
+  const hasRealHandle = !AUTO_HANDLE.test(profile.handle);
+
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
       <header className="flex flex-col gap-2">
-        <p className="font-mono text-xs uppercase tracking-widest text-accent">
-          {isOnboarding ? "acoffee · Welcome" : "acoffee · Profile"}
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">
+          {isOnboarding ? "Welcome to acoffee" : "Your acoffee card"}
         </p>
-        <h1 className="font-display text-3xl font-medium sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {isOnboarding
             ? "Pick how others see you."
             : "How others see you."}
         </h1>
-        <p className="text-sm text-muted">
+        <p className="text-base text-muted">
           {isOnboarding
-            ? "One-time setup. Pick a handle others can recognize you by. Telegram or WhatsApp lets you actually meet someone after matching."
-            : "Telegram and WhatsApp stay hidden until you match with someone."}
+            ? "One-time setup. Pick a handle others can recognize you by, then add Telegram, WhatsApp, or email so invites actually land."
+            : "Edit your card below. Contact channels stay hidden until someone invites you for coffee."}
         </p>
       </header>
+
+      {hasRealHandle && !isOnboarding && (
+        <CardSharePanel handle={profile.handle} origin={siteUrl} />
+      )}
+
       <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />
 
       {!isOnboarding && (

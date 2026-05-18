@@ -32,15 +32,15 @@ export default async function SignInPage({
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-14 sm:py-20">
       <header className="flex flex-col gap-2">
-        <p className="font-mono text-xs uppercase tracking-widest text-accent">
-          acoffee · Sign in
+        <p className="text-xs font-medium uppercase tracking-wide text-accent">
+          Sign in to acoffee
         </p>
-        <h1 className="font-display text-3xl font-medium sm:text-4xl">
+        <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           One tap, no password.
         </h1>
-        <p className="text-sm text-muted">
-          Enter your email — we&apos;ll send you a link that signs you in
-          on the device you opened it from.
+        <p className="text-base leading-[1.55] text-ink/70">
+          Enter your email — we&apos;ll send you a link that signs you in on
+          the device you opened it from.
         </p>
       </header>
       {error === "callback" && (
