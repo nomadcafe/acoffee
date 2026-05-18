@@ -1,11 +1,13 @@
 "use client";
 import { useActionState, useState } from "react";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { useT } from "@/components/LocaleProvider";
 import { sendMagicLink, type SignInState } from "../actions";
 
 const INITIAL: SignInState = { status: "idle" };
 
 export function SignInForm({ next }: { next?: string }) {
+  const t = useT();
   const [state, action, pending] = useActionState(sendMagicLink, INITIAL);
   const [resetting, setResetting] = useState(false);
 
@@ -13,15 +15,13 @@ export function SignInForm({ next }: { next?: string }) {
     return (
       <div className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent-soft/60 p-6">
         <p className="text-base font-medium text-accent">{state.message}</p>
-        <p className="text-sm text-ink/70">
-          The link opens you back here, signed in.
-        </p>
+        <p className="text-sm text-ink/70">{t("signin.sent.sub")}</p>
         <button
           type="button"
           onClick={() => setResetting(true)}
           className="self-start text-sm font-medium text-muted underline-offset-4 hover:text-accent hover:underline"
         >
-          Wrong email? Send to another →
+          {t("signin.sent.wrongEmail")}
         </button>
       </div>
     );
@@ -33,14 +33,16 @@ export function SignInForm({ next }: { next?: string }) {
       <div className="flex items-center gap-3">
         <span className="h-px flex-1 bg-bean" aria-hidden />
         <span className="text-xs font-medium uppercase tracking-wide text-muted">
-          or
+          {t("signin.or")}
         </span>
         <span className="h-px flex-1 bg-bean" aria-hidden />
       </div>
       <form action={action} className="flex flex-col gap-4">
         {next && <input type="hidden" name="next" value={next} />}
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink/85">Email</span>
+          <span className="text-sm font-medium text-ink/85">
+            {t("signin.email.label")}
+          </span>
           <input
             name="email"
             type="email"
@@ -55,7 +57,7 @@ export function SignInForm({ next }: { next?: string }) {
           disabled={pending}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
-          {pending ? "Sending…" : "Send sign-in link →"}
+          {pending ? t("signin.button.pending") : `${t("signin.button")} →`}
         </button>
         {state.status === "error" && state.message && (
           <p className="text-sm text-red-600 dark:text-red-400">

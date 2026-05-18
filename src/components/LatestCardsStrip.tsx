@@ -1,22 +1,29 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import type { LatestCard } from "@/lib/auth-queries";
+import { type Locale, t } from "@/lib/i18n/dict";
 
 // Home-page strip: 5 most-recent published cards, rendered as compact tiles
 // with avatar + name + city + truncated status. Each tile is a Link to the
 // full card. Hides entirely when the feed is empty — better to skip the
 // section than show an empty "Latest cards" header that signals "nobody's
 // here".
-export function LatestCardsStrip({ cards }: { cards: LatestCard[] }) {
+export function LatestCardsStrip({
+  cards,
+  locale,
+}: {
+  cards: LatestCard[];
+  locale: Locale;
+}) {
   if (cards.length === 0) return null;
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-20 pt-4 sm:px-6 sm:pb-24">
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium uppercase tracking-wide text-accent">
-          Latest cards
+          {t(locale, "latest.eyebrow")}
         </p>
         <h2 className="text-2xl font-semibold leading-tight tracking-tight text-ink sm:text-3xl">
-          Folks who joined this week.
+          {t(locale, "latest.h2")}
         </h2>
       </div>
       <ul className="flex flex-wrap gap-4">

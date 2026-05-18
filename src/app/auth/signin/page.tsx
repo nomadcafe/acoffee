@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
+import { getLocale } from "@/lib/i18n";
+import { t } from "@/lib/i18n/dict";
 import { SignInForm } from "./SignInForm";
 
 export const metadata: Metadata = {
@@ -46,18 +48,18 @@ export default async function SignInPage({
     }
   }
 
+  const locale = await getLocale();
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-14 sm:py-20">
       <header className="flex flex-col gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Sign in to acoffee
+          {t(locale, "signin.eyebrow")}
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
-          One tap, no password.
+          {t(locale, "signin.h1")}
         </h1>
         <p className="text-base leading-[1.55] text-ink/70">
-          Enter your email — we&apos;ll send you a link that signs you in on
-          the device you opened it from.
+          {t(locale, "signin.sub")}
         </p>
       </header>
       {error === "callback" && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/LocaleProvider";
 import { createSupabaseBrowser } from "@/lib/supabase/browser";
 
 // "Continue with Google" one-tap OAuth entry. Drops a user straight into
@@ -9,6 +10,7 @@ import { createSupabaseBrowser } from "@/lib/supabase/browser";
 // path. The `next` query gets threaded through Supabase's redirectTo so
 // the eventual landing matches the magic-link UX.
 export function GoogleSignInButton({ next }: { next?: string }) {
+  const t = useT();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function GoogleSignInButton({ next }: { next?: string }) {
         className="inline-flex items-center justify-center gap-2.5 rounded-2xl border border-bean bg-surface px-5 py-3 text-base font-medium text-ink/85 transition-colors hover:border-accent/60 hover:text-accent disabled:opacity-60"
       >
         <GoogleMark />
-        {pending ? "Redirecting…" : "Continue with Google"}
+        {pending ? t("signin.google.pending") : t("signin.google")}
       </button>
       {error && (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>

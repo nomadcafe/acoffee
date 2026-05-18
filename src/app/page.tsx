@@ -2,6 +2,8 @@ import Link from "next/link";
 import { LatestCardsStrip } from "@/components/LatestCardsStrip";
 import { SampleCard } from "@/components/SampleCard";
 import { listLatestCards } from "@/lib/auth-queries";
+import { getLocale } from "@/lib/i18n";
+import { t } from "@/lib/i18n/dict";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
 // Refresh the strip once an hour. Card creation isn't bursty enough to
@@ -10,7 +12,10 @@ import { siteDescription, siteName, siteUrl } from "@/lib/site";
 export const revalidate = 3600;
 
 export default async function Home() {
-  const latestCards = await listLatestCards(6);
+  const [latestCards, locale] = await Promise.all([
+    listLatestCards(6),
+    getLocale(),
+  ]);
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -18,8 +23,45 @@ export default async function Home() {
     alternateName: "acoffee — coffee in bio",
     url: siteUrl,
     description: siteDescription,
-    inLanguage: "en",
+    inLanguage: locale,
   };
+
+  const steps = [
+    {
+      n: "1",
+      emoji: "✋",
+      title: t(locale, "how.step1.title"),
+      body: (
+        <>
+          {t(locale, "how.step1.body.pre")}
+          <span className="font-medium text-ink">
+            acoffee.com/{`{handle}`}
+          </span>
+          {t(locale, "how.step1.body.post")}
+        </>
+      ),
+    },
+    {
+      n: "2",
+      emoji: "📝",
+      title: t(locale, "how.step2.title"),
+      body: <>{t(locale, "how.step2.body")}</>,
+    },
+    {
+      n: "3",
+      emoji: "☕",
+      title: t(locale, "how.step3.title"),
+      body: (
+        <>
+          {t(locale, "how.step3.body.pre")}
+          <span className="font-medium text-ink">
+            {t(locale, "how.step3.body.quoted")}
+          </span>
+          {t(locale, "how.step3.body.post")}
+        </>
+      ),
+    },
+  ];
 
   return (
     <main className="flex flex-col">
@@ -31,32 +73,31 @@ export default async function Home() {
         <div className="flex flex-col gap-6">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-accent-soft px-3 py-1 text-xs font-medium text-accent">
             <span aria-hidden>☕</span>
-            Meet builders, nomads &amp; interesting people
+            {t(locale, "hero.eyebrow")}
           </span>
           <h1 className="text-[clamp(2.75rem,6.5vw,5.25rem)] font-semibold leading-[1] tracking-tight text-ink">
-            Coffee in bio.
+            {t(locale, "hero.h1")}
           </h1>
           <p className="max-w-xl text-lg leading-[1.55] text-ink/70 sm:text-xl">
-            Your friendly coffee chat page at{" "}
+            {t(locale, "hero.sub.pre")}
             <span className="font-medium text-ink">
               acoffee.com/{`{handle}`}
             </span>
-            . Share your link once — get invited for coffee, online or in
-            person, by builders, nomads, and interesting people.
+            {t(locale, "hero.sub.post")}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <Link
               href="/auth/signin?next=%2Fprofile%3Fonboarding%3D1"
               className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
             >
-              Make your card
+              {t(locale, "hero.cta.makeCard")}
               <span aria-hidden>→</span>
             </Link>
             <Link
               href="#how-it-works"
               className="inline-flex items-center gap-1 rounded-2xl px-4 py-3 text-base font-medium text-ink/80 hover:text-accent"
             >
-              How it works
+              {t(locale, "hero.cta.howItWorks")}
             </Link>
           </div>
         </div>
@@ -71,57 +112,15 @@ export default async function Home() {
       >
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium uppercase tracking-wide text-accent">
-            How it works
+            {t(locale, "how.eyebrow")}
           </p>
           <h2 className="text-3xl font-semibold leading-[1.1] tracking-tight text-ink sm:text-4xl">
-            Three steps. One card. No swiping.
+            {t(locale, "how.h2")}
           </h2>
         </div>
 
         <ol className="grid gap-6 sm:grid-cols-3 sm:gap-6">
-          {[
-            {
-              n: "1",
-              emoji: "✋",
-              title: "Claim your handle",
-              body: (
-                <>
-                  Sign in once. Pick the URL others will recognise you by —{" "}
-                  <span className="font-medium text-ink">
-                    acoffee.com/{`{handle}`}
-                  </span>
-                  . That&apos;s your card forever.
-                </>
-              ),
-            },
-            {
-              n: "2",
-              emoji: "📝",
-              title: "Fill your card",
-              body: (
-                <>
-                  Your city, a line about what you&apos;re doing, what
-                  you&apos;re up for. Add Telegram or WhatsApp so invites
-                  actually land.
-                </>
-              ),
-            },
-            {
-              n: "3",
-              emoji: "☕",
-              title: "Share & get invited",
-              body: (
-                <>
-                  Drop your card link in a Slack, a tweet, a co-working
-                  board. Nomads in your city click{" "}
-                  <span className="font-medium text-ink">
-                    &ldquo;Invite for coffee&rdquo;
-                  </span>{" "}
-                  and you&apos;re talking by tonight.
-                </>
-              ),
-            },
-          ].map((step) => (
+          {steps.map((step) => (
             <li
               key={step.n}
               className="flex flex-col gap-4 rounded-2xl border border-bean bg-surface p-6 shadow-[0_8px_24px_-18px_rgba(42,31,24,0.25)]"
@@ -134,7 +133,7 @@ export default async function Home() {
                   {step.emoji}
                 </span>
                 <span className="text-sm font-medium text-muted">
-                  Step {step.n}
+                  {t(locale, "how.step.label")} {step.n}
                 </span>
               </div>
               <h3 className="text-xl font-semibold tracking-tight text-ink">
@@ -148,18 +147,15 @@ export default async function Home() {
         </ol>
       </section>
 
-      <LatestCardsStrip cards={latestCards} />
+      <LatestCardsStrip cards={latestCards} locale={locale} />
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-12 pt-8 sm:px-6">
         <div className="border-t border-bean pt-6">
           <p className="font-serif text-base italic text-ink/85">
-            Made between cafés. If you&apos;re reading this from a new
-            city, welcome — make a card so the next person doesn&apos;t
-            feel so alone.
+            {t(locale, "homeFooter.signature")}
           </p>
         </div>
       </section>
     </main>
   );
 }
-
