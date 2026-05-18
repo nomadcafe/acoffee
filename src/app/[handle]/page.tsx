@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
 import { InviteForm } from "@/components/InviteForm";
 import { getMyProfile } from "@/lib/auth-queries";
+import { getLocale } from "@/lib/i18n";
+import { t, tmpl } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 import { COFFEE_CHAT_KINDS, type CoffeeChatKind } from "@/lib/types";
@@ -153,6 +155,7 @@ export default async function HandlePage(
   const viewer = await getMyProfile();
   const isOwner = viewer?.handle === profile.handle;
   const isIncomplete = !profile.bio || !profile.hasContact;
+  const locale = await getLocale();
 
   const joinedLabel = formatJoined(profile.joinedAt);
 
@@ -207,8 +210,8 @@ export default async function HandlePage(
             // here would let you invite yourself, which is silly.
             <p className="text-sm italic text-muted">
               {profile.hasContact
-                ? "This is your card · visitors see an Invite button here."
-                : "This is your card · add a contact channel to enable invites."}
+                ? t(locale, "card.owner.note.invitable")
+                : t(locale, "card.owner.note.noContact")}
             </p>
           ) : profile.hasContact ? (
             <InviteForm
@@ -217,8 +220,9 @@ export default async function HandlePage(
             />
           ) : (
             <p className="text-sm text-muted">
-              {profile.displayName} hasn&apos;t added a contact channel
-              yet — invites are disabled until they do.
+              {tmpl(t(locale, "card.noContact"), {
+                name: profile.displayName,
+              })}
             </p>
           )
         }

@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
+import { useT } from "@/components/LocaleProvider";
+import { tmpl } from "@/lib/i18n/dict";
 import { INVITE_MODES, type InviteMode } from "@/lib/types";
 
 // Public-facing invite form. Replaces the v0.7 client-side reveal — the
@@ -10,10 +12,10 @@ import { INVITE_MODES, type InviteMode } from "@/lib/types";
 // channels via email after the host accepts. Form lives inline on the
 // /[handle] card (expands below the Invite button on click) so there's
 // no page navigation between "I want to invite" and "I've inviting".
-const MODE_META: Record<InviteMode, { emoji: string; label: string }> = {
-  online: { emoji: "💻", label: "Online" },
-  in_person: { emoji: "🍵", label: "In person" },
-  either: { emoji: "🤷", label: "Either" },
+const MODE_EMOJI: Record<InviteMode, string> = {
+  online: "💻",
+  in_person: "🍵",
+  either: "🤷",
 };
 
 const INITIAL: CreateInviteState = { status: "idle" };
@@ -47,6 +49,7 @@ function InviteFormInner({
   hostDisplayName: string;
   onSendAnother: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(createInvite, INITIAL);
   const [mode, setMode] = useState<InviteMode>("either");
@@ -55,22 +58,18 @@ function InviteFormInner({
     return (
       <div className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent-soft/60 p-5">
         <p className="text-base font-semibold text-accent">
-          Invite sent ✓
+          {t("invite.sent.title")}
         </p>
         <p className="text-sm leading-[1.55] text-ink/80">
-          {hostDisplayName} will get your invite by email. We just sent
-          you a confirmation too. If they accept, their contact channels
-          land in your inbox; if not, you&apos;ll get a polite note.
+          {tmpl(t("invite.sent.body"), { name: hostDisplayName })}
         </p>
-        <p className="text-xs text-muted">
-          Pending invites expire after 7 days.
-        </p>
+        <p className="text-xs text-muted">{t("invite.sent.ttl")}</p>
         <button
           type="button"
           onClick={onSendAnother}
           className="self-start text-sm font-medium text-accent underline-offset-4 hover:underline"
         >
-          Send another invite to {hostDisplayName} →
+          {tmpl(t("invite.sent.sendAnother"), { name: hostDisplayName })}
         </button>
       </div>
     );
@@ -79,23 +78,20 @@ function InviteFormInner({
   if (!open) {
     return (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted">
-          Contact unlocks on accepted invite
-        </p>
+        <p className="text-xs text-muted">{t("invite.gate.text")}</p>
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
         >
-          Invite for coffee
+          {t("invite.gate.cta")}
           <span aria-hidden>→</span>
         </button>
       </div>
     );
   }
 
-  const errs =
-    state.status === "error" ? state.fieldErrors ?? {} : {};
+  const errs = state.status === "error" ? state.fieldErrors ?? {} : {};
 
   return (
     <form action={action} className="flex flex-col gap-4">
@@ -103,37 +99,37 @@ function InviteFormInner({
 
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Invite {hostDisplayName} for coffee
+          {tmpl(t("invite.form.title"), { name: hostDisplayName })}
         </p>
         <button
           type="button"
           onClick={() => setOpen(false)}
           className="text-xs font-medium text-muted hover:text-accent"
         >
-          Cancel
+          {t("invite.form.cancel")}
         </button>
       </div>
 
       <Field
-        label="Your name"
+        label={t("invite.form.name.label")}
         name="requesterName"
-        placeholder="Alex"
+        placeholder={t("invite.form.name.placeholder")}
         error={errs.requesterName}
         required
       />
       <Field
-        label="Your email"
+        label={t("invite.form.email.label")}
         name="requesterEmail"
         type="email"
-        placeholder="alex@example.com"
-        hint={`${hostDisplayName} will reply here if they accept.`}
+        placeholder={t("invite.form.email.placeholder")}
+        hint={tmpl(t("invite.form.email.hint"), { name: hostDisplayName })}
         error={errs.requesterEmail}
         required
       />
       <FieldArea
-        label="What you'd like to chat about"
+        label={t("invite.form.topic.label")}
         name="requesterTopic"
-        placeholder="I'm starting a domains-focused newsletter and would love to swap notes — saw your card via your tweet."
+        placeholder={t("invite.form.topic.placeholder")}
         error={errs.requesterTopic}
         required
         maxLength={280}
@@ -141,11 +137,10 @@ function InviteFormInner({
 
       <fieldset className="flex flex-col gap-2 border-none p-0">
         <legend className="text-sm font-medium text-ink/85">
-          How do you want to meet?
+          {t("invite.form.mode.legend")}
         </legend>
         <div className="flex flex-wrap gap-2">
           {INVITE_MODES.map((m) => {
-            const meta = MODE_META[m];
             const active = mode === m;
             return (
               <label
@@ -164,8 +159,8 @@ function InviteFormInner({
                   onChange={() => setMode(m)}
                   className="sr-only"
                 />
-                <span aria-hidden>{meta.emoji}</span>
-                <span>{meta.label}</span>
+                <span aria-hidden>{MODE_EMOJI[m]}</span>
+                <span>{t(`invite.form.mode.${m}` as const)}</span>
               </label>
             );
           })}
@@ -173,10 +168,10 @@ function InviteFormInner({
       </fieldset>
 
       <Field
-        label="Preferred time (optional)"
+        label={t("invite.form.time.label")}
         name="preferredTime"
-        placeholder="Tue / Thu afternoons · or any morning next week"
-        hint="Free-form — both sides nail down the exact slot after accept."
+        placeholder={t("invite.form.time.placeholder")}
+        hint={t("invite.form.time.hint")}
         error={errs.preferredTime}
       />
 
@@ -192,11 +187,11 @@ function InviteFormInner({
           disabled={pending}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
-          {pending ? "Sending…" : "Send invite →"}
+          {pending
+            ? t("invite.form.submit.pending")
+            : `${t("invite.form.submit")} →`}
         </button>
-        <p className="text-xs text-muted">
-          No account needed — your email is just for the reply.
-        </p>
+        <p className="text-xs text-muted">{t("invite.form.note")}</p>
       </div>
     </form>
   );

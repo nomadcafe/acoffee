@@ -79,6 +79,49 @@ export const en = {
   "notfound.cta.home": "Back to home",
   "notfound.cta.make": "Make your card",
 
+  // Public card page — owner self-view + no-contact empty state
+  "card.owner.note.invitable":
+    "This is your card · visitors see an Invite button here.",
+  "card.owner.note.noContact":
+    "This is your card · add a contact channel to enable invites.",
+  "card.noContact":
+    "{name} hasn't added a contact channel yet — invites are disabled until they do.",
+
+  // InviteForm — gate (button visible before form opens)
+  "invite.gate.text": "Contact unlocks on accepted invite",
+  "invite.gate.cta": "Invite for coffee",
+
+  // InviteForm — open form
+  "invite.form.title": "Invite {name} for coffee",
+  "invite.form.cancel": "Cancel",
+  "invite.form.name.label": "Your name",
+  "invite.form.name.placeholder": "Alex",
+  "invite.form.email.label": "Your email",
+  "invite.form.email.placeholder": "alex@example.com",
+  "invite.form.email.hint": "{name} will reply here if they accept.",
+  "invite.form.topic.label": "What you'd like to chat about",
+  "invite.form.topic.placeholder":
+    "I'm starting a domains-focused newsletter and would love to swap notes — saw your card via your tweet.",
+  "invite.form.mode.legend": "How do you want to meet?",
+  "invite.form.mode.online": "Online",
+  "invite.form.mode.in_person": "In person",
+  "invite.form.mode.either": "Either",
+  "invite.form.time.label": "Preferred time (optional)",
+  "invite.form.time.placeholder":
+    "Tue / Thu afternoons · or any morning next week",
+  "invite.form.time.hint":
+    "Free-form — both sides nail down the exact slot after accept.",
+  "invite.form.submit": "Send invite",
+  "invite.form.submit.pending": "Sending…",
+  "invite.form.note": "No account needed — your email is just for the reply.",
+
+  // InviteForm — sent state
+  "invite.sent.title": "Invite sent ✓",
+  "invite.sent.body":
+    "{name} will get your invite by email. We just sent you a confirmation too. If they accept, their contact channels land in your inbox; if not, you'll get a polite note.",
+  "invite.sent.ttl": "Pending invites expire after 7 days.",
+  "invite.sent.sendAnother": "Send another invite to {name} →",
+
   // Language switcher
   "lang.label": "Language",
 } as const;
@@ -137,6 +180,41 @@ export const zh: Record<DictKey, string> = {
     "可能 handle 还没人认领,可能链接坏了,可能有人输错了 URL。不管原本想去哪里——回首页吧,或者顺手做张自己的咖啡名片。",
   "notfound.cta.home": "回首页",
   "notfound.cta.make": "做我的名片",
+
+  "card.owner.note.invitable": "这是你的名片 · 访客在这里看到「Invite」按钮。",
+  "card.owner.note.noContact":
+    "这是你的名片 · 加一个联系方式才能让别人邀请你。",
+  "card.noContact": "{name} 还没添加联系方式——邀请功能要等到那时才开放。",
+
+  "invite.gate.text": "联系方式将在邀请被接受后通过邮件发给你",
+  "invite.gate.cta": "邀请喝咖啡",
+
+  "invite.form.title": "邀请 {name} 喝咖啡",
+  "invite.form.cancel": "取消",
+  "invite.form.name.label": "你的名字",
+  "invite.form.name.placeholder": "小李",
+  "invite.form.email.label": "你的邮箱",
+  "invite.form.email.placeholder": "you@example.com",
+  "invite.form.email.hint": "如果 {name} 接受邀请,会回到这个邮箱。",
+  "invite.form.topic.label": "想聊什么",
+  "invite.form.topic.placeholder":
+    "我在做一个域名相关的 newsletter,想交换一些想法——从你的推文看到你的名片。",
+  "invite.form.mode.legend": "线上还是线下?",
+  "invite.form.mode.online": "线上",
+  "invite.form.mode.in_person": "面聊",
+  "invite.form.mode.either": "都可以",
+  "invite.form.time.label": "偏好时间(可选)",
+  "invite.form.time.placeholder": "周二/周四下午,或下周早上任何时间",
+  "invite.form.time.hint": "随便写——接受后双方再敲具体时间。",
+  "invite.form.submit": "发送邀请",
+  "invite.form.submit.pending": "发送中…",
+  "invite.form.note": "不需要账号——邮箱只是用来收回复。",
+
+  "invite.sent.title": "邀请已发送 ✓",
+  "invite.sent.body":
+    "{name} 会收到邀请邮件,我们也已经给你发了确认邮件。如果接受,他们的联系方式会发到你邮箱;如果不接受,你也会收到一封礼貌的回复。",
+  "invite.sent.ttl": "未处理的邀请 7 天后过期。",
+  "invite.sent.sendAnother": "再给 {name} 发一封邀请 →",
 
   "lang.label": "语言",
 };
@@ -197,6 +275,46 @@ export const ja: Record<DictKey, string> = {
   "notfound.cta.home": "トップへ戻る",
   "notfound.cta.make": "カードを作る",
 
+  "card.owner.note.invitable":
+    "これはあなたのカード · 訪問者はここで「Invite」ボタンを見ます。",
+  "card.owner.note.noContact":
+    "これはあなたのカード · 連絡先を 1 つ追加すると招待を受けられます。",
+  "card.noContact":
+    "{name} さんはまだ連絡先を追加していません — 追加されるまで招待は無効です。",
+
+  "invite.gate.text": "招待が承認されたらメールで連絡先が届きます",
+  "invite.gate.cta": "コーヒーに誘う",
+
+  "invite.form.title": "{name} さんをコーヒーに誘う",
+  "invite.form.cancel": "キャンセル",
+  "invite.form.name.label": "あなたの名前",
+  "invite.form.name.placeholder": "山田",
+  "invite.form.email.label": "あなたのメール",
+  "invite.form.email.placeholder": "you@example.com",
+  "invite.form.email.hint":
+    "{name} さんが承認すれば、このアドレスに返事が届きます。",
+  "invite.form.topic.label": "何の話をしたいですか",
+  "invite.form.topic.placeholder":
+    "ドメイン関連のニュースレターを始めるので意見交換したい——あなたのツイートからカードを見つけました。",
+  "invite.form.mode.legend": "オンライン or 対面?",
+  "invite.form.mode.online": "オンライン",
+  "invite.form.mode.in_person": "対面",
+  "invite.form.mode.either": "どちらでも",
+  "invite.form.time.label": "希望の時間帯(任意)",
+  "invite.form.time.placeholder":
+    "火/木の午後、または来週の朝ならいつでも",
+  "invite.form.time.hint":
+    "自由記述で OK ——承認後に双方で具体的な時間を決めます。",
+  "invite.form.submit": "招待を送る",
+  "invite.form.submit.pending": "送信中…",
+  "invite.form.note": "アカウント不要——メールは返信用にだけ使います。",
+
+  "invite.sent.title": "招待を送信しました ✓",
+  "invite.sent.body":
+    "{name} さんに招待メールが届きます。あなたにも確認メールを送りました。承認されれば連絡先がメールで届き、そうでなければ丁寧な返信が届きます。",
+  "invite.sent.ttl": "未処理の招待は 7 日後に期限切れになります。",
+  "invite.sent.sendAnother": "{name} さんにもう一通招待を送る →",
+
   "lang.label": "言語",
 };
 
@@ -204,4 +322,17 @@ const DICTS: Record<Locale, Record<DictKey, string>> = { en, zh, ja };
 
 export function t(locale: Locale, key: DictKey): string {
   return DICTS[locale]?.[key] ?? DICTS[DEFAULT_LOCALE][key];
+}
+
+// Interpolate `{name}`-style placeholders. Returns the template untouched
+// if the key isn't in `vars` (leaves the literal `{name}` visible, which
+// makes missing-substitution bugs obvious instead of silently dropping
+// the text).
+export function tmpl(
+  template: string,
+  vars: Record<string, string | number>,
+): string {
+  return template.replace(/\{(\w+)\}/g, (match, key) =>
+    key in vars ? String(vars[key]) : match,
+  );
 }
