@@ -41,19 +41,19 @@ export async function OnboardingBanner() {
   if (!handle || !AUTO_HANDLE.test(handle)) return null;
 
   return (
-    <div className="border-b border-amber-300/50 bg-amber-50/70 px-4 py-2 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-1 sm:px-2">
+    <div className="border-b border-accent/30 bg-accent-soft/70">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 text-sm text-ink/85 sm:px-6">
         <p>
           <span aria-hidden className="mr-1">👋</span>
           You&apos;re showing up as{" "}
-          <code className="rounded bg-amber-100/80 px-1 py-0.5 font-mono text-xs dark:bg-amber-500/20">
+          <code className="rounded bg-surface/80 px-1.5 py-0.5 font-mono text-xs text-ink">
             @{handle}
           </code>
           {" "}— pick a real handle so others can find you.
         </p>
         <Link
           href="/profile?onboarding=1"
-          className="font-mono text-xs font-semibold uppercase tracking-widest underline-offset-4 hover:underline"
+          className="text-sm font-medium text-accent underline-offset-4 hover:underline"
         >
           Pick a handle →
         </Link>
