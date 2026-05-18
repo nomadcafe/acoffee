@@ -13,6 +13,7 @@ import {
   createSupabaseServer,
   isAuthConfigured,
 } from "@/lib/supabase/server";
+import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
 import { COFFEE_CHAT_KINDS } from "@/lib/types";
 
@@ -190,6 +191,13 @@ export async function updateProfile(
     AUTO_HANDLE.test(priorHandle) &&
     !AUTO_HANDLE.test(parsed.data.handle);
 
+  // Mirror the current request locale onto profiles.locale so future
+  // host-facing emails (new-invite notification) come in the right
+  // language. setLocale also writes here, but covering the path where
+  // the user just edits their card without ever clicking the language
+  // switcher is the more common case.
+  const locale = await getLocale();
+
   const telegram = parsed.data.telegramHandle?.replace(/^@/, "") ?? null;
   const { error } = await supabase
     .from("profiles")
@@ -201,6 +209,7 @@ export async function updateProfile(
       telegram_handle: telegram,
       whatsapp_number: parsed.data.whatsappNumber ?? null,
       email_contact: parsed.data.emailContact ?? null,
+      locale,
     })
     .eq("id", user.id);
 
@@ -221,8 +230,13 @@ export async function updateProfile(
 
   if (isOnboardingCompletion && user.email) {
     // Fire-and-forget — never throw back into the form. Failures land in
-    // Vercel logs via the email helper's catch.
-    await emailWelcome({ to: user.email, handle: parsed.data.handle });
+    // Vercel logs via the email helper's catch. Locale tracks the user's
+    // current browsing language at the moment they finished onboarding.
+    await emailWelcome({
+      to: user.email,
+      handle: parsed.data.handle,
+      locale,
+    });
   }
 
   // On onboarding completion (auto → real handle), always send the user to

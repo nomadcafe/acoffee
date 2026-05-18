@@ -132,7 +132,7 @@ export async function createInvite(
   const admin = createSupabaseAdmin();
   const { data: host, error: hostErr } = await admin
     .from("profiles")
-    .select("id, handle")
+    .select("id, handle, locale")
     .eq("handle", parsed.data.handle.toLowerCase())
     .maybeSingle();
   if (hostErr || !host) {
@@ -140,6 +140,9 @@ export async function createInvite(
   }
   const hostId = host.id as string;
   const hostHandle = host.handle as string;
+  const hostLocaleRaw = host.locale as string | null | undefined;
+  const hostLocale: "en" | "zh" | "ja" =
+    hostLocaleRaw === "zh" || hostLocaleRaw === "ja" ? hostLocaleRaw : "en";
 
   // Read the host's auth email (where the inbox notification lands) via
   // the admin auth API. profiles.email_contact is the *public* contact —
@@ -180,6 +183,7 @@ export async function createInvite(
       requesterTopic: parsed.data.requesterTopic,
       mode: parsed.data.mode,
       preferredTime: parsed.data.preferredTime ?? null,
+      locale: hostLocale,
     });
   }
 

@@ -300,6 +300,43 @@ export const en = {
   "email.declined.footer":
     "No reply expected. If something changes you're welcome to reach out again.",
 
+  // Welcome email — sent to the host after they finish onboarding
+  // (auto handle → real handle). Locale = the host's request locale
+  // at the moment they save the form.
+  "email.welcome.subject": "Welcome, @{handle} · your acoffee card is live",
+  "email.welcome.h1": "Welcome to acoffee, @{handle}.",
+  "email.welcome.cardLive": "Your card is live at {url}.",
+  "email.welcome.tagline":
+    "Now the only thing standing between you and a coffee chat is your card sitting somewhere people can see it. Two clicks:",
+  "email.welcome.cta.view": "See my card",
+  "email.welcome.cta.share": "Share to X",
+  "email.welcome.tweetNote":
+    "The Share button composes a tweet that says \"{tweet}\" linked to your card. Edit before posting if you want.",
+  "email.welcome.placesHeader": "Other places that work:",
+  "email.welcome.place.bio": "Your X / Twitter bio (literally one line)",
+  "email.welcome.place.slack":
+    "Slack signature for the workspaces you're in",
+  "email.welcome.place.email": "Email footer",
+  "email.welcome.disclaimer":
+    "You're receiving this because you just signed up. First invites usually come from your existing graph, so the more places the link sits, the better.",
+
+  // New-invite email — sent to the host when a visitor submits the
+  // invite form. Locale = host's profiles.locale.
+  "email.newInvite.subject":
+    "{name} wants {modePhrase} — re: {topic}",
+  "email.newInvite.modePhrase.online": "an online coffee chat",
+  "email.newInvite.modePhrase.in_person": "an in-person coffee",
+  "email.newInvite.modePhrase.either":
+    "a coffee chat (online or in person)",
+  "email.newInvite.heading":
+    "{name} wants {modePhrase} with you on acoffee.",
+  "email.newInvite.field.topic": "Topic:",
+  "email.newInvite.field.time": "Preferred time:",
+  "email.newInvite.field.email": "Email:",
+  "email.newInvite.cta": "Open inbox",
+  "email.newInvite.disclaimer":
+    "On accept we email your contact channels to them. On decline they get a polite note. Pending invites expire after 7 days.",
+
   // Language switcher
   "lang.label": "Language",
 } as const;
@@ -541,6 +578,34 @@ export const zh: Record<DictKey, string> = {
     "感谢通过 acoffee 联系。{host} 目前没法接受你的咖啡邀请——日程紧或时机不合适。",
   "email.declined.footer":
     "无需回复。如果情况有变,欢迎你再次联系。",
+
+  "email.welcome.subject": "欢迎,@{handle} · 你的 acoffee 名片已上线",
+  "email.welcome.h1": "欢迎来到 acoffee,@{handle}。",
+  "email.welcome.cardLive": "你的名片已上线: {url}",
+  "email.welcome.tagline":
+    "现在你和咖啡邀约之间只差一件事——把名片放在别人能看到的地方。两步:",
+  "email.welcome.cta.view": "查看我的名片",
+  "email.welcome.cta.share": "分享到 X",
+  "email.welcome.tweetNote":
+    "「分享到 X」按钮会预填一条推文「{tweet}」并附上你的名片链接。发送前可以编辑。",
+  "email.welcome.placesHeader": "其他有效的地方:",
+  "email.welcome.place.bio": "X / Twitter 简介(一行就够)",
+  "email.welcome.place.slack": "你所在 Slack 工作区的签名",
+  "email.welcome.place.email": "邮件签名",
+  "email.welcome.disclaimer":
+    "你收到这封邮件,是因为刚刚注册。第一批邀请通常来自你现有的人脉——所以链接放得越多越好。",
+
+  "email.newInvite.subject": "{name} 想要{modePhrase}——关于: {topic}",
+  "email.newInvite.modePhrase.online": "线上咖啡聊",
+  "email.newInvite.modePhrase.in_person": "面聊咖啡",
+  "email.newInvite.modePhrase.either": "咖啡聊(线上或面聊都行)",
+  "email.newInvite.heading": "{name} 想在 acoffee 上和你{modePhrase}。",
+  "email.newInvite.field.topic": "主题:",
+  "email.newInvite.field.time": "偏好时间:",
+  "email.newInvite.field.email": "邮箱:",
+  "email.newInvite.cta": "打开收件箱",
+  "email.newInvite.disclaimer":
+    "接受后我们会把你的联系方式邮件发给对方。拒绝则发一封礼貌通知。未处理的邀请 7 天后过期。",
 
   "lang.label": "语言",
 };
@@ -806,6 +871,37 @@ export const ja: Record<DictKey, string> = {
     "acoffee 経由でのご連絡ありがとうございます。{host} さんは今回コーヒーの招待を受けられないとのことです——スケジュールが厳しいか、タイミングが合わなかったようです。",
   "email.declined.footer":
     "返信不要です。状況が変われば、いつでもまた声をかけてください。",
+
+  "email.welcome.subject":
+    "ようこそ、@{handle} さん · acoffee カードが公開されました",
+  "email.welcome.h1": "acoffee へようこそ、@{handle} さん。",
+  "email.welcome.cardLive": "あなたのカードはこちらです: {url}",
+  "email.welcome.tagline":
+    "コーヒーの誘いまであと一歩——あとはカードを誰かが見る場所に置くだけ。2 クリックで完了:",
+  "email.welcome.cta.view": "自分のカードを見る",
+  "email.welcome.cta.share": "X でシェア",
+  "email.welcome.tweetNote":
+    "「X でシェア」ボタンを押すと「{tweet}」というツイートが下書きされます——投稿前に編集も可能。",
+  "email.welcome.placesHeader": "他にも効く場所:",
+  "email.welcome.place.bio": "X / Twitter のプロフィール(1 行で十分)",
+  "email.welcome.place.slack": "Slack ワークスペースの署名",
+  "email.welcome.place.email": "メールの署名",
+  "email.welcome.disclaimer":
+    "登録したばかりなのでこのメールが届いています。最初の招待は既存のつながりから来ることが多いので、リンクは多くの場所に置いておくほど良いです。",
+
+  "email.newInvite.subject": "{name} さんが{modePhrase} ——「{topic}」",
+  "email.newInvite.modePhrase.online": "オンラインのコーヒーチャットを希望",
+  "email.newInvite.modePhrase.in_person": "対面のコーヒーを希望",
+  "email.newInvite.modePhrase.either":
+    "コーヒーチャット(オンラインまたは対面)を希望",
+  "email.newInvite.heading":
+    "{name} さんが acoffee で{modePhrase}しています。",
+  "email.newInvite.field.topic": "話題:",
+  "email.newInvite.field.time": "希望の時間帯:",
+  "email.newInvite.field.email": "メール:",
+  "email.newInvite.cta": "受信箱を開く",
+  "email.newInvite.disclaimer":
+    "承認すると連絡先がメールで届きます。辞退の場合は丁寧な返信が送られます。未処理の招待は 7 日後に期限切れになります。",
 
   "lang.label": "言語",
 };

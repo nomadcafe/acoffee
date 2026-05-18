@@ -54,38 +54,44 @@ async function sendEmail(opts: {
 export async function emailWelcome(args: {
   to: string;
   handle: string;
+  locale: Locale;
 }) {
   const cardUrl = `${siteUrl}/${args.handle}`;
-  const tweetText = `My coffee chat page is live — invite me for a coffee ☕`;
+  const tweetText = t(args.locale, "share.tweet.text");
   const tweetHref =
     `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}` +
     `&url=${encodeURIComponent(cardUrl)}`;
+  const v = { handle: args.handle, url: cardUrl, tweet: tweetText };
   await sendEmail({
     to: args.to,
-    subject: `Welcome, @${args.handle} · your acoffee card is live`,
+    subject: tmpl(t(args.locale, "email.welcome.subject"), v),
     text:
-      `Welcome to ${siteName}, @${args.handle}.\n\n` +
-      `Your card is live at ${cardUrl}.\n\n` +
-      `Now the only thing standing between you and a coffee chat is your card sitting somewhere people can see it. Two clicks:\n\n` +
-      `1. See your card: ${cardUrl}\n` +
-      `2. Share to X with one tap: ${tweetHref}\n` +
-      `   (composes a tweet that says "My coffee chat page is live — invite me for a coffee ☕" linked to your card)\n\n` +
-      `Put the URL in your X / Twitter bio, your Slack signature, your email footer — wherever people who already know you scroll past every day. The first invites usually come from your existing graph.\n\n— ${siteName}`,
+      `${tmpl(t(args.locale, "email.welcome.h1"), v)}\n\n` +
+      `${tmpl(t(args.locale, "email.welcome.cardLive"), v)}\n\n` +
+      `${t(args.locale, "email.welcome.tagline")}\n\n` +
+      `1. ${t(args.locale, "email.welcome.cta.view")}: ${cardUrl}\n` +
+      `2. ${t(args.locale, "email.welcome.cta.share")}: ${tweetHref}\n\n` +
+      `${tmpl(t(args.locale, "email.welcome.tweetNote"), v)}\n\n` +
+      `${t(args.locale, "email.welcome.placesHeader")}\n` +
+      `  · ${t(args.locale, "email.welcome.place.bio")}\n` +
+      `  · ${t(args.locale, "email.welcome.place.slack")}\n` +
+      `  · ${t(args.locale, "email.welcome.place.email")}\n\n` +
+      `${t(args.locale, "email.welcome.disclaimer")}\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:16px;margin:0 0 14px">Welcome to <strong>${siteName}</strong>, <strong>@${args.handle}</strong>.</p>
-<p style="font-size:15px;margin:0 0 16px">Your card is live at <a href="${cardUrl}" style="color:#b45309;font-weight:500">${cardUrl}</a>.</p>
-<p style="font-size:14px;color:#555;margin:0 0 18px">Now the only thing between you and a coffee chat is your card sitting somewhere people can see it. Two clicks:</p>
-<p style="margin:0 0 12px"><a href="${cardUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">See my card &rarr;</a></p>
-<p style="margin:0 0 24px"><a href="${tweetHref}" style="display:inline-block;background:#fff;color:#1a1a1a;border:1px solid #ddd;padding:9px 17px;border-radius:14px;text-decoration:none;font-weight:500">Share to X &nearr;</a></p>
-<p style="font-size:13px;color:#666;margin:0 0 18px">The Share button composes a tweet that says <em>"My coffee chat page is live — invite me for a coffee ☕"</em> linked to your card. Edit before posting if you want.</p>
-<p style="font-size:13px;color:#666;margin:0 0 8px">Other places that work:</p>
+<p style="font-size:16px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.welcome.h1"), v))}</p>
+<p style="font-size:15px;margin:0 0 16px">${escapeHtml(tmpl(t(args.locale, "email.welcome.cardLive"), { ...v, url: "" })).replace(": ", ": ")}<a href="${cardUrl}" style="color:#b45309;font-weight:500">${cardUrl}</a></p>
+<p style="font-size:14px;color:#555;margin:0 0 18px">${escapeHtml(t(args.locale, "email.welcome.tagline"))}</p>
+<p style="margin:0 0 12px"><a href="${cardUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">${escapeHtml(t(args.locale, "email.welcome.cta.view"))} &rarr;</a></p>
+<p style="margin:0 0 24px"><a href="${tweetHref}" style="display:inline-block;background:#fff;color:#1a1a1a;border:1px solid #ddd;padding:9px 17px;border-radius:14px;text-decoration:none;font-weight:500">${escapeHtml(t(args.locale, "email.welcome.cta.share"))} &nearr;</a></p>
+<p style="font-size:13px;color:#666;margin:0 0 18px">${escapeHtml(tmpl(t(args.locale, "email.welcome.tweetNote"), v))}</p>
+<p style="font-size:13px;color:#666;margin:0 0 8px">${escapeHtml(t(args.locale, "email.welcome.placesHeader"))}</p>
 <ul style="font-size:13px;color:#666;padding-left:20px;margin:0 0 24px">
-  <li style="margin-bottom:4px">Your X / Twitter bio (literally one line)</li>
-  <li style="margin-bottom:4px">Slack signature for the workspaces you&apos;re in</li>
-  <li style="margin-bottom:4px">Email footer</li>
+  <li style="margin-bottom:4px">${escapeHtml(t(args.locale, "email.welcome.place.bio"))}</li>
+  <li style="margin-bottom:4px">${escapeHtml(t(args.locale, "email.welcome.place.slack"))}</li>
+  <li style="margin-bottom:4px">${escapeHtml(t(args.locale, "email.welcome.place.email"))}</li>
 </ul>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You&apos;re receiving this because you just signed up. First invites usually come from your existing graph, so the more places the link sits, the better.</p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; ${escapeHtml(t(args.locale, "email.welcome.disclaimer"))}</p>
 </body></html>`,
   });
 }
@@ -122,12 +128,6 @@ export async function emailInviteReceived(args: {
   });
 }
 
-const MODE_PHRASE: Record<InviteMode, string> = {
-  online: "an online coffee chat",
-  in_person: "an in-person coffee",
-  either: "a coffee chat (online or in person)",
-};
-
 // Sent to the host when a visitor submits the invite form. Designed to be
 // actionable from the inbox preview pane — first line answers "who and
 // what" without opening the email.
@@ -139,30 +139,37 @@ export async function emailNewInvite(args: {
   requesterTopic: string;
   mode: InviteMode;
   preferredTime: string | null;
+  locale: Locale;
 }) {
   const inboxUrl = `${siteUrl}/profile`;
-  const modePhrase = MODE_PHRASE[args.mode];
-  const timeLine = args.preferredTime
-    ? `\nPreferred time: ${args.preferredTime}`
-    : "";
+  const modePhrase = t(
+    args.locale,
+    `email.newInvite.modePhrase.${args.mode}` as const,
+  );
+  const v = {
+    name: args.requesterName,
+    modePhrase,
+    topic: truncate(args.requesterTopic, 60),
+  };
+  const headingV = { name: args.requesterName, modePhrase };
   await sendEmail({
     to: args.to,
-    subject: `${args.requesterName} wants ${modePhrase} — re: ${truncate(args.requesterTopic, 60)}`,
+    subject: tmpl(t(args.locale, "email.newInvite.subject"), v),
     text:
-      `${args.requesterName} (${args.requesterEmail}) just sent you a coffee invite on ${siteName}.\n\n` +
-      `Mode: ${modePhrase}\n` +
-      `Topic: ${args.requesterTopic}${timeLine}\n\n` +
-      `Open your inbox to accept or decline: ${inboxUrl}\n\n` +
-      `On accept, ${siteName} emails your contact channels to them.\n` +
-      `On decline, they get a polite "booked up" note. Pending invites expire after 7 days.\n\n— ${siteName}`,
+      `${tmpl(t(args.locale, "email.newInvite.heading"), headingV)}\n\n` +
+      `${t(args.locale, "email.newInvite.field.topic")} ${args.requesterTopic}\n` +
+      `${args.preferredTime ? `${t(args.locale, "email.newInvite.field.time")} ${args.preferredTime}\n` : ""}` +
+      `${t(args.locale, "email.newInvite.field.email")} ${args.requesterEmail}\n\n` +
+      `${t(args.locale, "email.newInvite.cta")}: ${inboxUrl}\n\n` +
+      `${t(args.locale, "email.newInvite.disclaimer")}\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:16px;margin:0 0 12px"><strong>${escapeHtml(args.requesterName)}</strong> wants ${escapeHtml(modePhrase)} with you on ${siteName}.</p>
-<p style="font-size:14px;color:#555;margin:0 0 6px"><strong>Topic:</strong> ${escapeHtml(args.requesterTopic)}</p>
-${args.preferredTime ? `<p style="font-size:14px;color:#555;margin:0 0 6px"><strong>Preferred time:</strong> ${escapeHtml(args.preferredTime)}</p>` : ""}
-<p style="font-size:14px;color:#555;margin:0 0 20px"><strong>Email:</strong> <a href="mailto:${escapeHtml(args.requesterEmail)}" style="color:#b45309">${escapeHtml(args.requesterEmail)}</a></p>
-<p style="margin:0 0 24px"><a href="${inboxUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">Open inbox &rarr;</a></p>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">On accept we email your contact channels to them. On decline they get a polite note. Pending invites expire after 7 days.</p>
+<p style="font-size:16px;margin:0 0 12px">${escapeHtml(tmpl(t(args.locale, "email.newInvite.heading"), headingV))}</p>
+<p style="font-size:14px;color:#555;margin:0 0 6px"><strong>${escapeHtml(t(args.locale, "email.newInvite.field.topic"))}</strong> ${escapeHtml(args.requesterTopic)}</p>
+${args.preferredTime ? `<p style="font-size:14px;color:#555;margin:0 0 6px"><strong>${escapeHtml(t(args.locale, "email.newInvite.field.time"))}</strong> ${escapeHtml(args.preferredTime)}</p>` : ""}
+<p style="font-size:14px;color:#555;margin:0 0 20px"><strong>${escapeHtml(t(args.locale, "email.newInvite.field.email"))}</strong> <a href="mailto:${escapeHtml(args.requesterEmail)}" style="color:#b45309">${escapeHtml(args.requesterEmail)}</a></p>
+<p style="margin:0 0 24px"><a href="${inboxUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">${escapeHtml(t(args.locale, "email.newInvite.cta"))} &rarr;</a></p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${escapeHtml(t(args.locale, "email.newInvite.disclaimer"))}</p>
 </body></html>`,
   });
 }
