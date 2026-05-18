@@ -1,5 +1,17 @@
 import Link from "next/link";
+import { Avatar } from "@/components/Avatar";
 import { createSupabaseServer } from "@/lib/supabase/server";
+
+// Same derivation as /[handle]/page.tsx — "alex_nomad" → "Alex Nomad".
+// Inline because it's the only other surface that needs it and a shared
+// helper would invert effort vs payoff.
+function deriveDisplayName(handle: string): string {
+  return handle
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(" ");
+}
 
 async function readSessionHandle(): Promise<string | null> {
   if (
@@ -45,10 +57,17 @@ export async function SiteNav() {
             (handle ? (
               <Link
                 href={`/${handle}`}
-                className="max-w-[10rem] truncate rounded-full px-3 py-1.5 text-ink/85 hover:bg-bean/40"
+                className="inline-flex max-w-[12rem] items-center gap-2 rounded-full py-1 pl-1 pr-3 text-ink/85 hover:bg-bean/40"
                 title={`@${handle} · your public card`}
               >
-                @{handle}
+                <Avatar
+                  handle={handle}
+                  displayName={deriveDisplayName(handle)}
+                  size="sm"
+                />
+                <span className="truncate text-sm font-medium">
+                  @{handle}
+                </span>
               </Link>
             ) : (
               <Link

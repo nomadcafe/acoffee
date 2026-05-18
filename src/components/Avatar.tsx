@@ -38,12 +38,12 @@ export function Avatar({
 }: {
   handle: string;
   displayName: string;
-  // md = 56px (card header); lg = 80px (public page hero).
-  size?: "md" | "lg";
+  // sm = 28px (nav chip); md = 56px (card header); lg = 80px (public hero).
+  size?: "sm" | "md" | "lg";
 }) {
   const [bg, fg] = colourFor(handle);
-  const px = size === "lg" ? 80 : 56;
-  const fontPx = size === "lg" ? 32 : 22;
+  const px = size === "lg" ? 80 : size === "sm" ? 28 : 56;
+  const fontPx = size === "lg" ? 32 : size === "sm" ? 12 : 22;
   return (
     <div
       aria-hidden

@@ -94,6 +94,25 @@ function trimOrUndefined(v: FormDataEntryValue | null): string | undefined {
   return t === "" ? undefined : t;
 }
 
+// Title-case the city name on write so "chiang mai", "ChiangMai", and
+// "CHIANG MAI" all land as "Chiang Mai" in the DB. Cheap normalisation
+// that prevents dispersion now and keeps a future city-aggregation page
+// honest. Multi-word cities (San Francisco, Mexico City) get every word
+// capitalised; punctuation is preserved as-is.
+function normaliseCity(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const collapsed = raw.replace(/\s+/g, " ").trim();
+  if (!collapsed) return undefined;
+  return collapsed
+    .split(" ")
+    .map((word) =>
+      word.length === 0
+        ? word
+        : word[0].toUpperCase() + word.slice(1).toLowerCase(),
+    )
+    .join(" ");
+}
+
 export async function updateProfile(
   _prev: ProfileState,
   formData: FormData,
@@ -112,7 +131,7 @@ export async function updateProfile(
   const parsed = ProfileSchema.safeParse({
     handle: trimOrUndefined(formData.get("handle")),
     bio: trimOrUndefined(formData.get("bio")),
-    city: trimOrUndefined(formData.get("city")),
+    city: normaliseCity(trimOrUndefined(formData.get("city"))),
     coffeeChatKinds: rawKinds,
     telegramHandle: trimOrUndefined(formData.get("telegramHandle")),
     whatsappNumber: trimOrUndefined(formData.get("whatsappNumber")),
