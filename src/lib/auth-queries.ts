@@ -6,6 +6,7 @@ import type {
   MyProfile,
 } from "./types";
 import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
+import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
 // Auth-scoped reads. RLS scopes results to the signed-in user automatically.
@@ -21,7 +22,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, x_handle, instagram_handle, github_handle, website_url, avatar_url",
+      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -37,10 +38,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     telegramHandle: (data.telegram_handle as string | null) ?? null,
     whatsappNumber: (data.whatsapp_number as string | null) ?? null,
     emailContact: (data.email_contact as string | null) ?? null,
-    xHandle: (data.x_handle as string | null) ?? null,
-    instagramHandle: (data.instagram_handle as string | null) ?? null,
-    githubHandle: (data.github_handle as string | null) ?? null,
-    websiteUrl: (data.website_url as string | null) ?? null,
+    socialLinks: parseSocialLinks(data.social_links),
     avatarUrl: (data.avatar_url as string | null) ?? null,
   };
 }

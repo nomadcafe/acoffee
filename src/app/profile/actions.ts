@@ -15,7 +15,8 @@ import {
 } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
-import { COFFEE_CHAT_KINDS, GENDERS } from "@/lib/types";
+import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
+import { validateSocialLinks } from "@/lib/socials";
 
 // Narrow Supabase's `unknown` value to our Locale union before passing
 // downstream — keeps the email helpers honest if anyone ever loosens
@@ -101,44 +102,24 @@ const ProfileSchema = z.object({
     .max(120, "Email is at most 120 characters.")
     .optional(),
   gender: z.enum(GENDERS).optional(),
-  // X/Instagram/GitHub handles share the same shape (alphanumeric +
-  // limited symbols) but differ in length cap and allowed chars. Stored
-  // without the @ prefix; we strip on write.
-  xHandle: z
-    .string()
-    .regex(
-      /^@?[A-Za-z0-9_]{1,15}$/,
-      "X username only — letters/digits/_, up to 15 chars. The @ is optional.",
-    )
-    .optional(),
-  instagramHandle: z
-    .string()
-    .regex(
-      /^@?[A-Za-z0-9_.]{1,30}$/,
-      "Instagram username only — letters/digits/_/., up to 30 chars. The @ is optional.",
-    )
-    .optional(),
-  githubHandle: z
-    .string()
-    .regex(
-      /^@?[A-Za-z0-9-]{1,39}$/,
-      "GitHub username only — letters/digits/-, up to 39 chars. The @ is optional.",
-    )
-    .optional(),
-  websiteUrl: z
-    .string()
-    .regex(
-      /^https?:\/\/[^\s/$.?#].[^\s]*$/i,
-      "Needs to start with http:// or https:// — full URL.",
-    )
-    .max(200, "URL is at most 200 characters.")
-    .optional(),
+  // socialLinks comes in as a JSON string in the form submission (the
+  // SocialsEditor stringifies its array into a hidden input). Parse +
+  // per-platform validation happens AFTER the Zod gate via
+  // validateSocialLinks — Zod's shape isn't expressive enough for
+  // per-row platform-dependent regex, and parsing here gives a clean
+  // separation.
 });
 
+// `socialLinks` lives outside the Zod schema (per-row validation is
+// platform-dependent) but still needs a field-error slot so the form
+// can surface "Instagram: username only — …" inline.
+type ExtraFields = "socialLinks";
 export type ProfileState = {
   status: "idle" | "saved" | "error";
   message?: string;
-  fieldErrors?: Partial<Record<keyof z.infer<typeof ProfileSchema>, string>>;
+  fieldErrors?: Partial<
+    Record<keyof z.infer<typeof ProfileSchema> | ExtraFields, string>
+  >;
 };
 
 function trimOrUndefined(v: FormDataEntryValue | null): string | undefined {
@@ -190,10 +171,6 @@ export async function updateProfile(
     whatsappNumber: trimOrUndefined(formData.get("whatsappNumber")),
     emailContact: trimOrUndefined(formData.get("emailContact")),
     gender: trimOrUndefined(formData.get("gender")),
-    xHandle: trimOrUndefined(formData.get("xHandle")),
-    instagramHandle: trimOrUndefined(formData.get("instagramHandle")),
-    githubHandle: trimOrUndefined(formData.get("githubHandle")),
-    websiteUrl: trimOrUndefined(formData.get("websiteUrl")),
   });
   if (!parsed.success) {
     const fieldErrors: ProfileState["fieldErrors"] = {};
@@ -202,6 +179,33 @@ export async function updateProfile(
       if (k && !fieldErrors[k]) fieldErrors[k] = issue.message;
     }
     return { status: "error", message: "Please fix the highlighted fields.", fieldErrors };
+  }
+
+  // socialLinks: JSON-encoded by the SocialsEditor. Parse + per-row
+  // validate via the central registry so the messaging stays in one
+  // place. Empty / missing payload = "no socials"; not an error.
+  let socialLinks: SocialLink[] = [];
+  const rawSocials = formData.get("socialLinks");
+  if (typeof rawSocials === "string" && rawSocials.trim().length > 0) {
+    let candidate: unknown;
+    try {
+      candidate = JSON.parse(rawSocials);
+    } catch {
+      return {
+        status: "error",
+        message: "Social links payload was malformed.",
+        fieldErrors: { socialLinks: "Couldn't read the social links list." },
+      };
+    }
+    const result = validateSocialLinks(candidate);
+    if (!result.ok) {
+      return {
+        status: "error",
+        message: "Please fix the highlighted fields.",
+        fieldErrors: { socialLinks: result.message },
+      };
+    }
+    socialLinks = result.links;
   }
 
   if (RESERVED_HANDLES.has(parsed.data.handle)) {
@@ -240,11 +244,17 @@ export async function updateProfile(
   const locale = await getLocale();
 
   const telegram = parsed.data.telegramHandle?.replace(/^@/, "") ?? null;
-  // Strip leading @ on all the social handles too — users naturally
-  // type @name on Twitter/IG; we store the raw username so the link can
-  // be `https://x.com/{handle}` without double-@.
-  const stripAt = (v: string | undefined) =>
-    v ? v.replace(/^@/, "") : null;
+  // Normalise each social row's stored value — username-based platforms
+  // get the leading @ stripped so `https://x.com/{value}` composes
+  // cleanly. URL-based platforms (website, mastodon) skip the strip
+  // since '@' is legitimately part of some mastodon paths.
+  const URL_VALUE_PLATFORMS = new Set(["website", "mastodon"]);
+  const normalisedSocials = socialLinks.map((l) => ({
+    platform: l.platform,
+    value: URL_VALUE_PLATFORMS.has(l.platform)
+      ? l.value.trim()
+      : l.value.replace(/^@/, "").trim(),
+  }));
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -256,10 +266,7 @@ export async function updateProfile(
       whatsapp_number: parsed.data.whatsappNumber ?? null,
       email_contact: parsed.data.emailContact ?? null,
       gender: parsed.data.gender ?? null,
-      x_handle: stripAt(parsed.data.xHandle),
-      instagram_handle: stripAt(parsed.data.instagramHandle),
-      github_handle: stripAt(parsed.data.githubHandle),
-      website_url: parsed.data.websiteUrl ?? null,
+      social_links: normalisedSocials,
       locale,
     })
     .eq("id", user.id);

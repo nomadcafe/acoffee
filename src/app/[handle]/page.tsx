@@ -13,7 +13,9 @@ import {
   GENDERS,
   type CoffeeChatKind,
   type Gender,
+  type SocialLink,
 } from "@/lib/types";
+import { parseSocialLinks } from "@/lib/socials";
 
 // Reserved handles that would shadow real top-level routes. The signup-time
 // validator should also reject these (added in actions.ts), but keep the
@@ -54,14 +56,13 @@ type PublicProfile = {
   bio: string | null;
   city: string | null;
   coffeeChatKinds: CoffeeChatKind[];
-  // v0.9 — public socials, visible on the card without invite-accept.
-  // These are discovery links (already public elsewhere); the gated
-  // contact channels stay separate behind `hasContact`.
+  // v0.9 — gender soft signal. null = "prefer not to say".
   gender: Gender | null;
-  xHandle: string | null;
-  instagramHandle: string | null;
-  githubHandle: string | null;
-  websiteUrl: string | null;
+  // v0.10 — bio.link-style dynamic socials. Empty array hides the row.
+  // These are public discovery links — already public elsewhere — so
+  // they live on the card without invite-accept. The gated contact
+  // channels stay separate behind `hasContact`.
+  socialLinks: SocialLink[];
   hasContact: boolean;
   avatarUrl: string | null;
   joinedAt: string;
@@ -77,7 +78,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, x_handle, instagram_handle, github_handle, website_url, avatar_url, created_at, updated_at",
+      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -91,10 +92,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
     city: (data.city as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
-    xHandle: (data.x_handle as string | null) ?? null,
-    instagramHandle: (data.instagram_handle as string | null) ?? null,
-    githubHandle: (data.github_handle as string | null) ?? null,
-    websiteUrl: (data.website_url as string | null) ?? null,
+    socialLinks: parseSocialLinks(data.social_links),
     hasContact: !!(
       data.telegram_handle ||
       data.whatsapp_number ||
@@ -231,10 +229,7 @@ export default async function HandlePage(
         status={profile.bio}
         kinds={profile.coffeeChatKinds}
         gender={profile.gender}
-        xHandle={profile.xHandle}
-        instagramHandle={profile.instagramHandle}
-        githubHandle={profile.githubHandle}
-        websiteUrl={profile.websiteUrl}
+        socialLinks={profile.socialLinks}
         avatarUrl={profile.avatarUrl}
         footer={
           isOwner ? (

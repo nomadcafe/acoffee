@@ -17,6 +17,28 @@ export type CoffeeChatKind = (typeof COFFEE_CHAT_KINDS)[number];
 export const GENDERS = ["woman", "man"] as const;
 export type Gender = (typeof GENDERS)[number];
 
+// v0.10 — bio.link-style dynamic socials. Users add links one at a time
+// from this menu; each row is stored as `{ platform, value }` inside the
+// `social_links` jsonb column. Per-platform regex + URL composition
+// lives in lib/socials.ts so this file stays a pure type registry.
+export const SOCIAL_PLATFORMS = [
+  "website",
+  "x",
+  "instagram",
+  "github",
+  "linkedin",
+  "youtube",
+  "tiktok",
+  "substack",
+  "mastodon",
+  "bluesky",
+] as const;
+export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+export type SocialLink = { platform: SocialPlatform; value: string };
+// Soft cap so a runaway form can't bloat a row. 10 is more than any
+// real user needs and matches the seeded platform count.
+export const MAX_SOCIAL_LINKS = 10;
+
 export type MyProfile = {
   id: string;
   handle: string;
@@ -27,10 +49,7 @@ export type MyProfile = {
   telegramHandle: string | null;
   whatsappNumber: string | null;
   emailContact: string | null;
-  xHandle: string | null;
-  instagramHandle: string | null;
-  githubHandle: string | null;
-  websiteUrl: string | null;
+  socialLinks: SocialLink[];
   avatarUrl: string | null;
 };
 

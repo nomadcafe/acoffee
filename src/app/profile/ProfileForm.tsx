@@ -4,12 +4,14 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { LiveCardPreview } from "@/components/LiveCardPreview";
 import { useT } from "@/components/LocaleProvider";
 import { tmpl } from "@/lib/i18n/dict";
+import { SocialsEditor } from "@/components/SocialsEditor";
 import {
   COFFEE_CHAT_KINDS,
   GENDERS,
   type CoffeeChatKind,
   type Gender,
   type MyProfile,
+  type SocialLink,
 } from "@/lib/types";
 import {
   checkHandleAvailable,
@@ -74,17 +76,15 @@ export function ProfileForm({
   const [telegram, setTelegram] = useState(profile.telegramHandle ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsappNumber ?? "");
   const [emailContact, setEmailContact] = useState(profile.emailContact ?? "");
-  // v0.9 — public socials + optional gender. Null gender = "prefer not to
-  // say" and submits as empty string; the action coerces empty back to
-  // null. Same approach for socials so the FormData round-trip is
-  // uniform with the other text fields.
+  // v0.9 — optional gender soft signal. Empty string submits as null
+  // ("prefer not to say"); the action coerces empty back to null.
   const [gender, setGender] = useState<Gender | "">(profile.gender ?? "");
-  const [xHandle, setXHandle] = useState(profile.xHandle ?? "");
-  const [instagramHandle, setInstagramHandle] = useState(
-    profile.instagramHandle ?? "",
+  // v0.10 — bio.link-style dynamic socials. The SocialsEditor manages
+  // its own JSON-serialisation into a hidden input; we keep the array
+  // here so the LiveCardPreview can mirror it.
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(
+    profile.socialLinks,
   );
-  const [githubHandle, setGithubHandle] = useState(profile.githubHandle ?? "");
-  const [websiteUrl, setWebsiteUrl] = useState(profile.websiteUrl ?? "");
   const [selectedKinds, setSelectedKinds] = useState<Set<CoffeeChatKind>>(
     () => new Set(profile.coffeeChatKinds),
   );
@@ -195,12 +195,7 @@ export function ProfileForm({
           status={bio.trim() || null}
           kinds={Array.from(selectedKinds)}
           gender={gender === "" ? null : gender}
-          xHandle={xHandle.replace(/^@/, "").trim() || null}
-          instagramHandle={
-            instagramHandle.replace(/^@/, "").trim() || null
-          }
-          githubHandle={githubHandle.replace(/^@/, "").trim() || null}
-          websiteUrl={websiteUrl.trim() || null}
+          socialLinks={socialLinks.filter((l) => l.value.trim().length > 0)}
           hasContact={hasContact}
         />
         <p className="text-xs text-muted">
@@ -327,50 +322,12 @@ export function ProfileForm({
           <p className="text-sm text-muted">{t("profile.upFor.hint")}</p>
         </fieldset>
 
-        <fieldset className="flex flex-col gap-5 border-none p-0">
-          <legend className="text-xs font-medium uppercase tracking-wide text-accent">
-            {t("profile.socials.legend")}
-          </legend>
-          <p className="-mt-2 text-sm text-muted">
-            {t("profile.socials.hint")}
+        <SocialsEditor links={socialLinks} onChange={setSocialLinks} />
+        {errs.socialLinks && (
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {errs.socialLinks}
           </p>
-          <Field
-            label={t("profile.field.x.label")}
-            name="xHandle"
-            value={xHandle}
-            onValueChange={setXHandle}
-            placeholder={t("profile.field.x.placeholder")}
-            hint={t("profile.field.x.hint")}
-            error={errs.xHandle}
-          />
-          <Field
-            label={t("profile.field.instagram.label")}
-            name="instagramHandle"
-            value={instagramHandle}
-            onValueChange={setInstagramHandle}
-            placeholder={t("profile.field.instagram.placeholder")}
-            hint={t("profile.field.instagram.hint")}
-            error={errs.instagramHandle}
-          />
-          <Field
-            label={t("profile.field.github.label")}
-            name="githubHandle"
-            value={githubHandle}
-            onValueChange={setGithubHandle}
-            placeholder={t("profile.field.github.placeholder")}
-            hint={t("profile.field.github.hint")}
-            error={errs.githubHandle}
-          />
-          <Field
-            label={t("profile.field.website.label")}
-            name="websiteUrl"
-            value={websiteUrl}
-            onValueChange={setWebsiteUrl}
-            placeholder={t("profile.field.website.placeholder")}
-            hint={t("profile.field.website.hint")}
-            error={errs.websiteUrl}
-          />
-        </fieldset>
+        )}
 
         <fieldset className="flex flex-col gap-5 border-none p-0">
           <legend className="text-xs font-medium uppercase tracking-wide text-accent">

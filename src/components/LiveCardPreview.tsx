@@ -1,7 +1,7 @@
 "use client";
 
 import { CardBody } from "./CardBody";
-import type { CoffeeChatKind, Gender } from "@/lib/types";
+import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 
 // Real-time card preview that lives next to ProfileForm. Same CardBody
 // primitive the public /[handle] page renders, so what the user sees here
@@ -28,10 +28,7 @@ export function LiveCardPreview({
   status,
   kinds,
   gender,
-  xHandle,
-  instagramHandle,
-  githubHandle,
-  websiteUrl,
+  socialLinks,
   hasContact,
 }: {
   handle: string;
@@ -40,10 +37,7 @@ export function LiveCardPreview({
   status: string | null;
   kinds: CoffeeChatKind[];
   gender?: Gender | null;
-  xHandle?: string | null;
-  instagramHandle?: string | null;
-  githubHandle?: string | null;
-  websiteUrl?: string | null;
+  socialLinks?: SocialLink[];
   hasContact: boolean;
 }) {
   const safeHandle = handle.trim() || "your-handle";
@@ -56,10 +50,7 @@ export function LiveCardPreview({
       status={status}
       kinds={kinds}
       gender={gender}
-      xHandle={xHandle}
-      instagramHandle={instagramHandle}
-      githubHandle={githubHandle}
-      websiteUrl={websiteUrl}
+      socialLinks={socialLinks}
       avatarUrl={avatarUrl}
       badge={
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[10px] font-medium text-accent">
