@@ -1,55 +1,59 @@
 # acoffee
 
-A soft coffee map for digital nomads. Phase 0 landing site: a global map
-where anyone can drop a pin to say "I just landed," plus an email list for
-the Chiang Mai launch of the full app. Product direction lives in
-[`docs/vision.md`](docs/vision.md).
+**Coffee in bio — your friendly coffee chat page.**
 
-## Stack
+acoffee is a personal page where other people can invite you for coffee.
+Think *link in bio*, but instead of "see my links" the call-to-action is
+*"let's grab a coffee."*
 
-- **Next.js 16** (App Router) + **TypeScript** + **Tailwind v4**
-- **MapLibre GL** + **react-map-gl** + **OpenFreeMap** tiles (no API key)
-- **Supabase** (Postgres) for pins + subscribers — optional in dev (in-memory fallback)
+You make a card at `acoffee.com/your-handle`. You write a line about what
+you're working on and what you'd love to chat about. You add a contact —
+Telegram, WhatsApp, or email. Then you share the link in a tweet, a Slack,
+or a DM. Anyone who wants to talk clicks **Invite for coffee**, your
+contact channels appear, and you take it from there. Online or in person —
+your call.
 
-## Run locally
+## Who it's for
+
+Builders, digital nomads, founders, indie creators, AI / domain / web3
+folks, and anyone who likes meeting interesting people over coffee without
+the LinkedIn formality.
+
+acoffee is **not** a meetup app, a city directory, or a dating site. It's
+just a page that makes you easy to invite.
+
+## What a card looks like
+
+Each card at `acoffee.com/{handle}` has:
+
+- An initials avatar + display name
+- The city you want to be found in
+- A one-line status (up to 140 characters) — what you're up to,
+  what you'd love to chat about
+- Tags for what you're up for: ☕ Coffee · 💻 Cowork · 🍜 Dinner ·
+  🥾 Hike · 💼 Work talk
+- A contact channel (Telegram / WhatsApp / email) that stays hidden
+  until someone clicks **Invite for coffee**
+
+The whole flow from sign-in to a shareable URL takes about three minutes.
+
+## Status
+
+Open beta. Free to claim a handle. No paid tier, no algorithm, no chat
+inbox — just your card and the people who decide to use it. Product
+direction is tracked in [`docs/vision.md`](docs/vision.md).
+
+## Running it locally
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-Open <http://localhost:3000>.
+The app expects a Supabase project (Auth + a `profiles` table). Run the
+SQL files in [`supabase/`](supabase/) in order — `schema.sql`,
+`schema_phase1.sql`, then `schema_v07.sql` — copy `.env.example` to
+`.env.local`, and fill in your project URL and keys.
 
-Without Supabase env vars the app uses an in-memory store; pins and emails
-reset whenever the dev server restarts. Good enough to click around.
-
-## Connect Supabase (persistent / production)
-
-1. Create a project at <https://supabase.com>.
-2. In the SQL editor, run [`supabase/schema.sql`](supabase/schema.sql).
-3. Copy `.env.example` to `.env.local` and fill in:
-   - `NEXT_PUBLIC_SUPABASE_URL` — Project URL
-   - `SUPABASE_SERVICE_ROLE_KEY` — Settings → API → `service_role` key
-     (server-side only, never expose to the client)
-4. Restart the dev server.
-
-## Layout
-
-```
-src/
-  app/
-    page.tsx            landing page (server component)
-    api/
-      pins/route.ts     GET recent pins, POST a new pin
-      subscribe/route.ts POST email subscription
-  components/
-    PinMap.tsx          MapLibre map + "I'm here" button (client)
-    SubscribeForm.tsx   email capture (client)
-  lib/
-    store.ts            Supabase or in-memory store
-    types.ts
-supabase/
-  schema.sql
-docs/
-  vision.md             product direction
-```
+Stack: Next.js 16 (App Router) · TypeScript · Tailwind v4 · Supabase
+(Postgres + Auth).
