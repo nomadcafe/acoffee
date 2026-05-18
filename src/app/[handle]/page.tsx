@@ -179,7 +179,17 @@ export default async function HandlePage(
         kinds={profile.coffeeChatKinds}
         avatarUrl={profile.avatarUrl}
         footer={
-          profile.hasContact ? (
+          isOwner ? (
+            // Owner self-view: the in-card footer is just a quiet
+            // identifier — the page-level footer below the card carries
+            // the "Edit my card →" CTA. Rendering the live InviteForm
+            // here would let you invite yourself, which is silly.
+            <p className="text-sm italic text-muted">
+              {profile.hasContact
+                ? "This is your card · visitors see an Invite button here."
+                : "This is your card · add a contact channel to enable invites."}
+            </p>
+          ) : profile.hasContact ? (
             <InviteForm
               hostHandle={profile.handle}
               hostDisplayName={profile.displayName}
