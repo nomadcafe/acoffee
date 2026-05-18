@@ -53,23 +53,30 @@ function InviteFormInner({
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(createInvite, INITIAL);
   const [mode, setMode] = useState<InviteMode>("either");
+  // Track the email the visitor just submitted, so the success state can
+  // tell them "check this inbox" without us re-deriving it from FormData
+  // (it's already wiped by the time we render the result).
+  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   if (state.status === "sent") {
     return (
       <div className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent-soft/60 p-5">
         <p className="text-base font-semibold text-accent">
-          {t("invite.sent.title")}
+          {t("invite.sent.check.title")}
         </p>
         <p className="text-sm leading-[1.55] text-ink/80">
-          {tmpl(t("invite.sent.body"), { name: hostDisplayName })}
+          {tmpl(t("invite.sent.check.body"), {
+            name: hostDisplayName,
+            email: submittedEmail ?? "your inbox",
+          })}
         </p>
-        <p className="text-xs text-muted">{t("invite.sent.ttl")}</p>
+        <p className="text-xs text-muted">{t("invite.sent.check.ttl")}</p>
         <button
           type="button"
           onClick={onSendAnother}
           className="self-start text-sm font-medium text-accent underline-offset-4 hover:underline"
         >
-          {tmpl(t("invite.sent.sendAnother"), { name: hostDisplayName })}
+          {t("invite.sent.check.sendAnother")}
         </button>
       </div>
     );
@@ -94,7 +101,18 @@ function InviteFormInner({
   const errs = state.status === "error" ? state.fieldErrors ?? {} : {};
 
   return (
-    <form action={action} className="flex flex-col gap-4">
+    <form
+      action={(formData) => {
+        // Stash the visitor's email so the success state can render
+        // "check {email} for the confirm link". useActionState's
+        // FormData is wiped by the time the success view paints.
+        setSubmittedEmail(
+          (formData.get("requesterEmail") as string | null) ?? null,
+        );
+        return action(formData);
+      }}
+      className="flex flex-col gap-4"
+    >
       <input type="hidden" name="handle" value={hostHandle} />
 
       <div className="flex items-baseline justify-between gap-3">

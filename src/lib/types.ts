@@ -29,6 +29,7 @@ export const INVITE_MODES = ["online", "in_person", "either"] as const;
 export type InviteMode = (typeof INVITE_MODES)[number];
 
 export const INVITE_STATUSES = [
+  "unconfirmed",
   "pending",
   "accepted",
   "declined",

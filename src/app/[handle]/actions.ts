@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { emailInviteReceived, emailNewInvite } from "@/lib/email";
+import { emailInviteConfirm } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { createSupabaseAdmin, isAuthConfigured } from "@/lib/supabase/server";
@@ -132,7 +132,7 @@ export async function createInvite(
   const admin = createSupabaseAdmin();
   const { data: host, error: hostErr } = await admin
     .from("profiles")
-    .select("id, handle, locale")
+    .select("id, handle")
     .eq("handle", parsed.data.handle.toLowerCase())
     .maybeSingle();
   if (hostErr || !host) {
@@ -140,21 +140,16 @@ export async function createInvite(
   }
   const hostId = host.id as string;
   const hostHandle = host.handle as string;
-  const hostLocaleRaw = host.locale as string | null | undefined;
-  const hostLocale: "en" | "zh" | "ja" =
-    hostLocaleRaw === "zh" || hostLocaleRaw === "ja" ? hostLocaleRaw : "en";
-
-  // Read the host's auth email (where the inbox notification lands) via
-  // the admin auth API. profiles.email_contact is the *public* contact —
-  // not the same thing.
-  const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
-  const hostNotifyEmail = hostAuth.user?.email ?? null;
 
   // Snapshot the visitor's locale on the row — the host's accept/decline
   // happens later and the cookie/header chain is gone by then. Without
   // this, follow-up emails to the visitor would fall back to English
   // even if they submitted in zh/ja.
   const locale = await getLocale();
+  // Random token powering the confirm link emailed to the visitor.
+  // crypto.randomUUID is unguessable enough for this; the unique index
+  // on confirm_token doubles as the lookup path.
+  const confirmToken = crypto.randomUUID();
   const { error: insertErr } = await admin.from("invites").insert({
     host_id: hostId,
     requester_name: parsed.data.requesterName,
@@ -163,6 +158,8 @@ export async function createInvite(
     mode: parsed.data.mode,
     preferred_time: parsed.data.preferredTime ?? null,
     requester_locale: locale,
+    status: "unconfirmed",
+    confirm_token: confirmToken,
   });
   if (insertErr) {
     return {
@@ -171,31 +168,18 @@ export async function createInvite(
     };
   }
 
-  // Fire-and-forget — never block the visitor on Resend latency. Failures
-  // land in Vercel logs via the email helper's catch.
+  // AA2 anti-spam: the host is NOT notified here. Visitor must click
+  // the confirm link in this email first; that promotes the row to
+  // `pending` and triggers emailNewInvite to the host. Until they
+  // click, the invite stays invisible to the host — fake emails bounce
+  // here without disturbing anyone.
   const hostDisplayName = deriveDisplayName(hostHandle);
-  if (hostNotifyEmail) {
-    await emailNewInvite({
-      to: hostNotifyEmail,
-      hostHandle,
-      requesterName: parsed.data.requesterName,
-      requesterEmail: parsed.data.requesterEmail,
-      requesterTopic: parsed.data.requesterTopic,
-      mode: parsed.data.mode,
-      preferredTime: parsed.data.preferredTime ?? null,
-      locale: hostLocale,
-    });
-  }
-
-  // Confirmation to the visitor — closes the loop ("we got your invite,
-  // they'll reply or it expires in 7d"). Bonus: bad-email bounces show
-  // up here instead of later when the host tries to send the contact
-  // reveal to a typo.
-  await emailInviteReceived({
+  await emailInviteConfirm({
     to: parsed.data.requesterEmail,
     requesterName: parsed.data.requesterName,
     hostDisplayName,
     hostHandle,
+    confirmToken,
     locale,
   });
 

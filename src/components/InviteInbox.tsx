@@ -7,6 +7,10 @@ import { useT } from "@/components/LocaleProvider";
 import { tmpl } from "@/lib/i18n/dict";
 import type { Invite } from "@/lib/types";
 
+// "unconfirmed" should never reach the inbox — getMyInviteHistory filters
+// it out — but TypeScript needs the union to be exhaustive. Map it to the
+// muted "expired" treatment as a defensive fallback so a stray row doesn't
+// crash the render.
 const STATUS_TONE: Record<
   Exclude<Invite["status"], "pending">,
   "good" | "muted"
@@ -14,6 +18,7 @@ const STATUS_TONE: Record<
   accepted: "good",
   declined: "muted",
   expired: "muted",
+  unconfirmed: "muted",
 };
 
 // Owner inbox for invites — split into Pending and History tabs. Pending
@@ -245,8 +250,13 @@ function PendingRow({ invite }: { invite: Invite }) {
 
 function HistoryRow({ invite }: { invite: Invite }) {
   const t = useT();
-  const statusKind =
-    invite.status === "pending" ? "expired" : invite.status;
+  // Pending here means past-expiry (the query only surfaces those into
+  // history); unconfirmed shouldn't reach this row but treat it as
+  // expired defensively so we never index status keys we don't ship.
+  const statusKind: Exclude<Invite["status"], "pending" | "unconfirmed"> =
+    invite.status === "pending" || invite.status === "unconfirmed"
+      ? "expired"
+      : invite.status;
   const tone = STATUS_TONE[statusKind];
   const decidedDate =
     invite.decidedAt ?? invite.expiresAt ?? invite.createdAt;

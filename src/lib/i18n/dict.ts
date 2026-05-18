@@ -337,6 +337,43 @@ export const en = {
   "email.newInvite.disclaimer":
     "On accept we email your contact channels to them. On decline they get a polite note. Pending invites expire after 7 days.",
 
+  // Confirmation email — sent to the visitor immediately after they
+  // submit the invite form. Replaces the v0.8.4 "received" email; the
+  // host is NOT notified until the visitor clicks this link, so a fake
+  // email leaves the host's inbox alone.
+  "email.confirm.subject": "Confirm your coffee invite to {host}",
+  "email.confirm.greeting": "Hi {name},",
+  "email.confirm.intro":
+    "Click the link to send your coffee invite to {host}. Until you confirm, the invite is on hold — they won't see it.",
+  "email.confirm.cta": "Confirm and send",
+  "email.confirm.disclaimer":
+    "If you didn't mean to do this, just ignore this email — nothing happens. The link expires in 7 days.",
+
+  // InviteForm — success state after submit. Now points the visitor
+  // back to their inbox instead of claiming the host already has the
+  // invite.
+  "invite.sent.check.title": "Check your email",
+  "invite.sent.check.body":
+    "We sent a confirmation link to {email}. Click it to send your invite to {name}. Nothing reaches them until you do.",
+  "invite.sent.check.ttl": "Unconfirmed invites expire after 7 days.",
+  "invite.sent.check.sendAnother": "Use a different email →",
+
+  // Confirm page — what the visitor sees after clicking the link.
+  "confirm.success.title": "Your invite is on its way",
+  "confirm.success.body":
+    "{host} now has your invite. You'll get an email when they accept or decline.",
+  "confirm.success.viewCard": "See {host}'s card",
+  "confirm.alreadyDone.title": "This invite is already on its way",
+  "confirm.alreadyDone.body":
+    "Looks like you confirmed this one already, or {host} has decided. Check your email for follow-ups.",
+  "confirm.expired.title": "This link expired",
+  "confirm.expired.body":
+    "Confirmation links are valid for 7 days. Send a fresh invite if you still want to reach out.",
+  "confirm.notFound.title": "Invite not found",
+  "confirm.notFound.body":
+    "This link is invalid or has already been used.",
+  "confirm.backHome": "Back to acoffee",
+
   // Language switcher
   "lang.label": "Language",
 } as const;
@@ -606,6 +643,34 @@ export const zh: Record<DictKey, string> = {
   "email.newInvite.cta": "打开收件箱",
   "email.newInvite.disclaimer":
     "接受后我们会把你的联系方式邮件发给对方。拒绝则发一封礼貌通知。未处理的邀请 7 天后过期。",
+
+  "email.confirm.subject": "确认你给 {host} 的咖啡邀请",
+  "email.confirm.greeting": "{name} 你好,",
+  "email.confirm.intro":
+    "点击链接把你的咖啡邀请发给 {host}。在你确认之前,邀请处于暂停状态——他们看不到。",
+  "email.confirm.cta": "确认并发送",
+  "email.confirm.disclaimer":
+    "如果不是你本人操作,忽略这封邮件即可——什么都不会发生。链接 7 天后过期。",
+
+  "invite.sent.check.title": "查收你的邮箱",
+  "invite.sent.check.body":
+    "我们把确认链接发到了 {email}。点击链接才会把邀请发给 {name}。点击之前 host 看不到任何东西。",
+  "invite.sent.check.ttl": "未确认的邀请 7 天后过期。",
+  "invite.sent.check.sendAnother": "换一个邮箱 →",
+
+  "confirm.success.title": "邀请正在路上",
+  "confirm.success.body":
+    "{host} 现在已经收到你的邀请。接受或拒绝时你会收到邮件。",
+  "confirm.success.viewCard": "看看 {host} 的名片",
+  "confirm.alreadyDone.title": "这封邀请已经在路上了",
+  "confirm.alreadyDone.body":
+    "看起来你之前已经确认过,或 {host} 已经处理。查收你的邮箱看后续通知。",
+  "confirm.expired.title": "这个链接过期了",
+  "confirm.expired.body":
+    "确认链接 7 天有效。如果仍想联系,可以重新发一封邀请。",
+  "confirm.notFound.title": "邀请不存在",
+  "confirm.notFound.body": "链接无效或已被使用。",
+  "confirm.backHome": "回 acoffee",
 
   "lang.label": "语言",
 };
@@ -902,6 +967,35 @@ export const ja: Record<DictKey, string> = {
   "email.newInvite.cta": "受信箱を開く",
   "email.newInvite.disclaimer":
     "承認すると連絡先がメールで届きます。辞退の場合は丁寧な返信が送られます。未処理の招待は 7 日後に期限切れになります。",
+
+  "email.confirm.subject": "{host} さんへの招待を確認してください",
+  "email.confirm.greeting": "{name} さん、",
+  "email.confirm.intro":
+    "リンクをクリックすると、{host} さんに招待が送信されます。確認するまで、招待は保留中です——相手には見えません。",
+  "email.confirm.cta": "確認して送信",
+  "email.confirm.disclaimer":
+    "心当たりがなければ、このメールは無視してください——何も起こりません。リンクは 7 日後に期限切れになります。",
+
+  "invite.sent.check.title": "メールを確認してください",
+  "invite.sent.check.body":
+    "{email} に確認リンクを送りました。クリックすると {name} さんに招待が届きます。クリックするまで相手には何も届きません。",
+  "invite.sent.check.ttl": "未確認の招待は 7 日後に期限切れになります。",
+  "invite.sent.check.sendAnother": "別のメールアドレスを使う →",
+
+  "confirm.success.title": "招待を送信しました",
+  "confirm.success.body":
+    "{host} さんに招待が届きました。承認 / 辞退の連絡があれば、メールが届きます。",
+  "confirm.success.viewCard": "{host} さんのカードを見る",
+  "confirm.alreadyDone.title": "この招待はすでに送信済みです",
+  "confirm.alreadyDone.body":
+    "すでに確認済みか、{host} さんが対応しているようです。続きのメールはメールボックスを確認してください。",
+  "confirm.expired.title": "このリンクは期限切れです",
+  "confirm.expired.body":
+    "確認リンクは 7 日間有効です。まだ連絡したい場合は、改めて招待を送ってください。",
+  "confirm.notFound.title": "招待が見つかりません",
+  "confirm.notFound.body":
+    "リンクが無効か、すでに使用されています。",
+  "confirm.backHome": "acoffee に戻る",
 
   "lang.label": "言語",
 };

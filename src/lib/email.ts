@@ -96,10 +96,43 @@ export async function emailWelcome(args: {
   });
 }
 
-// Sent to the visitor right after they submit the invite form on /[handle].
-// Closes the loop ("we got it") and primes them on the 7-day expectation —
-// otherwise a slow host means the visitor wonders if anything happened. A
-// bonus: bad emails bounce here, so we don't waste the host's time later.
+// Confirmation email — sent to the visitor right after they submit the
+// invite form. This is the entire AA2 anti-spam check: the host doesn't
+// see the invite until the visitor clicks the link, proving they actually
+// own the email address they typed. Bad emails bounce here, host inbox
+// stays clean.
+export async function emailInviteConfirm(args: {
+  to: string;
+  requesterName: string;
+  hostDisplayName: string;
+  hostHandle: string;
+  confirmToken: string;
+  locale: Locale;
+}) {
+  const confirmUrl = `${siteUrl}/invite/confirm/${args.confirmToken}`;
+  const v = { name: args.requesterName, host: args.hostDisplayName };
+  await sendEmail({
+    to: args.to,
+    subject: tmpl(t(args.locale, "email.confirm.subject"), v),
+    text:
+      `${tmpl(t(args.locale, "email.confirm.greeting"), v)}\n\n` +
+      `${tmpl(t(args.locale, "email.confirm.intro"), v)}\n\n` +
+      `${confirmUrl}\n\n` +
+      `${t(args.locale, "email.confirm.disclaimer")}\n\n— ${siteName}`,
+    html: `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
+<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.confirm.greeting"), v))}</p>
+<p style="font-size:15px;margin:0 0 18px">${escapeHtml(tmpl(t(args.locale, "email.confirm.intro"), v))}</p>
+<p style="margin:0 0 24px"><a href="${confirmUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">${escapeHtml(t(args.locale, "email.confirm.cta"))} &rarr;</a></p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; ${escapeHtml(t(args.locale, "email.confirm.disclaimer"))}</p>
+</body></html>`,
+  });
+}
+
+// Legacy: previously sent to the visitor right after submit. v0.8.5
+// replaced this with emailInviteConfirm (the click-to-confirm flow) —
+// kept exported so we don't break callers in a rollback window; new
+// code shouldn't reach for it.
 export async function emailInviteReceived(args: {
   to: string;
   requesterName: string;
