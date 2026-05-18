@@ -3,7 +3,9 @@ import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { CardSharePanel } from "@/components/CardSharePanel";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
+import { InviteInbox } from "@/components/InviteInbox";
 import {
+  getMyPendingInvites,
   getMyProfile,
   getMyProfileStats,
   getSessionUser,
@@ -56,9 +58,10 @@ export default async function ProfilePage({
     );
   }
 
-  const [profile, stats] = await Promise.all([
+  const [profile, stats, pendingInvites] = await Promise.all([
     getMyProfile(),
     getMyProfileStats(),
+    getMyPendingInvites(),
   ]);
   if (!profile) {
     return (
@@ -102,6 +105,10 @@ export default async function ProfilePage({
 
       {hasRealHandle && !isOnboarding && (
         <CardSharePanel handle={profile.handle} origin={siteUrl} />
+      )}
+
+      {hasRealHandle && !isOnboarding && (
+        <InviteInbox invites={pendingInvites} />
       )}
 
       <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />

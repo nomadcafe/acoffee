@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { emailWelcome } from "@/lib/email";
+import {
+  emailInviteAccepted,
+  emailInviteDeclined,
+  emailWelcome,
+} from "@/lib/email";
 import {
   createSupabaseAdmin,
   createSupabaseServer,
@@ -289,5 +293,131 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   await supabase.auth.signOut();
 
   revalidatePath("/", "layout");
+  return { status: "ok" };
+}
+
+// Host-side accept/decline for an invite. Both paths share the same lookup
+// + ownership check + status transition + revalidate; the only branch is
+// which email the visitor receives. Returns a structured result so the
+// inbox UI can show inline errors without throwing past the action call.
+export type InviteDecisionResult =
+  | { status: "ok" }
+  | { status: "error"; message: string };
+
+export async function approveInvite(
+  inviteId: string,
+): Promise<InviteDecisionResult> {
+  return decideInvite(inviteId, "accepted");
+}
+
+export async function rejectInvite(
+  inviteId: string,
+): Promise<InviteDecisionResult> {
+  return decideInvite(inviteId, "declined");
+}
+
+async function decideInvite(
+  inviteId: string,
+  next: "accepted" | "declined",
+): Promise<InviteDecisionResult> {
+  if (!isAuthConfigured()) {
+    return { status: "error", message: "Sign-in isn't configured." };
+  }
+  if (typeof inviteId !== "string" || !inviteId) {
+    return { status: "error", message: "Missing invite id." };
+  }
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "Sign in to manage invites." };
+  }
+
+  // Fetch the invite via RLS-scoped read — the policy already restricts
+  // SELECT to the host, so an attacker-supplied id for someone else's
+  // invite returns null + we bail.
+  const { data: invite, error: readErr } = await supabase
+    .from("invites")
+    .select(
+      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, expires_at",
+    )
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (readErr) {
+    return { status: "error", message: readErr.message };
+  }
+  if (!invite || invite.host_id !== user.id) {
+    return { status: "error", message: "Invite not found." };
+  }
+  if (invite.status !== "pending") {
+    return {
+      status: "error",
+      message: `Invite is already ${invite.status}.`,
+    };
+  }
+  if (new Date(invite.expires_at as string) < new Date()) {
+    return {
+      status: "error",
+      message: "Invite expired before you got to it.",
+    };
+  }
+
+  const { error: updateErr } = await supabase
+    .from("invites")
+    .update({ status: next, decided_at: new Date().toISOString() })
+    .eq("id", inviteId);
+  if (updateErr) {
+    return { status: "error", message: updateErr.message };
+  }
+
+  // Need the host's profile + contacts to compose the accept email —
+  // server-side, never sent to the browser.
+  if (next === "accepted") {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select(
+        "handle, telegram_handle, whatsapp_number, email_contact",
+      )
+      .eq("id", user.id)
+      .maybeSingle();
+    if (profile) {
+      const handle = profile.handle as string;
+      const displayName = handle
+        .split("_")
+        .filter(Boolean)
+        .map((p) => p[0].toUpperCase() + p.slice(1))
+        .join(" ");
+      await emailInviteAccepted({
+        to: invite.requester_email as string,
+        requesterName: invite.requester_name as string,
+        hostHandle: handle,
+        hostDisplayName: displayName,
+        telegramHandle: (profile.telegram_handle as string | null) ?? null,
+        whatsappNumber: (profile.whatsapp_number as string | null) ?? null,
+        emailContact: (profile.email_contact as string | null) ?? null,
+      });
+    }
+  } else {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("handle")
+      .eq("id", user.id)
+      .maybeSingle();
+    const handle = (profile?.handle as string | undefined) ?? "the host";
+    const displayName = handle
+      .split("_")
+      .filter(Boolean)
+      .map((p) => p[0].toUpperCase() + p.slice(1))
+      .join(" ");
+    await emailInviteDeclined({
+      to: invite.requester_email as string,
+      requesterName: invite.requester_name as string,
+      hostDisplayName: displayName,
+    });
+  }
+
+  revalidatePath("/profile");
   return { status: "ok" };
 }
