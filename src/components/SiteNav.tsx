@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { countMyPendingInvites } from "@/lib/auth-queries";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
 // Same derivation as /[handle]/page.tsx — "alex_nomad" → "Alex Nomad".
@@ -49,7 +50,12 @@ export async function SiteNav() {
   const supabaseConfigured =
     !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
     !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const session = supabaseConfigured ? await readSessionProfile() : null;
+  // Run the session lookup + the inbox-count read in parallel — the second
+  // call is the cheap exact-count head query, so the round-trip cost
+  // overlaps with the profile fetch instead of stacking on top of it.
+  const [session, pendingCount] = supabaseConfigured
+    ? await Promise.all([readSessionProfile(), countMyPendingInvites()])
+    : [null, 0];
 
   return (
     <nav className="border-b border-bean bg-page/80 backdrop-blur">
@@ -60,7 +66,20 @@ export async function SiteNav() {
         >
           acoffee
         </Link>
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          {supabaseConfigured && session && pendingCount > 0 && (
+            <Link
+              href="/profile"
+              className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-page shadow-sm hover:bg-accent-hover"
+              title={`${pendingCount} pending invite${pendingCount === 1 ? "" : "s"}`}
+            >
+              <span className="relative inline-flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-1.5 w-1.5 animate-ping rounded-full bg-page/60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-page" />
+              </span>
+              {pendingCount} invite{pendingCount === 1 ? "" : "s"}
+            </Link>
+          )}
           {supabaseConfigured &&
             (session ? (
               <Link

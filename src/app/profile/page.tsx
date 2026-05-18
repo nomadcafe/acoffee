@@ -5,6 +5,7 @@ import { CardSharePanel } from "@/components/CardSharePanel";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { InviteInbox } from "@/components/InviteInbox";
 import {
+  getMyInviteHistory,
   getMyPendingInvites,
   getMyProfile,
   getMyProfileStats,
@@ -58,10 +59,11 @@ export default async function ProfilePage({
     );
   }
 
-  const [profile, stats, pendingInvites] = await Promise.all([
+  const [profile, stats, pendingInvites, inviteHistory] = await Promise.all([
     getMyProfile(),
     getMyProfileStats(),
     getMyPendingInvites(),
+    getMyInviteHistory(),
   ]);
   if (!profile) {
     return (
@@ -108,7 +110,7 @@ export default async function ProfilePage({
       )}
 
       {hasRealHandle && !isOnboarding && (
-        <InviteInbox invites={pendingInvites} />
+        <InviteInbox pending={pendingInvites} history={inviteHistory} />
       )}
 
       <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />

@@ -112,6 +112,68 @@ export async function getMyPendingInvites(): Promise<Invite[]> {
   return (data ?? []).map(rowToInvite);
 }
 
+// History view for the inbox tab: anything that's no longer pending
+// — accepted / declined and the ones that expired without a decision.
+// Pending-but-past-expiry rows surface as `expired` so the host sees
+// "you missed this" instead of the row silently vanishing.
+export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("invites")
+    .select(
+      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, created_at, expires_at, decided_at",
+    )
+    .eq("host_id", user.id)
+    .or(
+      `status.in.(accepted,declined,expired),and(status.eq.pending,expires_at.lt.${nowIso})`,
+    )
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((r) => {
+    const base = rowToInvite(r);
+    // Surface pending-but-past-expiry rows as `expired` in the typed
+    // shape — the DB column may not have been swept yet (no cron in
+    // v0.8) but the UI should treat them as terminal.
+    if (
+      base.status === "pending" &&
+      new Date(base.expiresAt) < new Date()
+    ) {
+      return { ...base, status: "expired" as const };
+    }
+    return base;
+  });
+}
+
+// Lightweight pending-count for the nav badge. `count: 'exact', head: true`
+// is the cheap path — Supabase returns just the number, no rows. Called on
+// every nav render for signed-in users, so kept fast.
+export async function countMyPendingInvites(): Promise<number> {
+  if (!isAuthConfigured()) return 0;
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const nowIso = new Date().toISOString();
+  const { count, error } = await supabase
+    .from("invites")
+    .select("id", { count: "exact", head: true })
+    .eq("host_id", user.id)
+    .eq("status", "pending")
+    .gt("expires_at", nowIso);
+  if (error) return 0;
+  return count ?? 0;
+}
+
 // Latest published cards for the home page "Latest cards" strip. Anonymous
 // read — relies on the public profiles_read RLS. Filters out the auto-
 // generated `user_<hex>` skeletons and rows with no bio AND no city (no
