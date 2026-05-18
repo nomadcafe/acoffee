@@ -36,7 +36,6 @@ export default async function ProfilePage({
   searchParams: Promise<{ onboarding?: string; after?: string }>;
 }) {
   const { onboarding, after } = await searchParams;
-  const isOnboarding = onboarding === "1";
   const afterPath = safeAfter(after);
 
   const sessionUser = await getSessionUser();
@@ -76,6 +75,11 @@ export default async function ProfilePage({
   }
 
   const hasRealHandle = !AUTO_HANDLE.test(profile.handle);
+  // Only show the onboarding header when the URL says so AND the user
+  // genuinely hasn't picked a handle yet. Stops "Welcome / Pick how others
+  // see you" from appearing for returning users who hit /profile?onboarding=1
+  // via a stale link or the signin → next redirect.
+  const isOnboarding = onboarding === "1" && !hasRealHandle;
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">

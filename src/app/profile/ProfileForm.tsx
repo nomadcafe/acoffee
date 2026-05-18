@@ -228,6 +228,9 @@ function FieldArea({
   hint?: string;
   error?: string;
 }) {
+  const MAX = 140;
+  const [length, setLength] = useState((defaultValue ?? "").length);
+  const near = length > MAX - 20;
   return (
     <label className="flex flex-col gap-2">
       <span className="text-sm font-medium text-ink/85">{label}</span>
@@ -235,18 +238,31 @@ function FieldArea({
         name={name}
         defaultValue={defaultValue}
         rows={3}
-        maxLength={140}
+        maxLength={MAX}
+        onChange={(e) => setLength(e.target.value.length)}
         className={`resize-none rounded-2xl border bg-surface px-4 py-3 text-base leading-[1.5] text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 ${
           error
             ? "border-red-400 dark:border-red-500"
             : "border-bean"
         }`}
       />
-      {error ? (
-        <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
-      ) : hint ? (
-        <span className="text-sm text-muted">{hint}</span>
-      ) : null}
+      <div className="flex items-baseline justify-between gap-3">
+        {error ? (
+          <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
+        ) : hint ? (
+          <span className="text-sm text-muted">{hint}</span>
+        ) : (
+          <span />
+        )}
+        <span
+          className={`shrink-0 font-mono text-xs tabular-nums ${
+            near ? "text-accent" : "text-muted"
+          }`}
+          aria-live="polite"
+        >
+          {length} / {MAX}
+        </span>
+      </div>
     </label>
   );
 }

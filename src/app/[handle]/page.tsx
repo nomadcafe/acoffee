@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
 import { CardContactReveal } from "@/components/CardContactReveal";
+import { getMyProfile } from "@/lib/auth-queries";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 import { COFFEE_CHAT_KINDS, type CoffeeChatKind } from "@/lib/types";
@@ -118,17 +119,53 @@ export default async function HandlePage(
   const profile = await fetchPublicProfile(handle);
   if (!profile) notFound();
 
+  // Owner detection: if the signed-in viewer's handle matches the page,
+  // they get edit affordances instead of the "make your own" CTA, and
+  // an "almost there" nudge when the card has no status or contact yet.
+  const viewer = await getMyProfile();
+  const isOwner = viewer?.handle === profile.handle;
+  const hasContact =
+    !!profile.telegramHandle ||
+    !!profile.whatsappNumber ||
+    !!profile.emailContact;
+  const isIncomplete = !profile.bio || !hasContact;
+
   const joinedLabel = formatJoined(profile.joinedAt);
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-4 py-14 sm:px-6 sm:py-20">
-      <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-muted">
+    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
+      <p className="text-sm font-medium text-muted">
         <Link href="/" className="hover:text-accent">
           acoffee
         </Link>
         <span className="mx-1.5 text-bean">·</span>
         Coffee card
       </p>
+
+      {isOwner && isIncomplete && (
+        <section className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent-soft/60 p-5 sm:p-6">
+          <p className="text-xs font-medium uppercase tracking-wide text-accent">
+            Almost there
+          </p>
+          <h2 className="text-lg font-semibold tracking-tight text-ink">
+            This is your card — it&apos;s looking sparse.
+          </h2>
+          <p className="text-sm leading-[1.55] text-ink/70">
+            {!profile.bio && !hasContact
+              ? "Add a one-line status and a contact channel — that's what makes the card worth sharing."
+              : !profile.bio
+                ? "Add a one-line status so visitors see what you're up to."
+                : "Add at least one contact channel (Telegram, WhatsApp, or email) — otherwise no one can actually invite you."}
+          </p>
+          <Link
+            href="/profile"
+            className="inline-flex self-start items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
+          >
+            Finish your card
+            <span aria-hidden>→</span>
+          </Link>
+        </section>
+      )}
 
       <CardBody
         handle={profile.handle}
@@ -147,18 +184,36 @@ export default async function HandlePage(
         }
       />
 
-      <footer className="flex flex-col gap-3 border-t border-dashed border-bean pt-6">
-        <p className="font-serif text-sm italic text-ink/70">
-          Like this card? Make your own — share what you&apos;re working on,
-          get invited for coffee in your next city.
-        </p>
-        <Link
-          href="/auth/signin?next=%2Fprofile%3Fonboarding%3D1"
-          className="inline-flex self-start items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
-        >
-          Make your card
-          <span aria-hidden>→</span>
-        </Link>
+      <footer className="mt-2 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
+        {isOwner ? (
+          <>
+            <p className="text-sm italic text-ink/70">
+              Your card lives here. Share the URL anywhere, or come back to
+              edit it anytime.
+            </p>
+            <Link
+              href="/profile"
+              className="inline-flex self-start items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
+            >
+              Edit my card
+              <span aria-hidden>→</span>
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="text-sm italic text-ink/70">
+              Like this card? Make your own — share what you&apos;re
+              working on, get invited for coffee in your next city.
+            </p>
+            <Link
+              href="/auth/signin?next=%2Fprofile%3Fonboarding%3D1"
+              className="inline-flex self-start items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
+            >
+              Make your card
+              <span aria-hidden>→</span>
+            </Link>
+          </>
+        )}
       </footer>
     </main>
   );
