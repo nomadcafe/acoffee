@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/dict";
+import { termsAlternates } from "@/lib/i18n/routes";
 
 // Same per-locale render dispatch pattern as /privacy — see notes there
 // for why long-form legal copy doesn't pass through the flat dict.
@@ -9,11 +11,15 @@ export const metadata: Metadata = {
   title: "Terms",
   description:
     "Ground rules for using acoffee — claim a handle, be honest, don't harass.",
-  alternates: { canonical: "/terms" },
+  alternates: termsAlternates("en"),
 };
 
 export default async function TermsPage() {
   const locale = await getLocale();
+  return <TermsView locale={locale} />;
+}
+
+export function TermsView({ locale }: { locale: Locale }) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
       {locale === "zh" ? (

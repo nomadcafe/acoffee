@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { LatestCardsStrip } from "@/components/LatestCardsStrip";
 import { SampleCard } from "@/components/SampleCard";
 import { listLatestCards } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
-import { t } from "@/lib/i18n/dict";
+import { t, type Locale } from "@/lib/i18n/dict";
+import { homeAlternates } from "@/lib/i18n/routes";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
 // Refresh the strip once an hour. Card creation isn't bursty enough to
@@ -11,11 +13,20 @@ import { siteDescription, siteName, siteUrl } from "@/lib/site";
 // keeping the home page CDN-cacheable in between.
 export const revalidate = 3600;
 
+export const metadata: Metadata = {
+  // hreflang alternates so Google indexes the / / /zh / /ja variants as
+  // language equivalents of the same page. /zh/page.tsx and /ja/page.tsx
+  // re-export their own metadata pointing back here.
+  alternates: homeAlternates("en"),
+};
+
 export default async function Home() {
-  const [latestCards, locale] = await Promise.all([
-    listLatestCards(6),
-    getLocale(),
-  ]);
+  const locale = await getLocale();
+  return <HomeView locale={locale} />;
+}
+
+export async function HomeView({ locale }: { locale: Locale }) {
+  const latestCards = await listLatestCards(6);
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",

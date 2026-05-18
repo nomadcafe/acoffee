@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLocale } from "@/lib/i18n";
+import type { Locale } from "@/lib/i18n/dict";
+import { privacyAlternates } from "@/lib/i18n/routes";
 
 // Long-form legal copy doesn't fit a flat dict cleanly — each section has
 // inline links, code spans, lists. Per-locale render functions below keep
@@ -11,11 +13,15 @@ export const metadata: Metadata = {
   title: "Privacy",
   description:
     "What acoffee collects, what's public on your card, and how to remove your data.",
-  alternates: { canonical: "/privacy" },
+  alternates: privacyAlternates("en"),
 };
 
 export default async function PrivacyPage() {
   const locale = await getLocale();
+  return <PrivacyView locale={locale} />;
+}
+
+export function PrivacyView({ locale }: { locale: Locale }) {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
       {locale === "zh" ? (

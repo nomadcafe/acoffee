@@ -30,6 +30,12 @@ const RESERVED_HANDLES = new Set([
   "privacy",
   "sitemap.xml",
   "robots.txt",
+  // Locale-prefix folders for SEO i18n. /zh/ and /ja/ are static
+  // routes that Next will match first, but list them here too so a
+  // future routing swap can't silently lease them as handles.
+  "zh",
+  "ja",
+  "en",
 ]);
 
 // v0.8 deliberately strips raw contact channels from the public-facing

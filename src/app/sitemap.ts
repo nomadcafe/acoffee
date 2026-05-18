@@ -24,6 +24,11 @@ const SHADOWED_HANDLES = new Set([
   "help",
   "terms",
   "privacy",
+  // Locale-prefix folders for SEO i18n. /zh and /ja are static routes
+  // that own these handle slugs — never list them as cards.
+  "zh",
+  "ja",
+  "en",
 ]);
 
 // Trigger-generated handles (`user_<8 hex>`) are skeleton accounts that
@@ -32,28 +37,44 @@ const SHADOWED_HANDLES = new Set([
 // and the site's perceived liveness in search.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
+// Each marketing path is listed once per locale variant. The page-level
+// metadata also emits hreflang alternates between them so Google ties the
+// language versions together; sitemap entries are the discovery signal.
+const MARKETING_PATHS: ReadonlyArray<{
+  paths: ReadonlyArray<string>;
+  priority: number;
+  changeFrequency: "weekly" | "yearly";
+}> = [
+  {
+    paths: ["/", "/zh", "/ja"],
+    priority: 1,
+    changeFrequency: "weekly",
+  },
+  {
+    paths: ["/privacy", "/zh/privacy", "/ja/privacy"],
+    priority: 0.3,
+    changeFrequency: "yearly",
+  },
+  {
+    paths: ["/terms", "/zh/terms", "/ja/terms"],
+    priority: 0.3,
+    changeFrequency: "yearly",
+  },
+];
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const cards = await fetchPublishedCards();
+  const marketing: MetadataRoute.Sitemap = MARKETING_PATHS.flatMap((group) =>
+    group.paths.map((path) => ({
+      url: `${siteUrl}${path}`,
+      lastModified: now,
+      changeFrequency: group.changeFrequency,
+      priority: group.priority,
+    })),
+  );
   return [
-    {
-      url: `${siteUrl}/`,
-      lastModified: now,
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: `${siteUrl}/privacy`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
-    {
-      url: `${siteUrl}/terms`,
-      lastModified: now,
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    ...marketing,
     ...cards.map((c) => ({
       url: `${siteUrl}/${c.handle}`,
       lastModified: new Date(c.createdAt),

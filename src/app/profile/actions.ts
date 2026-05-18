@@ -43,6 +43,9 @@ const RESERVED_HANDLES = new Set([
   "help",
   "terms",
   "privacy",
+  "zh",
+  "ja",
+  "en",
 ]);
 
 function safeAfter(raw: FormDataEntryValue | null): string | undefined {

@@ -10,15 +10,22 @@ import { cookies, headers } from "next/headers";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "./dict";
 
 // Resolve the locale for the current request. Priority:
-//   1. `locale` cookie set by LanguageSwitcher
-//   2. `Accept-Language` header from the browser
-//   3. Default to English
+//   1. URL prefix (`/zh/…` or `/ja/…`) — set by proxy.ts as
+//      `x-url-locale`. URL wins so a single canonical URL always
+//      renders one locale (essential for SEO + hreflang).
+//   2. `locale` cookie set by LanguageSwitcher (only for routes
+//      without a locale prefix — auth pages, /[handle], /profile).
+//   3. `Accept-Language` header from the browser.
+//   4. Default to English.
 export async function getLocale(): Promise<Locale> {
+  const hdrs = await headers();
+  const fromUrl = hdrs.get("x-url-locale");
+  if (isLocale(fromUrl)) return fromUrl;
+
   const cookieStore = await cookies();
   const fromCookie = cookieStore.get("locale")?.value;
   if (isLocale(fromCookie)) return fromCookie;
 
-  const hdrs = await headers();
   const fromHeader = parseAcceptLanguage(hdrs.get("accept-language"));
   if (fromHeader) return fromHeader;
 

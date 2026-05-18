@@ -1,17 +1,24 @@
 "use client";
 
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { setLocale } from "@/lib/i18n/actions";
 import { LOCALE_LABELS, LOCALES, type Locale } from "@/lib/i18n/dict";
+import { isMarketingPath, localizedPath, stripLocalePrefix } from "@/lib/i18n/routes";
 import { useLocale, useT } from "@/components/LocaleProvider";
 
 // Footer language switcher. Native <select> for accessibility + zero
-// extra JS for the open/close animation. Calls the setLocale server
-// action which writes the cookie and revalidates the layout tree, so
-// subsequent server renders see the new locale immediately.
+// extra JS for the open/close animation.
+//
+// On a marketing surface (/, /privacy, /terms — with or without a locale
+// prefix) we navigate URL to the locale variant, since those are the
+// pages with hreflang-indexed URLs. On every other route (auth pages,
+// /[handle], /profile, …) only the cookie matters, and we refresh in
+// place. Either way the cookie is updated so subsequent visits still
+// resolve to the user's pick when they land on a cookie-driven route.
 export function LanguageSwitcher() {
   const router = useRouter();
+  const pathname = usePathname();
   const current = useLocale();
   const t = useT();
   const [pending, startTransition] = useTransition();
@@ -29,7 +36,12 @@ export function LanguageSwitcher() {
           const next = e.target.value as Locale;
           startTransition(async () => {
             await setLocale(next);
-            router.refresh();
+            const stripped = stripLocalePrefix(pathname ?? "/");
+            if (stripped && isMarketingPath(stripped.rest)) {
+              router.push(localizedPath(stripped.rest, next));
+            } else {
+              router.refresh();
+            }
           });
         }}
         className="rounded-full border border-bean bg-surface px-2.5 py-1 text-xs text-ink hover:border-accent/60 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:opacity-60"
