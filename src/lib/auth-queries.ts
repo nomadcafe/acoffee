@@ -1,10 +1,11 @@
 import type {
   CoffeeChatKind,
+  Gender,
   Invite,
   InviteMode,
   MyProfile,
 } from "./types";
-import { COFFEE_CHAT_KINDS } from "./types";
+import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
 // Auth-scoped reads. RLS scopes results to the signed-in user automatically.
@@ -20,7 +21,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, avatar_url",
+      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, x_handle, instagram_handle, github_handle, website_url, avatar_url",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -32,9 +33,14 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
+    gender: parseGender(data.gender),
     telegramHandle: (data.telegram_handle as string | null) ?? null,
     whatsappNumber: (data.whatsapp_number as string | null) ?? null,
     emailContact: (data.email_contact as string | null) ?? null,
+    xHandle: (data.x_handle as string | null) ?? null,
+    instagramHandle: (data.instagram_handle as string | null) ?? null,
+    githubHandle: (data.github_handle as string | null) ?? null,
+    websiteUrl: (data.website_url as string | null) ?? null,
     avatarUrl: (data.avatar_url as string | null) ?? null,
   };
 }
@@ -47,6 +53,13 @@ function parseChatKinds(raw: unknown): CoffeeChatKind[] {
   return raw.filter((v): v is CoffeeChatKind =>
     typeof v === "string" && allowed.has(v),
   );
+}
+
+// Same defensive narrowing for the gender enum. DB has CHECK but an
+// older row could carry whatever — coerce anything off-list to null.
+function parseGender(raw: unknown): Gender | null {
+  if (typeof raw !== "string") return null;
+  return (GENDERS as readonly string[]).includes(raw) ? (raw as Gender) : null;
 }
 
 // Account-section stats for /profile. v0.7 only tracks join date — the

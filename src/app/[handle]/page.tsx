@@ -8,7 +8,12 @@ import { getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
-import { COFFEE_CHAT_KINDS, type CoffeeChatKind } from "@/lib/types";
+import {
+  COFFEE_CHAT_KINDS,
+  GENDERS,
+  type CoffeeChatKind,
+  type Gender,
+} from "@/lib/types";
 
 // Reserved handles that would shadow real top-level routes. The signup-time
 // validator should also reject these (added in actions.ts), but keep the
@@ -49,6 +54,14 @@ type PublicProfile = {
   bio: string | null;
   city: string | null;
   coffeeChatKinds: CoffeeChatKind[];
+  // v0.9 — public socials, visible on the card without invite-accept.
+  // These are discovery links (already public elsewhere); the gated
+  // contact channels stay separate behind `hasContact`.
+  gender: Gender | null;
+  xHandle: string | null;
+  instagramHandle: string | null;
+  githubHandle: string | null;
+  websiteUrl: string | null;
   hasContact: boolean;
   avatarUrl: string | null;
   joinedAt: string;
@@ -64,7 +77,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, avatar_url, created_at, updated_at",
+      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, x_handle, instagram_handle, github_handle, website_url, avatar_url, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -77,6 +90,11 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
+    gender: parseGender(data.gender),
+    xHandle: (data.x_handle as string | null) ?? null,
+    instagramHandle: (data.instagram_handle as string | null) ?? null,
+    githubHandle: (data.github_handle as string | null) ?? null,
+    websiteUrl: (data.website_url as string | null) ?? null,
     hasContact: !!(
       data.telegram_handle ||
       data.whatsapp_number ||
@@ -88,6 +106,11 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
       (data.updated_at as string | undefined) ??
       (data.created_at as string),
   };
+}
+
+function parseGender(raw: unknown): Gender | null {
+  if (typeof raw !== "string") return null;
+  return (GENDERS as readonly string[]).includes(raw) ? (raw as Gender) : null;
 }
 
 // "alex_nomad" → "Alex Nomad". Handles aren't real names, but a Title-cased
@@ -207,6 +230,11 @@ export default async function HandlePage(
         locator={joinedLabel}
         status={profile.bio}
         kinds={profile.coffeeChatKinds}
+        gender={profile.gender}
+        xHandle={profile.xHandle}
+        instagramHandle={profile.instagramHandle}
+        githubHandle={profile.githubHandle}
+        websiteUrl={profile.websiteUrl}
         avatarUrl={profile.avatarUrl}
         footer={
           isOwner ? (

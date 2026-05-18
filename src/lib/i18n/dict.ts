@@ -138,6 +138,30 @@ export const en = {
   "profile.upFor.legend": "What you're up for",
   "profile.upFor.hint":
     "Pick any — they show up as chips on your public card.",
+  "profile.field.gender.label": "Gender",
+  "profile.field.gender.hint":
+    "Optional · shown as a small soft signal on your card. Skip if you'd rather not say.",
+  "profile.field.gender.opt.unset": "Prefer not to say",
+  "profile.field.gender.opt.woman": "♀ Woman",
+  "profile.field.gender.opt.man": "♂ Man",
+
+  "profile.socials.legend": "Socials · public on your card",
+  "profile.socials.hint":
+    "Links anyone visiting your card can click. Already public on the platforms, so no invite-accept needed.",
+  "profile.field.x.label": "X (Twitter)",
+  "profile.field.x.placeholder": "@yourhandle",
+  "profile.field.x.hint": "Username only — letters/digits/_, up to 15 chars",
+  "profile.field.instagram.label": "Instagram",
+  "profile.field.instagram.placeholder": "@yourhandle",
+  "profile.field.instagram.hint":
+    "Username only — letters/digits/_/., up to 30 chars",
+  "profile.field.github.label": "GitHub",
+  "profile.field.github.placeholder": "yourhandle",
+  "profile.field.github.hint": "Username only — letters/digits/-, up to 39 chars",
+  "profile.field.website.label": "Website",
+  "profile.field.website.placeholder": "https://your.site",
+  "profile.field.website.hint": "Full URL with https://",
+
   "profile.contact.legend": "Contact · revealed only after invite",
   "profile.kind.coffee": "Coffee",
   "profile.kind.cowork": "Cowork",
@@ -484,6 +508,30 @@ export const zh: Record<DictKey, string> = {
   "profile.identity.legend": "身份",
   "profile.upFor.legend": "想约什么",
   "profile.upFor.hint": "随意勾选——它们会以 chip 出现在你的公开名片上。",
+  "profile.field.gender.label": "性别",
+  "profile.field.gender.hint":
+    "可选 · 在名片上作为一个软信号显示。不想填就跳过。",
+  "profile.field.gender.opt.unset": "不填",
+  "profile.field.gender.opt.woman": "♀ 女",
+  "profile.field.gender.opt.man": "♂ 男",
+
+  "profile.socials.legend": "社交媒体 · 在名片上公开显示",
+  "profile.socials.hint":
+    "访客点你的名片就能看到的链接。这些平台本来就是公开的,不需要 accept。",
+  "profile.field.x.label": "X (Twitter)",
+  "profile.field.x.placeholder": "@yourhandle",
+  "profile.field.x.hint": "只填用户名 · 字母/数字/_,最多 15 个字符",
+  "profile.field.instagram.label": "Instagram",
+  "profile.field.instagram.placeholder": "@yourhandle",
+  "profile.field.instagram.hint":
+    "只填用户名 · 字母/数字/_/.,最多 30 个字符",
+  "profile.field.github.label": "GitHub",
+  "profile.field.github.placeholder": "yourhandle",
+  "profile.field.github.hint": "只填用户名 · 字母/数字/-,最多 39 个字符",
+  "profile.field.website.label": "个人网站",
+  "profile.field.website.placeholder": "https://your.site",
+  "profile.field.website.hint": "完整 URL · 必须以 https:// 开头",
+
   "profile.contact.legend": "联系方式 · 仅在邀请被接受后公开",
   "profile.kind.coffee": "咖啡",
   "profile.kind.cowork": "Cowork",
@@ -791,6 +839,30 @@ export const ja: Record<DictKey, string> = {
   "profile.upFor.legend": "誘ってほしいもの",
   "profile.upFor.hint":
     "自由に選んでください——公開カードに chip として表示されます。",
+  "profile.field.gender.label": "性別",
+  "profile.field.gender.hint":
+    "任意 · カードに小さなソフトシグナルとして表示されます。表示したくない場合はスキップ可。",
+  "profile.field.gender.opt.unset": "選択しない",
+  "profile.field.gender.opt.woman": "♀ 女性",
+  "profile.field.gender.opt.man": "♂ 男性",
+
+  "profile.socials.legend": "ソーシャル · カードで公開表示",
+  "profile.socials.hint":
+    "あなたのカードを開いた人が誰でもクリックできるリンク。各プラットフォームで既に公開されている情報なので、招待承認は不要です。",
+  "profile.field.x.label": "X (Twitter)",
+  "profile.field.x.placeholder": "@yourhandle",
+  "profile.field.x.hint": "ユーザー名のみ · 英数字/_、最大 15 文字",
+  "profile.field.instagram.label": "Instagram",
+  "profile.field.instagram.placeholder": "@yourhandle",
+  "profile.field.instagram.hint":
+    "ユーザー名のみ · 英数字/_/.、最大 30 文字",
+  "profile.field.github.label": "GitHub",
+  "profile.field.github.placeholder": "yourhandle",
+  "profile.field.github.hint": "ユーザー名のみ · 英数字/-、最大 39 文字",
+  "profile.field.website.label": "ウェブサイト",
+  "profile.field.website.placeholder": "https://your.site",
+  "profile.field.website.hint": "https:// から始まる完全な URL",
+
   "profile.contact.legend": "連絡先 · 招待が承認された場合のみ公開",
   "profile.kind.coffee": "コーヒー",
   "profile.kind.cowork": "コワーキング",

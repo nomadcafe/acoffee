@@ -10,15 +10,27 @@ export const COFFEE_CHAT_KINDS = [
 
 export type CoffeeChatKind = (typeof COFFEE_CHAT_KINDS)[number];
 
+// v0.9 — optional soft signal on the card. `null` = "prefer not to say"
+// and renders as nothing on the public card. Kept deliberately small
+// (woman / man) per the project's chosen baseline; expand here if the
+// preset list grows.
+export const GENDERS = ["woman", "man"] as const;
+export type Gender = (typeof GENDERS)[number];
+
 export type MyProfile = {
   id: string;
   handle: string;
   bio: string | null;
   city: string | null;
   coffeeChatKinds: CoffeeChatKind[];
+  gender: Gender | null;
   telegramHandle: string | null;
   whatsappNumber: string | null;
   emailContact: string | null;
+  xHandle: string | null;
+  instagramHandle: string | null;
+  githubHandle: string | null;
+  websiteUrl: string | null;
   avatarUrl: string | null;
 };
 

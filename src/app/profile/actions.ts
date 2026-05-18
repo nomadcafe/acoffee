@@ -15,7 +15,7 @@ import {
 } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
-import { COFFEE_CHAT_KINDS } from "@/lib/types";
+import { COFFEE_CHAT_KINDS, GENDERS } from "@/lib/types";
 
 // Narrow Supabase's `unknown` value to our Locale union before passing
 // downstream — keeps the email helpers honest if anyone ever loosens
@@ -100,6 +100,39 @@ const ProfileSchema = z.object({
     .email("That doesn't look like a valid email.")
     .max(120, "Email is at most 120 characters.")
     .optional(),
+  gender: z.enum(GENDERS).optional(),
+  // X/Instagram/GitHub handles share the same shape (alphanumeric +
+  // limited symbols) but differ in length cap and allowed chars. Stored
+  // without the @ prefix; we strip on write.
+  xHandle: z
+    .string()
+    .regex(
+      /^@?[A-Za-z0-9_]{1,15}$/,
+      "X username only — letters/digits/_, up to 15 chars. The @ is optional.",
+    )
+    .optional(),
+  instagramHandle: z
+    .string()
+    .regex(
+      /^@?[A-Za-z0-9_.]{1,30}$/,
+      "Instagram username only — letters/digits/_/., up to 30 chars. The @ is optional.",
+    )
+    .optional(),
+  githubHandle: z
+    .string()
+    .regex(
+      /^@?[A-Za-z0-9-]{1,39}$/,
+      "GitHub username only — letters/digits/-, up to 39 chars. The @ is optional.",
+    )
+    .optional(),
+  websiteUrl: z
+    .string()
+    .regex(
+      /^https?:\/\/[^\s/$.?#].[^\s]*$/i,
+      "Needs to start with http:// or https:// — full URL.",
+    )
+    .max(200, "URL is at most 200 characters.")
+    .optional(),
 });
 
 export type ProfileState = {
@@ -156,6 +189,11 @@ export async function updateProfile(
     telegramHandle: trimOrUndefined(formData.get("telegramHandle")),
     whatsappNumber: trimOrUndefined(formData.get("whatsappNumber")),
     emailContact: trimOrUndefined(formData.get("emailContact")),
+    gender: trimOrUndefined(formData.get("gender")),
+    xHandle: trimOrUndefined(formData.get("xHandle")),
+    instagramHandle: trimOrUndefined(formData.get("instagramHandle")),
+    githubHandle: trimOrUndefined(formData.get("githubHandle")),
+    websiteUrl: trimOrUndefined(formData.get("websiteUrl")),
   });
   if (!parsed.success) {
     const fieldErrors: ProfileState["fieldErrors"] = {};
@@ -202,6 +240,11 @@ export async function updateProfile(
   const locale = await getLocale();
 
   const telegram = parsed.data.telegramHandle?.replace(/^@/, "") ?? null;
+  // Strip leading @ on all the social handles too — users naturally
+  // type @name on Twitter/IG; we store the raw username so the link can
+  // be `https://x.com/{handle}` without double-@.
+  const stripAt = (v: string | undefined) =>
+    v ? v.replace(/^@/, "") : null;
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -212,6 +255,11 @@ export async function updateProfile(
       telegram_handle: telegram,
       whatsapp_number: parsed.data.whatsappNumber ?? null,
       email_contact: parsed.data.emailContact ?? null,
+      gender: parsed.data.gender ?? null,
+      x_handle: stripAt(parsed.data.xHandle),
+      instagram_handle: stripAt(parsed.data.instagramHandle),
+      github_handle: stripAt(parsed.data.githubHandle),
+      website_url: parsed.data.websiteUrl ?? null,
       locale,
     })
     .eq("id", user.id);

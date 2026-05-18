@@ -6,7 +6,9 @@ import { useT } from "@/components/LocaleProvider";
 import { tmpl } from "@/lib/i18n/dict";
 import {
   COFFEE_CHAT_KINDS,
+  GENDERS,
   type CoffeeChatKind,
+  type Gender,
   type MyProfile,
 } from "@/lib/types";
 import {
@@ -72,6 +74,17 @@ export function ProfileForm({
   const [telegram, setTelegram] = useState(profile.telegramHandle ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsappNumber ?? "");
   const [emailContact, setEmailContact] = useState(profile.emailContact ?? "");
+  // v0.9 — public socials + optional gender. Null gender = "prefer not to
+  // say" and submits as empty string; the action coerces empty back to
+  // null. Same approach for socials so the FormData round-trip is
+  // uniform with the other text fields.
+  const [gender, setGender] = useState<Gender | "">(profile.gender ?? "");
+  const [xHandle, setXHandle] = useState(profile.xHandle ?? "");
+  const [instagramHandle, setInstagramHandle] = useState(
+    profile.instagramHandle ?? "",
+  );
+  const [githubHandle, setGithubHandle] = useState(profile.githubHandle ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(profile.websiteUrl ?? "");
   const [selectedKinds, setSelectedKinds] = useState<Set<CoffeeChatKind>>(
     () => new Set(profile.coffeeChatKinds),
   );
@@ -181,6 +194,13 @@ export function ProfileForm({
           city={city.trim() || null}
           status={bio.trim() || null}
           kinds={Array.from(selectedKinds)}
+          gender={gender === "" ? null : gender}
+          xHandle={xHandle.replace(/^@/, "").trim() || null}
+          instagramHandle={
+            instagramHandle.replace(/^@/, "").trim() || null
+          }
+          githubHandle={githubHandle.replace(/^@/, "").trim() || null}
+          websiteUrl={websiteUrl.trim() || null}
           hasContact={hasContact}
         />
         <p className="text-xs text-muted">
@@ -237,6 +257,34 @@ export function ProfileForm({
             hint={t("profile.field.status.hint")}
             error={errs.bio}
           />
+          {/* Gender — optional 3-way pick. Empty string submits as null
+              ("prefer not to say"); the row renders nothing on the card
+              in that case. */}
+          <fieldset className="flex flex-col gap-2 border-none p-0">
+            <legend className="text-sm font-medium text-ink/85">
+              {t("profile.field.gender.label")}
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              <GenderChip
+                value=""
+                active={gender === ""}
+                onSelect={setGender}
+                label={t("profile.field.gender.opt.unset")}
+              />
+              {GENDERS.map((g) => (
+                <GenderChip
+                  key={g}
+                  value={g}
+                  active={gender === g}
+                  onSelect={setGender}
+                  label={t(`profile.field.gender.opt.${g}` as const)}
+                />
+              ))}
+            </div>
+            <p className="text-sm text-muted">
+              {t("profile.field.gender.hint")}
+            </p>
+          </fieldset>
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 border-none p-0">
@@ -277,6 +325,51 @@ export function ProfileForm({
             })}
           </div>
           <p className="text-sm text-muted">{t("profile.upFor.hint")}</p>
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-5 border-none p-0">
+          <legend className="text-xs font-medium uppercase tracking-wide text-accent">
+            {t("profile.socials.legend")}
+          </legend>
+          <p className="-mt-2 text-sm text-muted">
+            {t("profile.socials.hint")}
+          </p>
+          <Field
+            label={t("profile.field.x.label")}
+            name="xHandle"
+            value={xHandle}
+            onValueChange={setXHandle}
+            placeholder={t("profile.field.x.placeholder")}
+            hint={t("profile.field.x.hint")}
+            error={errs.xHandle}
+          />
+          <Field
+            label={t("profile.field.instagram.label")}
+            name="instagramHandle"
+            value={instagramHandle}
+            onValueChange={setInstagramHandle}
+            placeholder={t("profile.field.instagram.placeholder")}
+            hint={t("profile.field.instagram.hint")}
+            error={errs.instagramHandle}
+          />
+          <Field
+            label={t("profile.field.github.label")}
+            name="githubHandle"
+            value={githubHandle}
+            onValueChange={setGithubHandle}
+            placeholder={t("profile.field.github.placeholder")}
+            hint={t("profile.field.github.hint")}
+            error={errs.githubHandle}
+          />
+          <Field
+            label={t("profile.field.website.label")}
+            name="websiteUrl"
+            value={websiteUrl}
+            onValueChange={setWebsiteUrl}
+            placeholder={t("profile.field.website.placeholder")}
+            hint={t("profile.field.website.hint")}
+            error={errs.websiteUrl}
+          />
         </fieldset>
 
         <fieldset className="flex flex-col gap-5 border-none p-0">
@@ -437,6 +530,38 @@ function FieldArea({
           {length} / {MAX}
         </span>
       </div>
+    </label>
+  );
+}
+
+function GenderChip({
+  value,
+  active,
+  onSelect,
+  label,
+}: {
+  value: Gender | "";
+  active: boolean;
+  onSelect: (v: Gender | "") => void;
+  label: string;
+}) {
+  return (
+    <label
+      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+        active
+          ? "border-accent bg-accent text-page shadow-sm"
+          : "border-bean bg-surface text-ink/80 hover:border-accent/60 hover:text-accent"
+      }`}
+    >
+      <input
+        type="radio"
+        name="gender"
+        value={value}
+        checked={active}
+        onChange={() => onSelect(value)}
+        className="sr-only"
+      />
+      {label}
     </label>
   );
 }
