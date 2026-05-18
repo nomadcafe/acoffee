@@ -1,8 +1,16 @@
 import Link from "next/link";
+import { LatestCardsStrip } from "@/components/LatestCardsStrip";
 import { SampleCard } from "@/components/SampleCard";
+import { listLatestCards } from "@/lib/auth-queries";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
-export default function Home() {
+// Refresh the strip once an hour. Card creation isn't bursty enough to
+// warrant per-request reads; an hour-stale "latest" is a fair trade for
+// keeping the home page CDN-cacheable in between.
+export const revalidate = 3600;
+
+export default async function Home() {
+  const latestCards = await listLatestCards(6);
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -139,6 +147,8 @@ export default function Home() {
           ))}
         </ol>
       </section>
+
+      <LatestCardsStrip cards={latestCards} />
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-12 pt-8 sm:px-6">
         <div className="border-t border-bean pt-6">

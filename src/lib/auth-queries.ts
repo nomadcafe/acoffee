@@ -112,6 +112,62 @@ export async function getMyPendingInvites(): Promise<Invite[]> {
   return (data ?? []).map(rowToInvite);
 }
 
+// Latest published cards for the home page "Latest cards" strip. Anonymous
+// read — relies on the public profiles_read RLS. Filters out the auto-
+// generated `user_<hex>` skeletons and rows with no bio AND no city (no
+// surface area worth showing). Capped low because the home is a render-
+// hot path; loosen via `limit` if Phase 2 ever wants a real feed.
+export type LatestCard = {
+  handle: string;
+  displayName: string;
+  city: string | null;
+  status: string | null;
+  avatarUrl: string | null;
+};
+
+const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
+
+export async function listLatestCards(limit = 5): Promise<LatestCard[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  // Over-fetch a bit so we can filter auto-handles + empty cards client-
+  // side without coming back short of `limit`.
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("handle, bio, city, avatar_url, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+  if (error) return [];
+  const rows = data ?? [];
+  return rows
+    .filter((r) => {
+      const handle = r.handle as string;
+      if (AUTO_HANDLE.test(handle)) return false;
+      // Empty cards (no city, no status) read as "ghost" rows on the feed
+      // — skip them so the strip is always real signal.
+      if (!r.bio && !r.city) return false;
+      return true;
+    })
+    .slice(0, limit)
+    .map((r) => ({
+      handle: r.handle as string,
+      displayName: deriveDisplayName(r.handle as string),
+      city: (r.city as string | null) ?? null,
+      status: (r.bio as string | null) ?? null,
+      avatarUrl: (r.avatar_url as string | null) ?? null,
+    }));
+}
+
+// "alex_nomad" → "Alex Nomad". Inline to avoid a cross-module import for
+// a one-liner; mirrors the same derivation /[handle]/page.tsx + SiteNav use.
+function deriveDisplayName(handle: string): string {
+  return handle
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(" ");
+}
+
 function rowToInvite(r: Record<string, unknown>): Invite {
   return {
     id: r.id as string,
