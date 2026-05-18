@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -9,6 +10,24 @@ export function isAuthConfigured(): boolean {
     !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
     !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
+}
+
+// Service-role admin client. Bypasses RLS — use ONLY for genuine admin
+// operations (e.g. auth.admin.deleteUser, which is the only way to remove
+// an auth.users row server-side). Throws when SUPABASE_SERVICE_ROLE_KEY
+// isn't configured so the caller fails loudly instead of silently doing
+// nothing.
+export function createSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error(
+      "createSupabaseAdmin requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 // Server-side Supabase client tied to the request's cookies. Use this from

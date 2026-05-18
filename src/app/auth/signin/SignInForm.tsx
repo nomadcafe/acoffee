@@ -1,5 +1,6 @@
 "use client";
 import { useActionState, useState } from "react";
+import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { sendMagicLink, type SignInState } from "../actions";
 
 const INITIAL: SignInState = { status: "idle" };
@@ -27,31 +28,41 @@ export function SignInForm({ next }: { next?: string }) {
   }
 
   return (
-    <form action={action} className="flex flex-col gap-4">
-      {next && <input type="hidden" name="next" value={next} />}
-      <label className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-ink/85">Email</span>
-        <input
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@example.com"
-          className="rounded-2xl border border-bean bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
-        />
-      </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
-      >
-        {pending ? "Sending…" : "Send sign-in link →"}
-      </button>
-      {state.status === "error" && state.message && (
-        <p className="text-sm text-red-600 dark:text-red-400">
-          {state.message}
-        </p>
-      )}
-    </form>
+    <div className="flex flex-col gap-5">
+      <GoogleSignInButton next={next} />
+      <div className="flex items-center gap-3">
+        <span className="h-px flex-1 bg-bean" aria-hidden />
+        <span className="text-xs font-medium uppercase tracking-wide text-muted">
+          or
+        </span>
+        <span className="h-px flex-1 bg-bean" aria-hidden />
+      </div>
+      <form action={action} className="flex flex-col gap-4">
+        {next && <input type="hidden" name="next" value={next} />}
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink/85">Email</span>
+          <input
+            name="email"
+            type="email"
+            required
+            autoComplete="email"
+            placeholder="you@example.com"
+            className="rounded-2xl border border-bean bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
+        >
+          {pending ? "Sending…" : "Send sign-in link →"}
+        </button>
+        {state.status === "error" && state.message && (
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {state.message}
+          </p>
+        )}
+      </form>
+    </div>
   );
 }

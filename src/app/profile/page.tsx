@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { signOut } from "@/app/auth/actions";
 import { CardSharePanel } from "@/components/CardSharePanel";
+import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import {
   getMyProfile,
   getMyProfileStats,
@@ -106,39 +107,48 @@ export default async function ProfilePage({
       <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />
 
       {!isOnboarding && (
-        <section className="mt-6 flex flex-col gap-4 border-t border-dashed border-bean pt-6">
-          <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
-            Account
-          </p>
-          {stats && (
-            <div className="flex flex-col gap-2 text-sm text-muted">
-              <p>
-                Your card:{" "}
-                <Link
-                  href={`/${profile.handle}`}
-                  className="font-medium text-accent hover:underline"
-                >
-                  acoffee.com/{profile.handle}
-                </Link>
-              </p>
-              <p>Joined {formatJoined(stats.joinedAt)}</p>
-            </div>
-          )}
-          <p className="text-sm text-muted">
-            Signed in as{" "}
-            <span className="font-medium text-ink">
-              {sessionUser.email ?? "—"}
-            </span>
-          </p>
-          <form action={signOut} className="self-start">
-            <button
-              type="submit"
-              className="rounded-full border border-bean px-4 py-2 text-sm font-medium text-ink/85 hover:bg-bean/40"
-            >
-              Sign out
-            </button>
-          </form>
-        </section>
+        <>
+          <section className="mt-6 flex flex-col gap-4 border-t border-dashed border-bean pt-6">
+            <p className="text-xs font-medium uppercase tracking-wide text-accent">
+              Account
+            </p>
+            {stats && (
+              <div className="flex flex-col gap-2 text-sm text-muted">
+                <p>
+                  Your card:{" "}
+                  <Link
+                    href={`/${profile.handle}`}
+                    className="font-medium text-accent hover:underline"
+                  >
+                    acoffee.com/{profile.handle}
+                  </Link>
+                </p>
+                <p>Joined {formatJoined(stats.joinedAt)}</p>
+              </div>
+            )}
+            <p className="text-sm text-muted">
+              Signed in as{" "}
+              <span className="font-medium text-ink">
+                {sessionUser.email ?? "—"}
+              </span>
+            </p>
+            <form action={signOut} className="self-start">
+              <button
+                type="submit"
+                className="rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
+              >
+                Sign out
+              </button>
+            </form>
+          </section>
+
+          <section className="mt-2 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
+            <p className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">
+              Danger zone
+            </p>
+            <DeleteAccountButton />
+          </section>
+        </>
       )}
     </main>
   );

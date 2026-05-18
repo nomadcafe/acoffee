@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { emailWelcome } from "@/lib/email";
-import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
+import {
+  createSupabaseAdmin,
+  createSupabaseServer,
+  isAuthConfigured,
+} from "@/lib/supabase/server";
 import { COFFEE_CHAT_KINDS } from "@/lib/types";
 
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
@@ -209,10 +213,81 @@ export async function updateProfile(
     await emailWelcome({ to: user.email, handle: parsed.data.handle });
   }
 
-  // Onboarding hand-off: if the user came in via /auth/callback's first-time
-  // path, finish by sending them where they were originally trying to go.
+  // On onboarding completion (auto → real handle), always send the user to
+  // their freshly-claimed card so they see the artefact live with their
+  // own avatar + status. The `after` we received from /auth/callback was
+  // keyed on the now-stale auto handle and would 404; ignore it.
+  if (isOnboardingCompletion) {
+    redirect(`/${parsed.data.handle}`);
+  }
+
+  // Returning-user save: honour any explicit `after` (used by other entry
+  // points that still want a custom destination). Otherwise stay on
+  // /profile so the share panel + form re-render with the new state.
   const after = safeAfter(formData.get("after"));
   if (after) redirect(after);
 
   return { status: "saved", message: "Saved." };
+}
+
+// Self-serve account delete. Removes the avatar file, the auth.users row,
+// and (via the profiles.id ON DELETE CASCADE foreign key) the profile row
+// in one shot. Service-role required because auth.admin.deleteUser only
+// runs with the service key — the anon-key client has no way to remove an
+// auth row even for the signed-in owner. Returns a structured result so
+// the client component can show errors inline; on success the client is
+// responsible for the redirect (calling redirect() from an imperatively-
+// invoked action would just throw past the awaiting client code).
+export type DeleteAccountResult =
+  | { status: "ok" }
+  | { status: "error"; message: string };
+
+export async function deleteAccount(): Promise<DeleteAccountResult> {
+  if (!isAuthConfigured()) {
+    return { status: "error", message: "Sign-in isn't configured." };
+  }
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "No session — sign in first." };
+  }
+
+  // Best-effort avatar cleanup. Failure here is loggable but not fatal —
+  // the storage RLS already scopes deletion to the owner anyway.
+  try {
+    await supabase.storage
+      .from("avatars")
+      .remove([`${user.id}/avatar.webp`]);
+  } catch (e) {
+    console.warn("[deleteAccount] avatar removal failed (proceeding)", e);
+  }
+
+  let admin;
+  try {
+    admin = createSupabaseAdmin();
+  } catch (e) {
+    return {
+      status: "error",
+      message:
+        e instanceof Error
+          ? e.message
+          : "Service role key missing — server cannot delete accounts.",
+    };
+  }
+  const { error: delErr } = await admin.auth.admin.deleteUser(user.id);
+  if (delErr) {
+    return {
+      status: "error",
+      message: `Account delete failed: ${delErr.message}`,
+    };
+  }
+
+  // Local session is now invalid — clear cookies so any subsequent request
+  // on this browser tab doesn't see a half-zombie session.
+  await supabase.auth.signOut();
+
+  revalidatePath("/", "layout");
+  return { status: "ok" };
 }
