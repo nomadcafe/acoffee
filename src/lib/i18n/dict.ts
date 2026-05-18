@@ -170,11 +170,11 @@ export const en = {
   "profile.field.telegram.label": "Telegram",
   "profile.field.telegram.placeholder": "@yourhandle",
   "profile.field.telegram.hint":
-    "Recommended · 5–32 letters/digits/_, no spaces",
+    "Recommended · username only, no phone number shared",
   "profile.field.whatsapp.label": "WhatsApp",
   "profile.field.whatsapp.placeholder": "+66812345678",
   "profile.field.whatsapp.hint":
-    "Recommended · include country code with +",
+    "Shares your phone number with accepted invites · include country code with +",
   "profile.field.email.label": "Email",
   "profile.field.email.placeholder": "you@example.com",
   "profile.field.email.hint":
@@ -220,6 +220,10 @@ export const en = {
   "account.joined": "Joined {date}",
   "account.signedInAs": "Signed in as ",
   "account.signOut": "Sign out",
+
+  // Avatar dropdown in the top nav
+  "nav.menu.viewCard": "View your card",
+  "nav.menu.editProfile": "Edit profile",
 
   // Danger zone
   "danger.eyebrow": "Danger zone",
@@ -508,10 +512,11 @@ export const zh: Record<DictKey, string> = {
   "profile.field.telegram.label": "Telegram",
   "profile.field.telegram.placeholder": "@yourhandle",
   "profile.field.telegram.hint":
-    "推荐 · 5–32 个字母/数字/_,不带空格",
+    "推荐 · 只暴露用户名,不会泄露手机号",
   "profile.field.whatsapp.label": "WhatsApp",
   "profile.field.whatsapp.placeholder": "+66812345678",
-  "profile.field.whatsapp.hint": "推荐 · 带 + 和国家代码",
+  "profile.field.whatsapp.hint":
+    "你 accept 的访客会看到这个手机号 · 带 + 和国家代码",
   "profile.field.email.label": "邮箱",
   "profile.field.email.placeholder": "you@example.com",
   "profile.field.email.hint": "可选 · 公开联系邮箱——可以和登录邮箱不同",
@@ -550,6 +555,9 @@ export const zh: Record<DictKey, string> = {
   "account.joined": "{date} 加入",
   "account.signedInAs": "登录身份: ",
   "account.signOut": "退出",
+
+  "nav.menu.viewCard": "查看我的名片",
+  "nav.menu.editProfile": "编辑资料",
 
   "danger.eyebrow": "危险操作",
   "danger.deleteButton": "删除账号",
@@ -815,10 +823,11 @@ export const ja: Record<DictKey, string> = {
   "profile.field.telegram.label": "Telegram",
   "profile.field.telegram.placeholder": "@yourhandle",
   "profile.field.telegram.hint":
-    "推奨 · 5–32 文字の英数字/_、スペースなし",
+    "推奨 · ユーザー名のみで、電話番号は公開されません",
   "profile.field.whatsapp.label": "WhatsApp",
   "profile.field.whatsapp.placeholder": "+66812345678",
-  "profile.field.whatsapp.hint": "推奨 · + と国番号付き",
+  "profile.field.whatsapp.hint":
+    "承認した相手にこの電話番号が共有されます · + と国番号付き",
   "profile.field.email.label": "メール",
   "profile.field.email.placeholder": "you@example.com",
   "profile.field.email.hint":
@@ -862,6 +871,9 @@ export const ja: Record<DictKey, string> = {
   "account.joined": "{date} 参加",
   "account.signedInAs": "サインイン中: ",
   "account.signOut": "サインアウト",
+
+  "nav.menu.viewCard": "あなたのカードを表示",
+  "nav.menu.editProfile": "プロフィールを編集",
 
   "danger.eyebrow": "危険な操作",
   "danger.deleteButton": "アカウントを削除",

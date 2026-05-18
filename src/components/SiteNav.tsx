@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Avatar } from "@/components/Avatar";
 import { countMyPendingInvites } from "@/lib/auth-queries";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { UserMenu } from "@/components/UserMenu";
 
 // Same derivation as /[handle]/page.tsx — "alex_nomad" → "Alex Nomad".
 // Inline because it's the only other surface that needs it and a shared
@@ -17,6 +17,7 @@ function deriveDisplayName(handle: string): string {
 async function readSessionProfile(): Promise<{
   handle: string;
   avatarUrl: string | null;
+  email: string | null;
 } | null> {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -40,6 +41,7 @@ async function readSessionProfile(): Promise<{
     return {
       handle,
       avatarUrl: (profile?.avatar_url as string | null) ?? null,
+      email: user.email ?? null,
     };
   } catch {
     return null;
@@ -94,21 +96,12 @@ export async function SiteNav() {
           )}
           {supabaseConfigured &&
             (session ? (
-              <Link
-                href={`/${session.handle}`}
-                className="inline-flex max-w-[12rem] items-center gap-2 rounded-full py-1 pl-1 pr-3 text-ink/85 hover:bg-bean/40"
-                title={`@${session.handle} · your public card`}
-              >
-                <Avatar
-                  handle={session.handle}
-                  displayName={deriveDisplayName(session.handle)}
-                  src={session.avatarUrl}
-                  size="sm"
-                />
-                <span className="truncate text-sm font-medium">
-                  @{session.handle}
-                </span>
-              </Link>
+              <UserMenu
+                handle={session.handle}
+                displayName={deriveDisplayName(session.handle)}
+                avatarUrl={session.avatarUrl}
+                sessionEmail={session.email}
+              />
             ) : (
               <Link
                 href="/auth/signin"
