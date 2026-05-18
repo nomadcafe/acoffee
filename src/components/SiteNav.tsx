@@ -60,7 +60,7 @@ export async function SiteNav() {
     : [null, 0];
 
   return (
-    <nav className="border-b border-bean bg-page/80 backdrop-blur">
+    <nav className="relative z-40 border-b border-bean bg-page/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
         <Link
           href="/"
