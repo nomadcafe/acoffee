@@ -44,6 +44,10 @@ type PublicProfile = {
   hasContact: boolean;
   avatarUrl: string | null;
   joinedAt: string;
+  // BEFORE UPDATE trigger on profiles bumps this on every row change.
+  // Used as a `?v=` cache-bust on the OG image URL so social previews
+  // refetch when the card content changes.
+  updatedAt: string;
 };
 
 async function fetchPublicProfile(handle: string): Promise<PublicProfile | null> {
@@ -52,7 +56,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, avatar_url, created_at",
+      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, avatar_url, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -72,6 +76,9 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
     ),
     avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
+    updatedAt:
+      (data.updated_at as string | undefined) ??
+      (data.created_at as string),
   };
 }
 
@@ -105,6 +112,13 @@ export async function generateMetadata(
   const description = profile.bio
     ? profile.bio
     : `${profile.displayName}'s coffee card on acoffee${profile.city ? ` — ${profile.city}` : ""}.`;
+  // Cache-bust the social preview by versioning the OG URL with the
+  // profile's updated_at timestamp. The opengraph-image.tsx route
+  // ignores the query — but Twitter / Slack key their preview cache on
+  // the URL string, so a fresh `?v=` after the user updates anything
+  // forces a refetch on the next scrape.
+  const ogVersion = new Date(profile.updatedAt).getTime();
+  const ogUrl = `${siteUrl}/${profile.handle}/opengraph-image?v=${ogVersion}`;
   return {
     title,
     description,
@@ -114,6 +128,13 @@ export async function generateMetadata(
       description,
       type: "profile",
       url: `${siteUrl}/${profile.handle}`,
+      images: [{ url: ogUrl, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogUrl],
     },
   };
 }

@@ -108,6 +108,15 @@ export async function createInvite(
     { max: 10, windowMs: 60 * 60 * 1000 },
   ]);
   if (!limit.allowed) {
+    // Surface to Vercel logs so operationally we can see if a host is
+    // being targeted by an automated flood. In-memory rate-limit doesn't
+    // give us a DB record to triage from later; this is the minimum
+    // observability for v0.8.
+    console.warn("[invite] rate-limited", {
+      ip,
+      handle: parsed.data.handle,
+      retryAfterSec: limit.retryAfterSec,
+    });
     const mins = Math.max(1, Math.ceil(limit.retryAfterSec / 60));
     return {
       status: "error",

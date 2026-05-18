@@ -73,11 +73,22 @@ export function CardSharePanel({
         <button
           type="button"
           onClick={copyUrl}
+          aria-label={
+            copied
+              ? "Card URL copied to clipboard"
+              : "Copy card URL to clipboard"
+          }
           className="shrink-0 rounded-xl bg-ink px-3 py-1.5 text-xs font-medium text-page hover:bg-ink/85"
         >
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
+      {/* Screen-reader-only live region — announces the success state
+          when the button content flips Copy → Copied without forcing
+          a visual reflow. */}
+      <span className="sr-only" aria-live="polite">
+        {copied ? "Card URL copied to clipboard." : ""}
+      </span>
 
       <div className="flex flex-wrap items-center gap-3">
         <Link
