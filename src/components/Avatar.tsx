@@ -34,16 +34,35 @@ function initials(displayName: string): string {
 export function Avatar({
   handle,
   displayName,
+  src,
   size = "md",
 }: {
   handle: string;
   displayName: string;
+  // Optional uploaded photo. Falls back to the initials chip if missing
+  // or if the URL fails to load.
+  src?: string | null;
   // sm = 28px (nav chip); md = 56px (card header); lg = 80px (public hero).
   size?: "sm" | "md" | "lg";
 }) {
   const [bg, fg] = colourFor(handle);
   const px = size === "lg" ? 80 : size === "sm" ? 28 : 56;
   const fontPx = size === "lg" ? 32 : size === "sm" ? 12 : 22;
+
+  if (src) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={src}
+        alt={`${displayName}'s avatar`}
+        width={px}
+        height={px}
+        className="shrink-0 select-none rounded-full object-cover"
+        style={{ width: px, height: px, backgroundColor: bg }}
+      />
+    );
+  }
+
   return (
     <div
       aria-hidden

@@ -13,7 +13,10 @@ function deriveDisplayName(handle: string): string {
     .join(" ");
 }
 
-async function readSessionHandle(): Promise<string | null> {
+async function readSessionProfile(): Promise<{
+  handle: string;
+  avatarUrl: string | null;
+} | null> {
   if (
     !process.env.NEXT_PUBLIC_SUPABASE_URL ||
     !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -28,10 +31,15 @@ async function readSessionHandle(): Promise<string | null> {
     if (!user) return null;
     const { data: profile } = await supabase
       .from("profiles")
-      .select("handle")
+      .select("handle, avatar_url")
       .eq("id", user.id)
       .maybeSingle();
-    return (profile?.handle as string | undefined) ?? user.email ?? "you";
+    const handle =
+      (profile?.handle as string | undefined) ?? user.email ?? "you";
+    return {
+      handle,
+      avatarUrl: (profile?.avatar_url as string | null) ?? null,
+    };
   } catch {
     return null;
   }
@@ -41,7 +49,7 @@ export async function SiteNav() {
   const supabaseConfigured =
     !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
     !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const handle = supabaseConfigured ? await readSessionHandle() : null;
+  const session = supabaseConfigured ? await readSessionProfile() : null;
 
   return (
     <nav className="border-b border-bean bg-page/80 backdrop-blur">
@@ -54,19 +62,20 @@ export async function SiteNav() {
         </Link>
         <div className="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
           {supabaseConfigured &&
-            (handle ? (
+            (session ? (
               <Link
-                href={`/${handle}`}
+                href={`/${session.handle}`}
                 className="inline-flex max-w-[12rem] items-center gap-2 rounded-full py-1 pl-1 pr-3 text-ink/85 hover:bg-bean/40"
-                title={`@${handle} · your public card`}
+                title={`@${session.handle} · your public card`}
               >
                 <Avatar
-                  handle={handle}
-                  displayName={deriveDisplayName(handle)}
+                  handle={session.handle}
+                  displayName={deriveDisplayName(session.handle)}
+                  src={session.avatarUrl}
                   size="sm"
                 />
                 <span className="truncate text-sm font-medium">
-                  @{handle}
+                  @{session.handle}
                 </span>
               </Link>
             ) : (

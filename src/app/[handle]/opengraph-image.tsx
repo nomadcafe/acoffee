@@ -72,6 +72,7 @@ type CardForOg = {
   city: string | null;
   status: string | null;
   kinds: CoffeeChatKind[];
+  avatarUrl: string | null;
 };
 
 async function fetchCard(handle: string): Promise<CardForOg | null> {
@@ -79,7 +80,7 @@ async function fetchCard(handle: string): Promise<CardForOg | null> {
   const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from("profiles")
-    .select("handle, bio, city, coffee_chat_kinds")
+    .select("handle, bio, city, coffee_chat_kinds, avatar_url")
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
   if (!data) return null;
@@ -90,6 +91,7 @@ async function fetchCard(handle: string): Promise<CardForOg | null> {
     city: (data.city as string | null) ?? null,
     status: (data.bio as string | null) ?? null,
     kinds: parseChatKinds(data.coffee_chat_kinds),
+    avatarUrl: (data.avatar_url as string | null) ?? null,
   };
 }
 
@@ -173,23 +175,40 @@ export default async function CardOg({
             marginBottom: 40,
           }}
         >
-          <div
-            style={{
-              width: 144,
-              height: 144,
-              borderRadius: 999,
-              background: avatarBg,
-              color: avatarFg,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 64,
-              fontWeight: 700,
-              letterSpacing: -1,
-            }}
-          >
-            {initials(card.displayName)}
-          </div>
+          {card.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={card.avatarUrl}
+              alt=""
+              width={144}
+              height={144}
+              style={{
+                width: 144,
+                height: 144,
+                borderRadius: 999,
+                objectFit: "cover",
+                background: avatarBg,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 144,
+                height: 144,
+                borderRadius: 999,
+                background: avatarBg,
+                color: avatarFg,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 64,
+                fontWeight: 700,
+                letterSpacing: -1,
+              }}
+            >
+              {initials(card.displayName)}
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <div
               style={{

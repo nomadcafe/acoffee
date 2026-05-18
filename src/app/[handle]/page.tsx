@@ -39,6 +39,7 @@ type PublicProfile = {
   telegramHandle: string | null;
   whatsappNumber: string | null;
   emailContact: string | null;
+  avatarUrl: string | null;
   joinedAt: string;
 };
 
@@ -48,7 +49,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, created_at",
+      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, avatar_url, created_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -64,6 +65,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
     telegramHandle: (data.telegram_handle as string | null) ?? null,
     whatsappNumber: (data.whatsapp_number as string | null) ?? null,
     emailContact: (data.email_contact as string | null) ?? null,
+    avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
   };
 }
@@ -174,6 +176,7 @@ export default async function HandlePage(
         locator={joinedLabel}
         status={profile.bio}
         kinds={profile.coffeeChatKinds}
+        avatarUrl={profile.avatarUrl}
         footer={
           <CardContactReveal
             displayName={profile.displayName}

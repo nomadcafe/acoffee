@@ -1,5 +1,6 @@
 "use client";
 import { useActionState, useState } from "react";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { LiveCardPreview } from "@/components/LiveCardPreview";
 import {
   COFFEE_CHAT_KINDS,
@@ -15,6 +16,18 @@ const INITIAL: ProfileState = { status: "idle" };
 // typing. Let placeholder guide instead, so the field starts empty and the
 // real handle gets typed in one go.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
+
+// Same derivation as the public /[handle] page + SiteNav — title-case the
+// underscored handle for the avatar's initials and the display name shown
+// alongside the chip ("alex_nomad" → "Alex Nomad").
+function deriveDisplayName(handle: string): string {
+  if (!handle) return "Your name";
+  return handle
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(" ");
+}
 
 const KIND_LABELS: Record<CoffeeChatKind, { emoji: string; label: string }> = {
   coffee: { emoji: "☕", label: "Coffee" },
@@ -51,6 +64,13 @@ export function ProfileForm({
   const [selectedKinds, setSelectedKinds] = useState<Set<CoffeeChatKind>>(
     () => new Set(profile.coffeeChatKinds),
   );
+  // avatarUrl is committed via AvatarUpload directly (storage + DB write
+  // happen on upload, not on form submit). The state mirror exists so the
+  // LiveCardPreview shows the new photo immediately without waiting for
+  // the router-refresh to round-trip.
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    profile.avatarUrl,
+  );
 
   const hasContact = !!(
     telegram.trim() ||
@@ -68,6 +88,7 @@ export function ProfileForm({
         </p>
         <LiveCardPreview
           handle={handle}
+          avatarUrl={avatarUrl}
           city={city.trim() || null}
           status={bio.trim() || null}
           kinds={Array.from(selectedKinds)}
@@ -89,6 +110,13 @@ export function ProfileForm({
           <legend className="text-xs font-medium uppercase tracking-wide text-accent">
             Identity
           </legend>
+          <AvatarUpload
+            userId={profile.id}
+            handle={handle.trim() || profile.handle}
+            displayName={deriveDisplayName(handle.trim() || profile.handle)}
+            initialUrl={avatarUrl}
+            onChange={setAvatarUrl}
+          />
           <Field
             label="Handle"
             name="handle"

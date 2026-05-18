@@ -15,13 +15,14 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact",
+      "handle, bio, city, coffee_chat_kinds, telegram_handle, whatsapp_number, email_contact, avatar_url",
     )
     .eq("id", user.id)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
   return {
+    id: user.id,
     handle: data.handle as string,
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
@@ -29,6 +30,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     telegramHandle: (data.telegram_handle as string | null) ?? null,
     whatsappNumber: (data.whatsapp_number as string | null) ?? null,
     emailContact: (data.email_contact as string | null) ?? null,
+    avatarUrl: (data.avatar_url as string | null) ?? null,
   };
 }
 

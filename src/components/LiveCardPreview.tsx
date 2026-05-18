@@ -23,12 +23,14 @@ function deriveDisplayName(handle: string): string {
 
 export function LiveCardPreview({
   handle,
+  avatarUrl,
   city,
   status,
   kinds,
   hasContact,
 }: {
   handle: string;
+  avatarUrl?: string | null;
   city: string | null;
   status: string | null;
   kinds: CoffeeChatKind[];
@@ -43,6 +45,7 @@ export function LiveCardPreview({
       locator={null}
       status={status}
       kinds={kinds}
+      avatarUrl={avatarUrl}
       badge={
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[10px] font-medium text-accent">
           Preview

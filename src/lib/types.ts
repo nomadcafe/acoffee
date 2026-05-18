@@ -11,6 +11,7 @@ export const COFFEE_CHAT_KINDS = [
 export type CoffeeChatKind = (typeof COFFEE_CHAT_KINDS)[number];
 
 export type MyProfile = {
+  id: string;
   handle: string;
   bio: string | null;
   city: string | null;
@@ -18,4 +19,5 @@ export type MyProfile = {
   telegramHandle: string | null;
   whatsappNumber: string | null;
   emailContact: string | null;
+  avatarUrl: string | null;
 };

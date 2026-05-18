@@ -29,6 +29,7 @@ export type CardBodyProps = {
   locator: string | null;
   status: string | null;
   kinds: CoffeeChatKind[];
+  avatarUrl?: string | null;
   badge?: React.ReactNode;
   footer: React.ReactNode;
 };
@@ -40,6 +41,7 @@ export function CardBody({
   locator,
   status,
   kinds,
+  avatarUrl,
   badge,
   footer,
 }: CardBodyProps) {
@@ -53,7 +55,12 @@ export function CardBody({
       </header>
 
       <div className="flex items-center gap-4">
-        <Avatar handle={handle} displayName={displayName} size="md" />
+        <Avatar
+          handle={handle}
+          displayName={displayName}
+          src={avatarUrl}
+          size="md"
+        />
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-baseline gap-2">
             <h1 className="text-3xl font-semibold leading-tight tracking-tight text-ink sm:text-[2rem]">
