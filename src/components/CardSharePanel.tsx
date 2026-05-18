@@ -49,7 +49,7 @@ export function CardSharePanel({
     }
   }
 
-  const tweetText = `My coffee chat page is live — invite me for a coffee ☕`;
+  const tweetText = t("share.tweet.text");
   const tweetHref =
     `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}` +
     `&url=${encodeURIComponent(url)}`;

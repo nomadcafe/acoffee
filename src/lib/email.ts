@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { type Locale, t, tmpl } from "./i18n/dict";
 import { siteName, siteUrl } from "./site";
 import type { InviteMode } from "./types";
 
@@ -98,22 +99,25 @@ export async function emailInviteReceived(args: {
   requesterName: string;
   hostDisplayName: string;
   hostHandle: string;
+  locale: Locale;
 }) {
   const cardUrl = `${siteUrl}/${args.hostHandle}`;
+  const v = { name: args.requesterName, host: args.hostDisplayName };
   await sendEmail({
     to: args.to,
-    subject: `We sent your coffee invite to ${args.hostDisplayName}`,
+    subject: tmpl(t(args.locale, "email.received.subject"), v),
     text:
-      `Hi ${args.requesterName},\n\n` +
-      `Your invite to ${args.hostDisplayName} is in their inbox. They'll either accept (you'll get an email with their contact channels) or decline (you'll get a polite note). Either way you'll hear back; if not, the invite expires after 7 days.\n\n` +
-      `Their card: ${cardUrl}\n\n— ${siteName}`,
+      `${tmpl(t(args.locale, "email.received.greeting"), v)}\n\n` +
+      `${tmpl(t(args.locale, "email.received.intro"), v)}\n\n` +
+      `${t(args.locale, "email.received.explanation")}\n\n` +
+      `${cardUrl}\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:15px;margin:0 0 14px">Hi ${escapeHtml(args.requesterName)},</p>
-<p style="font-size:15px;margin:0 0 14px">Your invite to <strong>${escapeHtml(args.hostDisplayName)}</strong> is in their inbox.</p>
-<p style="font-size:14px;color:#555;margin:0 0 18px">They&apos;ll either accept — you&apos;ll get an email with their contact channels — or decline, in which case you&apos;ll get a polite note. Either way you&apos;ll hear back; if not, the invite expires after 7 days.</p>
-<p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">See their card &rarr;</a></p>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You&apos;re receiving this because you filled the invite form on ${escapeHtml(args.hostDisplayName)}&apos;s card.</p>
+<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.received.greeting"), v))}</p>
+<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.received.intro"), v))}</p>
+<p style="font-size:14px;color:#555;margin:0 0 18px">${escapeHtml(t(args.locale, "email.received.explanation"))}</p>
+<p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">${escapeHtml(t(args.locale, "email.received.viewCard"))} &rarr;</a></p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; ${escapeHtml(tmpl(t(args.locale, "email.received.disclaimer"), v))}</p>
 </body></html>`,
   });
 }
@@ -174,8 +178,10 @@ export async function emailInviteAccepted(args: {
   telegramHandle: string | null;
   whatsappNumber: string | null;
   emailContact: string | null;
+  locale: Locale;
 }) {
   const cardUrl = `${siteUrl}/${args.hostHandle}`;
+  const v = { name: args.requesterName, host: args.hostDisplayName };
   const channels: { label: string; href: string; display: string }[] = [];
   if (args.telegramHandle) {
     const h = args.telegramHandle.replace(/^@/, "");
@@ -212,19 +218,18 @@ export async function emailInviteAccepted(args: {
 
   await sendEmail({
     to: args.to,
-    subject: `${args.hostDisplayName} said yes — here's how to reach them`,
+    subject: tmpl(t(args.locale, "email.accepted.subject"), v),
     text:
-      `Hi ${args.requesterName},\n\n` +
-      `${args.hostDisplayName} accepted your coffee invite on ${siteName}.\n\n` +
-      `Pick a channel and say hi:\n${textChannels}\n\n` +
-      `Their card: ${cardUrl}\n\n— ${siteName}`,
+      `${tmpl(t(args.locale, "email.accepted.greeting"), v)}\n\n` +
+      `${tmpl(t(args.locale, "email.accepted.intro"), v)}\n${textChannels}\n\n` +
+      `${cardUrl}\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:16px;margin:0 0 14px">Hi ${escapeHtml(args.requesterName)},</p>
-<p style="font-size:15px;margin:0 0 18px"><strong>${escapeHtml(args.hostDisplayName)}</strong> accepted your coffee invite on ${siteName}. Pick a channel and say hi:</p>
+<p style="font-size:16px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.accepted.greeting"), v))}</p>
+<p style="font-size:15px;margin:0 0 18px">${escapeHtml(tmpl(t(args.locale, "email.accepted.intro"), v))}</p>
 <ul style="font-size:14px;padding-left:20px;margin:0 0 24px">${htmlChannels}</ul>
-<p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">See their card &rarr;</a></p>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} hands you off here. We don't read your conversation; the rest is between the two of you.</p>
+<p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">${escapeHtml(t(args.locale, "email.accepted.viewCard"))} &rarr;</a></p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${escapeHtml(t(args.locale, "email.accepted.disclaimer"))}</p>
 </body></html>`,
   });
 }
@@ -236,19 +241,21 @@ export async function emailInviteDeclined(args: {
   to: string;
   requesterName: string;
   hostDisplayName: string;
+  locale: Locale;
 }) {
+  const v = { name: args.requesterName, host: args.hostDisplayName };
   await sendEmail({
     to: args.to,
-    subject: `${args.hostDisplayName} is booked up — but thanks for reaching out`,
+    subject: tmpl(t(args.locale, "email.declined.subject"), v),
     text:
-      `Hi ${args.requesterName},\n\n` +
-      `Thanks for reaching out via ${siteName}. ${args.hostDisplayName} can't take your coffee invite right now — schedules are tight or the timing's off.\n\n` +
-      `No reply expected. If something changes you're welcome to reach out again.\n\n— ${siteName}`,
+      `${tmpl(t(args.locale, "email.declined.greeting"), v)}\n\n` +
+      `${tmpl(t(args.locale, "email.declined.body"), v)}\n\n` +
+      `${t(args.locale, "email.declined.footer")}\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:15px;margin:0 0 14px">Hi ${escapeHtml(args.requesterName)},</p>
-<p style="font-size:15px;margin:0 0 14px">Thanks for reaching out via ${siteName}. <strong>${escapeHtml(args.hostDisplayName)}</strong> can't take your coffee invite right now — schedules are tight or the timing's off.</p>
-<p style="font-size:14px;color:#555;margin:0 0 24px">No reply expected. If something changes you're welcome to reach out again.</p>
+<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.declined.greeting"), v))}</p>
+<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.declined.body"), v))}</p>
+<p style="font-size:14px;color:#555;margin:0 0 24px">${escapeHtml(t(args.locale, "email.declined.footer"))}</p>
 <p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName}</p>
 </body></html>`,
   });

@@ -265,6 +265,41 @@ export const en = {
   "time.hoursAgo": "{n}h ago",
   "time.daysAgo": "{n}d ago",
 
+  // Tweet text the CardSharePanel + welcome email pre-fill into a
+  // Twitter intent URL. Translated so visitors who flipped to zh/ja can
+  // share in their own language by default; they can still edit before
+  // posting.
+  "share.tweet.text":
+    "My coffee chat page is live — invite me for a coffee ☕",
+
+  // Visitor-facing emails — sent in the locale the requester was
+  // browsing in when they submitted the invite (stored on the row).
+  "email.received.subject": "We sent your coffee invite to {host}",
+  "email.received.greeting": "Hi {name},",
+  "email.received.intro": "Your invite to {host} is in their inbox.",
+  "email.received.explanation":
+    "They'll either accept — you'll get an email with their contact channels — or decline, in which case you'll get a polite note. Either way you'll hear back; if not, the invite expires after 7 days.",
+  "email.received.viewCard": "See their card",
+  "email.received.disclaimer":
+    "You're receiving this because you filled the invite form on {host}'s card.",
+
+  "email.accepted.subject":
+    "{host} said yes — here's how to reach them",
+  "email.accepted.greeting": "Hi {name},",
+  "email.accepted.intro":
+    "{host} accepted your coffee invite on acoffee. Pick a channel and say hi:",
+  "email.accepted.viewCard": "See their card",
+  "email.accepted.disclaimer":
+    "acoffee hands you off here. We don't read your conversation; the rest is between the two of you.",
+
+  "email.declined.subject":
+    "{host} is booked up — but thanks for reaching out",
+  "email.declined.greeting": "Hi {name},",
+  "email.declined.body":
+    "Thanks for reaching out via acoffee. {host} can't take your coffee invite right now — schedules are tight or the timing's off.",
+  "email.declined.footer":
+    "No reply expected. If something changes you're welcome to reach out again.",
+
   // Language switcher
   "lang.label": "Language",
 } as const;
@@ -480,6 +515,32 @@ export const zh: Record<DictKey, string> = {
   "time.minutesAgo": "{n} 分钟前",
   "time.hoursAgo": "{n} 小时前",
   "time.daysAgo": "{n} 天前",
+
+  "share.tweet.text": "我的咖啡邀约页上线了——来约我喝咖啡吧 ☕",
+
+  "email.received.subject": "已把你给 {host} 的咖啡邀请发出",
+  "email.received.greeting": "{name} 你好,",
+  "email.received.intro": "你给 {host} 的邀请已经发到他们的收件箱了。",
+  "email.received.explanation":
+    "他们要么接受——你会收到一封带联系方式的邮件;要么拒绝,你会收到一封礼貌的回复。无论如何你都会有反馈;如果没有,邀请会在 7 天后过期。",
+  "email.received.viewCard": "看看他们的名片",
+  "email.received.disclaimer":
+    "你收到这封邮件,是因为你在 {host} 的名片上填了邀请表单。",
+
+  "email.accepted.subject": "{host} 答应了——这是联系方式",
+  "email.accepted.greeting": "{name} 你好,",
+  "email.accepted.intro":
+    "{host} 在 acoffee 上接受了你的咖啡邀请。挑一个渠道打个招呼吧:",
+  "email.accepted.viewCard": "看看他们的名片",
+  "email.accepted.disclaimer":
+    "acoffee 在这里完成对接。我们不读你们的对话,接下来就是你们两位的事了。",
+
+  "email.declined.subject": "{host} 暂时不方便——感谢你的邀请",
+  "email.declined.greeting": "{name} 你好,",
+  "email.declined.body":
+    "感谢通过 acoffee 联系。{host} 目前没法接受你的咖啡邀请——日程紧或时机不合适。",
+  "email.declined.footer":
+    "无需回复。如果情况有变,欢迎你再次联系。",
 
   "lang.label": "语言",
 };
@@ -714,6 +775,37 @@ export const ja: Record<DictKey, string> = {
   "time.minutesAgo": "{n} 分前",
   "time.hoursAgo": "{n} 時間前",
   "time.daysAgo": "{n} 日前",
+
+  "share.tweet.text":
+    "私のコーヒーチャットページが公開されました——コーヒーに誘ってください ☕",
+
+  "email.received.subject":
+    "{host} さんへのコーヒー招待を送信しました",
+  "email.received.greeting": "{name} さん、",
+  "email.received.intro":
+    "{host} さんに招待が届きました。",
+  "email.received.explanation":
+    "承認されれば連絡先が記載されたメールが届きます。辞退の場合は丁寧な返信が届きます。どちらにしても返事はあります;ない場合、招待は 7 日後に期限切れになります。",
+  "email.received.viewCard": "カードを見る",
+  "email.received.disclaimer":
+    "{host} さんのカードの招待フォームからメールアドレスを入力したのでこのメールが届いています。",
+
+  "email.accepted.subject":
+    "{host} さんが承認しました——連絡方法はこちら",
+  "email.accepted.greeting": "{name} さん、",
+  "email.accepted.intro":
+    "{host} さんが acoffee での招待を承認しました。チャンネルを選んで挨拶してみてください:",
+  "email.accepted.viewCard": "カードを見る",
+  "email.accepted.disclaimer":
+    "acoffee の役割はここまでです。会話には立ち入りません——あとはお二人の間で。",
+
+  "email.declined.subject":
+    "{host} さんは予定が合わないようですが——誘ってくれてありがとう",
+  "email.declined.greeting": "{name} さん、",
+  "email.declined.body":
+    "acoffee 経由でのご連絡ありがとうございます。{host} さんは今回コーヒーの招待を受けられないとのことです——スケジュールが厳しいか、タイミングが合わなかったようです。",
+  "email.declined.footer":
+    "返信不要です。状況が変われば、いつでもまた声をかけてください。",
 
   "lang.label": "言語",
 };

@@ -13,7 +13,15 @@ import {
   createSupabaseServer,
   isAuthConfigured,
 } from "@/lib/supabase/server";
+import { type Locale } from "@/lib/i18n/dict";
 import { COFFEE_CHAT_KINDS } from "@/lib/types";
+
+// Narrow Supabase's `unknown` value to our Locale union before passing
+// downstream — keeps the email helpers honest if anyone ever loosens
+// the CHECK constraint on invites.requester_locale.
+function isInviteLocale(v: unknown): v is Locale {
+  return v === "en" || v === "zh" || v === "ja";
+}
 
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
@@ -406,11 +414,12 @@ async function decideInvite(
 
   // Fetch the invite via RLS-scoped read — the policy already restricts
   // SELECT to the host, so an attacker-supplied id for someone else's
-  // invite returns null + we bail.
+  // invite returns null + we bail. requester_locale comes along so the
+  // accept/decline email matches the language the visitor submitted in.
   const { data: invite, error: readErr } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, expires_at",
+      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, expires_at, requester_locale",
     )
     .eq("id", inviteId)
     .maybeSingle();
@@ -443,6 +452,9 @@ async function decideInvite(
 
   // Need the host's profile + contacts to compose the accept email —
   // server-side, never sent to the browser.
+  const requesterLocale = isInviteLocale(invite.requester_locale)
+    ? invite.requester_locale
+    : "en";
   if (next === "accepted") {
     const { data: profile } = await supabase
       .from("profiles")
@@ -466,6 +478,7 @@ async function decideInvite(
         telegramHandle: (profile.telegram_handle as string | null) ?? null,
         whatsappNumber: (profile.whatsapp_number as string | null) ?? null,
         emailContact: (profile.email_contact as string | null) ?? null,
+        locale: requesterLocale,
       });
     }
   } else {
@@ -484,6 +497,7 @@ async function decideInvite(
       to: invite.requester_email as string,
       requesterName: invite.requester_name as string,
       hostDisplayName: displayName,
+      locale: requesterLocale,
     });
   }
 

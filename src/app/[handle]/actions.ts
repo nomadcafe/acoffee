@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { emailInviteReceived, emailNewInvite } from "@/lib/email";
+import { getLocale } from "@/lib/i18n";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { createSupabaseAdmin, isAuthConfigured } from "@/lib/supabase/server";
 import { INVITE_MODES } from "@/lib/types";
@@ -146,6 +147,11 @@ export async function createInvite(
   const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
   const hostNotifyEmail = hostAuth.user?.email ?? null;
 
+  // Snapshot the visitor's locale on the row — the host's accept/decline
+  // happens later and the cookie/header chain is gone by then. Without
+  // this, follow-up emails to the visitor would fall back to English
+  // even if they submitted in zh/ja.
+  const locale = await getLocale();
   const { error: insertErr } = await admin.from("invites").insert({
     host_id: hostId,
     requester_name: parsed.data.requesterName,
@@ -153,6 +159,7 @@ export async function createInvite(
     requester_topic: parsed.data.requesterTopic,
     mode: parsed.data.mode,
     preferred_time: parsed.data.preferredTime ?? null,
+    requester_locale: locale,
   });
   if (insertErr) {
     return {
@@ -185,6 +192,7 @@ export async function createInvite(
     requesterName: parsed.data.requesterName,
     hostDisplayName,
     hostHandle,
+    locale,
   });
 
   // Revalidate the host's profile so the new pending invite shows up in
