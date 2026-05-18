@@ -36,24 +36,3 @@ Each card at `acoffee.com/{handle}` has:
   until someone clicks **Invite for coffee**
 
 The whole flow from sign-in to a shareable URL takes about three minutes.
-
-## Status
-
-Open beta. Free to claim a handle. No paid tier, no algorithm, no chat
-inbox — just your card and the people who decide to use it. Product
-direction is tracked in [`docs/vision.md`](docs/vision.md).
-
-## Running it locally
-
-```bash
-pnpm install
-pnpm dev
-```
-
-The app expects a Supabase project (Auth + a `profiles` table). Run the
-SQL files in [`supabase/`](supabase/) in order — `schema.sql`,
-`schema_phase1.sql`, then `schema_v07.sql` — copy `.env.example` to
-`.env.local`, and fill in your project URL and keys.
-
-Stack: Next.js 16 (App Router) · TypeScript · Tailwind v4 · Supabase
-(Postgres + Auth).
