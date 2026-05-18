@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { LiveCardPreview } from "@/components/LiveCardPreview";
 import {
@@ -7,7 +7,15 @@ import {
   type CoffeeChatKind,
   type MyProfile,
 } from "@/lib/types";
-import { updateProfile, type ProfileState } from "./actions";
+import {
+  checkHandleAvailable,
+  updateProfile,
+  type HandleCheckResult,
+  type ProfileState,
+} from "./actions";
+
+const HANDLE_RE = /^[a-z0-9_]+$/;
+const CHECK_DEBOUNCE_MS = 350;
 
 const INITIAL: ProfileState = { status: "idle" };
 
@@ -72,6 +80,79 @@ export function ProfileForm({
     profile.avatarUrl,
   );
 
+  // Real-time handle availability: debounced server check so the user
+  // sees "Available ✓" / "Taken" / "Reserved" before they hit Save.
+  // null = idle (not enough input yet); "checking" while a request is
+  // in flight; otherwise the typed server result.
+  const [handleCheck, setHandleCheck] = useState<
+    HandleCheckResult | "checking" | null
+  >(null);
+  useEffect(() => {
+    const trimmed = handle.trim().toLowerCase();
+    if (trimmed === "") {
+      setHandleCheck(null);
+      return;
+    }
+    // Don't burn a request on the user's own handle — the server would
+    // return "yours" anyway, just say so locally.
+    if (!isAutoHandle && trimmed === profile.handle.toLowerCase()) {
+      setHandleCheck({ status: "yours" });
+      return;
+    }
+    // Cheap format guard — same regex the server enforces. Stops the
+    // debounced request when input is obviously wrong.
+    if (trimmed.length < 3) {
+      setHandleCheck({
+        status: "invalid",
+        reason: "Needs at least 3 characters.",
+      });
+      return;
+    }
+    if (!HANDLE_RE.test(trimmed)) {
+      setHandleCheck({
+        status: "invalid",
+        reason: "Lowercase letters, digits, and _ only.",
+      });
+      return;
+    }
+    setHandleCheck("checking");
+    const t = setTimeout(async () => {
+      const result = await checkHandleAvailable(trimmed);
+      setHandleCheck(result);
+    }, CHECK_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [handle, profile.handle, isAutoHandle]);
+
+  // Narrow the "checking" sentinel out so the .status access below is
+  // type-safe. `result` is either null (idle, format problem) or one of
+  // the four HandleCheckResult variants.
+  const result =
+    handleCheck === "checking" || handleCheck === null ? null : handleCheck;
+
+  // Map the check state to Field's hint/error slots. Field flips its
+  // border red when `error` is set — we want that for taken/reserved/
+  // format issues. `available` and `yours` are positive states; they
+  // ride the hint slot with a checkmark.
+  const handleHint = (() => {
+    if (handleCheck === "checking") return "Checking…";
+    if (result?.status === "available")
+      return `Available ✓ · acoffee.com/${handle.trim().toLowerCase()}`;
+    if (result?.status === "yours") return "That's your current handle.";
+    if (isAutoHandle) {
+      return "Currently auto-assigned · 3–20 chars · a–z, 0–9, _";
+    }
+    return "3–20 chars · a–z, 0–9, _";
+  })();
+  const handleErrorOverride = (() => {
+    if (result?.status === "taken")
+      return "That handle is taken — try another.";
+    if (result?.status === "reserved")
+      return "That handle is reserved — try another.";
+    if (result?.status === "invalid" && handle.trim() !== "")
+      return result.reason;
+    return undefined;
+  })();
+
   const hasContact = !!(
     telegram.trim() ||
     whatsapp.trim() ||
@@ -123,12 +204,8 @@ export function ProfileForm({
             value={handle}
             onValueChange={setHandle}
             placeholder={isAutoHandle ? "pick one · e.g. alex_nomad" : undefined}
-            hint={
-              isAutoHandle
-                ? `Currently auto-assigned · 3–20 chars · a–z, 0–9, _`
-                : "3–20 chars · a–z, 0–9, _"
-            }
-            error={errs.handle}
+            hint={handleHint}
+            error={handleErrorOverride ?? errs.handle}
             required
           />
           <Field

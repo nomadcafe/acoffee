@@ -234,6 +234,75 @@ export async function updateProfile(
   return { status: "saved", message: "Saved." };
 }
 
+// Real-time handle availability check. Called from ProfileForm on a
+// debounced effect so the user sees "Available ✓" / "Taken" / "Reserved"
+// inline instead of finding out on Save. Cheap query — `select id`
+// against the unique-indexed handle column. Returns a structured shape
+// so the UI can render the right colour + copy per state.
+export type HandleCheckResult =
+  | { status: "available" }
+  | { status: "taken" }
+  | { status: "reserved" }
+  | { status: "invalid"; reason: string }
+  | { status: "yours" };
+
+export async function checkHandleAvailable(
+  raw: string,
+): Promise<HandleCheckResult> {
+  const handle = raw.trim().toLowerCase();
+
+  // Client already runs the same regex but check again — protects against
+  // anyone calling the action directly with junk.
+  if (handle.length < 3) {
+    return { status: "invalid", reason: "Needs at least 3 characters." };
+  }
+  if (handle.length > 20) {
+    return { status: "invalid", reason: "At most 20 characters." };
+  }
+  if (!/^[a-z0-9_]+$/.test(handle)) {
+    return {
+      status: "invalid",
+      reason: "Lowercase letters, digits, and _ only.",
+    };
+  }
+
+  if (RESERVED_HANDLES.has(handle)) return { status: "reserved" };
+
+  if (!isAuthConfigured()) {
+    // Configuration error — don't claim "available" without a check.
+    return {
+      status: "invalid",
+      reason: "Couldn't check availability — try again in a moment.",
+    };
+  }
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("handle", handle)
+    .maybeSingle();
+  if (error) {
+    return {
+      status: "invalid",
+      reason: "Couldn't check availability — try again in a moment.",
+    };
+  }
+  if (data) {
+    // The user's own handle reads as "yours" so the form doesn't show
+    // "Taken" against the value they're currently saved with.
+    if (user && (data.id as string) === user.id) {
+      return { status: "yours" };
+    }
+    return { status: "taken" };
+  }
+  return { status: "available" };
+}
+
 // Self-serve account delete. Removes the avatar file, the auth.users row,
 // and (via the profiles.id ON DELETE CASCADE foreign key) the profile row
 // in one shot. Service-role required because auth.admin.deleteUser only
