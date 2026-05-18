@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
-import { CardContactReveal } from "@/components/CardContactReveal";
+import { InviteForm } from "@/components/InviteForm";
 import { getMyProfile } from "@/lib/auth-queries";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
@@ -30,15 +30,18 @@ const RESERVED_HANDLES = new Set([
   "robots.txt",
 ]);
 
+// v0.8 deliberately strips raw contact channels from the public-facing
+// fetch. Visitors no longer receive TG/WA/Email in the page payload —
+// the invite-then-email flow on accept is the only path to those values
+// now. A single `hasContact` boolean is enough for the UI to choose
+// between the invite form and the "no contact yet" empty state.
 type PublicProfile = {
   handle: string;
   displayName: string;
   bio: string | null;
   city: string | null;
   coffeeChatKinds: CoffeeChatKind[];
-  telegramHandle: string | null;
-  whatsappNumber: string | null;
-  emailContact: string | null;
+  hasContact: boolean;
   avatarUrl: string | null;
   joinedAt: string;
 };
@@ -62,9 +65,11 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
-    telegramHandle: (data.telegram_handle as string | null) ?? null,
-    whatsappNumber: (data.whatsapp_number as string | null) ?? null,
-    emailContact: (data.email_contact as string | null) ?? null,
+    hasContact: !!(
+      data.telegram_handle ||
+      data.whatsapp_number ||
+      data.email_contact
+    ),
     avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
   };
@@ -126,11 +131,7 @@ export default async function HandlePage(
   // an "almost there" nudge when the card has no status or contact yet.
   const viewer = await getMyProfile();
   const isOwner = viewer?.handle === profile.handle;
-  const hasContact =
-    !!profile.telegramHandle ||
-    !!profile.whatsappNumber ||
-    !!profile.emailContact;
-  const isIncomplete = !profile.bio || !hasContact;
+  const isIncomplete = !profile.bio || !profile.hasContact;
 
   const joinedLabel = formatJoined(profile.joinedAt);
 
@@ -153,7 +154,7 @@ export default async function HandlePage(
             This is your card — it&apos;s looking sparse.
           </h2>
           <p className="text-sm leading-[1.55] text-ink/70">
-            {!profile.bio && !hasContact
+            {!profile.bio && !profile.hasContact
               ? "Add a one-line status and a contact channel — that's what makes the card worth sharing."
               : !profile.bio
                 ? "Add a one-line status so visitors see what you're up to."
@@ -178,12 +179,17 @@ export default async function HandlePage(
         kinds={profile.coffeeChatKinds}
         avatarUrl={profile.avatarUrl}
         footer={
-          <CardContactReveal
-            displayName={profile.displayName}
-            telegramHandle={profile.telegramHandle}
-            whatsappNumber={profile.whatsappNumber}
-            emailContact={profile.emailContact}
-          />
+          profile.hasContact ? (
+            <InviteForm
+              hostHandle={profile.handle}
+              hostDisplayName={profile.displayName}
+            />
+          ) : (
+            <p className="text-sm text-muted">
+              {profile.displayName} hasn&apos;t added a contact channel
+              yet — invites are disabled until they do.
+            </p>
+          )
         }
       />
 
