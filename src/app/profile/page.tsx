@@ -82,7 +82,7 @@ export default async function ProfilePage({
   const isOnboarding = onboarding === "1" && !hasRealHandle;
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
       <header className="flex flex-col gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
           {isOnboarding ? "Welcome to acoffee" : "Your acoffee card"}
