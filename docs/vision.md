@@ -1,6 +1,6 @@
 # acoffee — Vision & MVP 方向
 
-> 状态：草稿 v0.7.1 / 2026-05-18
+> 状态：草稿 v0.8 / 2026-05-18
 > 用途：对齐产品定位、MVP 范围、启动顺序。技术细节在别处。
 >
 > v0.2 更新：锁定 Phase 1 = Web / PWA，Native App 延至 Phase 2。
@@ -10,6 +10,7 @@
 > v0.6 更新：§10 的「明确不做」红线删除——实际执行 24h 内自破，留着只是自我欺骗。改成"按 ROI 排序的参考清单，非强制"。同步在 §10 加一条：pin-drop funnel 接入完成（落 pin 后按城市分流：清迈→cafe 目录；其他覆盖城市→城市订阅；不覆盖→泛订阅），修复了 95% 非清迈访客落地后无处可去的漏洞。
 > v0.7 更新：**产品主轴从「匿名 pin map」切换为「Coffee Card」**。每个用户有一个 `acoffee.com/{handle}` 页面（city / 一句话 status / coffee chat 类型 / 联系方式 / "Invite me for a coffee" 按钮）。Card 是访客离开页面时**唯一可携带的产出物**——解决 v0.5 暴露的"drop pin 是匿名一次性动作、95% 访客离开后无可返回状态"的根本问题。pin map / café roster / signal 全部降级为 Card 的字段或附属功能。**内核 wedge 不动**（落地 / 孤独 / 数字游民）。承诺机制：Card MVP ship（2026-06-01 之前）截止前不开第 7 方向、不再动 hero 文案、不读同类产品 teardown。详见下方「§0 v0.7 重置」。
 > v0.7.1 更新（2026-05-18，执行期同步）：v0.7 spine 决策（Card 主轴、§0.2 流程、§0.3 红线、§0.4 ship 条件）全部保留；以下偏移是**执行中实际发生的事**：①**视觉方向从 Editorial 翻盘到 SaaS**——v0.7 的 Editorial「锁」试了两轮（masthead / § 章节号 / drop cap / stamp 印章按钮）都被本人判 "不伦不类"，参考 cal.com / bio.link / meetup 改成 cream-on-white sans + rounded-2xl 填充按钮 + 软阴影卡。②**Chiang Mai 整页删除**（§0.5 原计划保留并改造，实际判断"混乱且意义不大"全删，伴随删除 /api/pins、/api/subscribe、PinMap / CitiesPanel / UserStatusStrip 等 v0.5 surface，−7173 行）。③**定位文案精简**："your coffee card for nomads. Get found in your city." → "**Coffee in bio.**" + "Your friendly coffee chat page."（吃掉 link-in-bio 心智模型）。④**用户扩宽**："nomad-only" 文案 → builders / nomads / founders / interesting people。⑤**City 字段从 select/autocomplete 简化为 free-form text input**。教训：视觉方向无法 vision 阶段锁定，得在 hero 上试错；产品决策可锁（spine 没动）。
+> v0.8 更新（2026-05-18，**Invite mechanism 升级**）：原 v0.7 "Invite for coffee" 是**纯客户端 reveal**——点按钮 = JS 翻 state 露出 TG/WA/Email，contact 还**裸奔在 HTML payload 里**爬虫可拿。v0.8 改成 **form-based invite + 主人审批 + 邮件递交 contact**：访客点 "Invite" → 同页表单（name / email / topic / 偏好 online or in_person or either / 可选时间）→ 提交写 `invites` 表 → 邮件通知主人 → 主人在 /profile 看到 inbox → Accept（系统邮件把 contact 发给访客）/ Decline（系统发礼貌拒邮）。**参考但拒绝复制**：spawn-cafe 的 Google Calendar OAuth、acoffeemeetup 的中点咖啡馆 Places 推荐——两者都重 + 违反 §0.3 "no calendar integration / no cafe directory"。v0.8 只借**请求-审批形态**，calendar / venue 仍 hand-off 到外部对话。§0.3 红线 "❌ 站内 chat" 保留，但新增脚注："form-based invite is not chat — it's a one-shot request with bounded states (pending / accepted / declined / expired)，邀约谈定后所有沟通仍在 TG/WA/Email"。
 
 ---
 

@@ -1,4 +1,9 @@
-import type { CoffeeChatKind, MyProfile } from "./types";
+import type {
+  CoffeeChatKind,
+  Invite,
+  InviteMode,
+  MyProfile,
+} from "./types";
 import { COFFEE_CHAT_KINDS } from "./types";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
@@ -80,4 +85,45 @@ export async function getSessionUser(): Promise<{
   } = await supabase.auth.getUser();
   if (!user) return null;
   return { id: user.id, email: user.email ?? null };
+}
+
+// Inbox for the signed-in host: pending invites only, newest first. Auto-
+// filters server-side past expires_at so a stale 8-day-old "pending" row
+// doesn't sit in the UI looking actionable.
+export async function getMyPendingInvites(): Promise<Invite[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("invites")
+    .select(
+      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, created_at, expires_at, decided_at",
+    )
+    .eq("host_id", user.id)
+    .eq("status", "pending")
+    .gt("expires_at", nowIso)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map(rowToInvite);
+}
+
+function rowToInvite(r: Record<string, unknown>): Invite {
+  return {
+    id: r.id as string,
+    hostId: r.host_id as string,
+    requesterName: r.requester_name as string,
+    requesterEmail: r.requester_email as string,
+    requesterTopic: r.requester_topic as string,
+    mode: r.mode as InviteMode,
+    preferredTime: (r.preferred_time as string | null) ?? null,
+    status: r.status as Invite["status"],
+    createdAt: r.created_at as string,
+    expiresAt: r.expires_at as string,
+    decidedAt: (r.decided_at as string | null) ?? null,
+  };
 }
