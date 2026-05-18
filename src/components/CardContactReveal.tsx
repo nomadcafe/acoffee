@@ -22,7 +22,7 @@ export function CardContactReveal({
 
   if (!hasContact) {
     return (
-      <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">
+      <p className="text-sm text-muted">
         {displayName} hasn&apos;t added a contact channel yet.
       </p>
     );
