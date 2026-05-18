@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteAccount } from "@/app/profile/actions";
+import { useT } from "@/components/LocaleProvider";
 
 // Two-stage destructive confirm:
 //   1) Press the red "Delete account" button → expands to a panel with
@@ -13,6 +14,7 @@ import { deleteAccount } from "@/app/profile/actions";
 // in a code span so the user has to deliberately retype it — copy-paste
 // is allowed but it's still an act, not a misclick.
 export function DeleteAccountButton({ handle }: { handle: string }) {
+  const t = useT();
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [typed, setTyped] = useState("");
@@ -26,7 +28,7 @@ export function DeleteAccountButton({ handle }: { handle: string }) {
         onClick={() => setConfirming(true)}
         className="inline-flex self-start items-center gap-2 rounded-2xl border border-red-400/60 bg-surface px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-950/30"
       >
-        Delete account
+        {t("danger.deleteButton")}
       </button>
     );
   }
@@ -35,17 +37,14 @@ export function DeleteAccountButton({ handle }: { handle: string }) {
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-red-400/40 bg-red-50/40 p-4 dark:border-red-500/30 dark:bg-red-950/20">
-      <p className="text-sm text-ink/85">
-        This wipes your card, avatar, and sign-in — and can&apos;t be
-        undone. The handle becomes available for someone else to claim.
-      </p>
+      <p className="text-sm text-ink/85">{t("danger.confirm.intro")}</p>
       <label className="flex flex-col gap-1.5 text-sm">
         <span className="text-ink/80">
-          Type{" "}
+          {t("danger.confirm.typePre")}
           <code className="rounded bg-bean/40 px-1.5 py-0.5 font-mono text-xs">
             {handle}
-          </code>{" "}
-          to confirm.
+          </code>
+          {t("danger.confirm.typePost")}
         </span>
         <input
           value={typed}
@@ -74,7 +73,7 @@ export function DeleteAccountButton({ handle }: { handle: string }) {
           }}
           className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {pending ? "Deleting…" : "Yes, delete everything"}
+          {pending ? t("danger.confirm.deleting") : t("danger.confirm.yes")}
         </button>
         <button
           type="button"
@@ -86,7 +85,7 @@ export function DeleteAccountButton({ handle }: { handle: string }) {
           }}
           className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent disabled:opacity-60"
         >
-          Cancel
+          {t("danger.confirm.no")}
         </button>
       </div>
       {error && (

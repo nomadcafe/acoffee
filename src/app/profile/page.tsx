@@ -11,6 +11,8 @@ import {
   getMyProfileStats,
   getSessionUser,
 } from "@/lib/auth-queries";
+import { getLocale } from "@/lib/i18n";
+import { t, tmpl } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
 import { ProfileForm } from "./ProfileForm";
 
@@ -43,17 +45,18 @@ export default async function ProfilePage({
   const afterPath = safeAfter(after);
 
   const sessionUser = await getSessionUser();
+  const locale = await getLocale();
   if (!sessionUser) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-14 sm:py-20">
-        <h1 className="font-display text-3xl font-medium sm:text-4xl">
-          Sign in to edit your profile.
+        <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
+          {t(locale, "profile.signin.h1")}
         </h1>
         <Link
           href="/auth/signin?next=/profile"
-          className="self-start rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+          className="inline-flex self-start items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
         >
-          Sign in →
+          {t(locale, "profile.signin.cta")} →
         </Link>
       </main>
     );
@@ -102,17 +105,19 @@ export default async function ProfilePage({
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
       <header className="flex flex-col gap-2">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          {isOnboarding ? "Welcome to acoffee" : "Your acoffee card"}
+          {isOnboarding
+            ? t(locale, "profile.header.welcome.eyebrow")
+            : t(locale, "profile.header.normal.eyebrow")}
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
           {isOnboarding
-            ? "Pick how others see you."
-            : "How others see you."}
+            ? t(locale, "profile.header.welcome.h1")
+            : t(locale, "profile.header.normal.h1")}
         </h1>
         <p className="text-base text-muted">
           {isOnboarding
-            ? "One-time setup. Pick a handle others can recognize you by, then add Telegram, WhatsApp, or email so invites actually land."
-            : "Edit your card below. Contact channels stay hidden until someone invites you for coffee."}
+            ? t(locale, "profile.header.welcome.sub")
+            : t(locale, "profile.header.normal.sub")}
         </p>
       </header>
 
@@ -130,12 +135,12 @@ export default async function ProfilePage({
         <>
           <section className="mt-6 flex flex-col gap-4 border-t border-dashed border-bean pt-6">
             <p className="text-xs font-medium uppercase tracking-wide text-accent">
-              Account
+              {t(locale, "account.eyebrow")}
             </p>
             {stats && (
               <div className="flex flex-col gap-2 text-sm text-muted">
                 <p>
-                  Your card:{" "}
+                  {t(locale, "account.yourCard")}{" "}
                   <Link
                     href={`/${profile.handle}`}
                     className="font-medium text-accent hover:underline"
@@ -143,11 +148,15 @@ export default async function ProfilePage({
                     acoffee.com/{profile.handle}
                   </Link>
                 </p>
-                <p>Joined {formatJoined(stats.joinedAt)}</p>
+                <p>
+                  {tmpl(t(locale, "account.joined"), {
+                    date: formatJoined(stats.joinedAt, locale),
+                  })}
+                </p>
               </div>
             )}
             <p className="text-sm text-muted">
-              Signed in as{" "}
+              {t(locale, "account.signedInAs")}
               <span className="font-medium text-ink">
                 {sessionUser.email ?? "—"}
               </span>
@@ -157,14 +166,14 @@ export default async function ProfilePage({
                 type="submit"
                 className="rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
               >
-                Sign out
+                {t(locale, "account.signOut")}
               </button>
             </form>
           </section>
 
           <section className="mt-2 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
             <p className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">
-              Danger zone
+              {t(locale, "danger.eyebrow")}
             </p>
             <DeleteAccountButton handle={profile.handle} />
           </section>
@@ -175,9 +184,14 @@ export default async function ProfilePage({
 }
 
 // Shows joined date as "May 2026" — month + year is enough granularity for
-// account-age signal; exact day is noise.
-function formatJoined(iso: string): string {
+// account-age signal; exact day is noise. Locale param picks the right
+// month name (May / 5月 / 5月) so the dict's "Joined {date}" template
+// flows naturally.
+function formatJoined(iso: string, locale: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("en", { month: "short", year: "numeric" });
+  return d.toLocaleDateString(locale === "en" ? undefined : locale, {
+    month: "short",
+    year: "numeric",
+  });
 }
 

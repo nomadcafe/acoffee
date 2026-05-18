@@ -3,21 +3,17 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { approveInvite, rejectInvite } from "@/app/profile/actions";
+import { useT } from "@/components/LocaleProvider";
+import { tmpl } from "@/lib/i18n/dict";
 import type { Invite } from "@/lib/types";
 
-const MODE_LABEL: Record<Invite["mode"], string> = {
-  online: "💻 Online",
-  in_person: "🍵 In person",
-  either: "🤷 Either",
-};
-
-const STATUS_BADGE: Record<
+const STATUS_TONE: Record<
   Exclude<Invite["status"], "pending">,
-  { label: string; tone: "good" | "muted" }
+  "good" | "muted"
 > = {
-  accepted: { label: "Accepted ✓", tone: "good" },
-  declined: { label: "Declined", tone: "muted" },
-  expired: { label: "Expired", tone: "muted" },
+  accepted: "good",
+  declined: "muted",
+  expired: "muted",
 };
 
 // Owner inbox for invites — split into Pending and History tabs. Pending
@@ -32,25 +28,18 @@ export function InviteInbox({
   pending: Invite[];
   history: Invite[];
 }) {
+  const t = useT();
   const defaultTab: "pending" | "history" =
     pending.length === 0 && history.length > 0 ? "history" : "pending";
   const [tab, setTab] = useState<"pending" | "history">(defaultTab);
 
-  // No invites at all yet — collapse the section to the friendly nudge
-  // (history is empty too, so the tab UI would be visual noise).
   if (pending.length === 0 && history.length === 0) {
     return (
       <section className="rounded-3xl border border-bean bg-surface p-5 sm:p-6">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Inbox
+          {t("inbox.eyebrow")}
         </p>
-        <p className="mt-2 text-sm text-muted">
-          No invites yet. When someone fills your invite form on{" "}
-          <span className="font-mono text-ink/80">
-            acoffee.com/{`{handle}`}
-          </span>{" "}
-          they&apos;ll show up here for you to accept or decline.
-        </p>
+        <p className="mt-2 text-sm text-muted">{t("inbox.empty.both")}</p>
       </section>
     );
   }
@@ -59,24 +48,22 @@ export function InviteInbox({
     <section className="flex flex-col gap-4 rounded-3xl border border-accent/40 bg-accent-soft/40 p-5 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Inbox
+          {t("inbox.eyebrow")}
         </p>
-        <p className="text-xs text-muted">
-          Pending invites expire after 7 days
-        </p>
+        <p className="text-xs text-muted">{t("inbox.expireNote")}</p>
       </div>
 
       <div className="flex items-center gap-1 self-start rounded-full border border-bean bg-surface p-1">
         <TabButton
           active={tab === "pending"}
           onClick={() => setTab("pending")}
-          label="Pending"
+          label={t("inbox.tab.pending")}
           count={pending.length}
         />
         <TabButton
           active={tab === "history"}
           onClick={() => setTab("history")}
-          label="History"
+          label={t("inbox.tab.history")}
           count={history.length}
         />
       </div>
@@ -126,12 +113,9 @@ function TabButton({
 }
 
 function PendingList({ invites }: { invites: Invite[] }) {
+  const t = useT();
   if (invites.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        Nothing to decide right now. Past invites are in the History tab.
-      </p>
-    );
+    return <p className="text-sm text-muted">{t("inbox.empty.pending")}</p>;
   }
   return (
     <ul className="flex flex-col gap-3">
@@ -145,13 +129,9 @@ function PendingList({ invites }: { invites: Invite[] }) {
 }
 
 function HistoryList({ invites }: { invites: Invite[] }) {
+  const t = useT();
   if (invites.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        No past invites yet. Once you accept or decline a few they&apos;ll
-        live here.
-      </p>
-    );
+    return <p className="text-sm text-muted">{t("inbox.empty.history")}</p>;
   }
   return (
     <ul className="flex flex-col gap-3">
@@ -165,6 +145,7 @@ function HistoryList({ invites }: { invites: Invite[] }) {
 }
 
 function PendingRow({ invite }: { invite: Invite }) {
+  const t = useT();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -189,9 +170,14 @@ function PendingRow({ invite }: { invite: Invite }) {
   if (decided) {
     return (
       <div className="rounded-2xl border border-bean bg-surface px-4 py-3 text-sm text-muted">
-        {decided === "accepted"
-          ? `Accepted — emailing your contact channels to ${invite.requesterName}.`
-          : `Declined — emailing a polite note to ${invite.requesterName}.`}
+        {tmpl(
+          t(
+            decided === "accepted"
+              ? "inbox.confirm.accepted"
+              : "inbox.confirm.declined",
+          ),
+          { name: invite.requesterName },
+        )}
       </div>
     );
   }
@@ -203,7 +189,7 @@ function PendingRow({ invite }: { invite: Invite }) {
           {invite.requesterName}
         </p>
         <p className="text-xs text-muted">
-          {timeAgo(invite.createdAt)} · {MODE_LABEL[invite.mode]}
+          {timeAgo(invite.createdAt, t)} · {t(`inbox.row.mode.${invite.mode}` as const)}
         </p>
       </header>
 
@@ -213,7 +199,7 @@ function PendingRow({ invite }: { invite: Invite }) {
 
       <dl className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
         <div className="flex gap-1.5">
-          <dt className="text-muted">Email:</dt>
+          <dt className="text-muted">{t("inbox.row.email")}</dt>
           <dd>
             <a
               href={`mailto:${invite.requesterEmail}`}
@@ -225,7 +211,7 @@ function PendingRow({ invite }: { invite: Invite }) {
         </div>
         {invite.preferredTime && (
           <div className="flex gap-1.5">
-            <dt className="text-muted">When:</dt>
+            <dt className="text-muted">{t("inbox.row.when")}</dt>
             <dd className="text-ink/80">{invite.preferredTime}</dd>
           </div>
         )}
@@ -242,7 +228,7 @@ function PendingRow({ invite }: { invite: Invite }) {
           onClick={() => decide("accepted")}
           className="inline-flex items-center gap-2 rounded-2xl bg-accent px-4 py-2 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
-          {pending ? "…" : "Accept"}
+          {pending ? "…" : t("inbox.action.accept")}
         </button>
         <button
           type="button"
@@ -250,7 +236,7 @@ function PendingRow({ invite }: { invite: Invite }) {
           onClick={() => decide("declined")}
           className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent disabled:opacity-60"
         >
-          Decline
+          {t("inbox.action.decline")}
         </button>
       </div>
     </article>
@@ -258,10 +244,10 @@ function PendingRow({ invite }: { invite: Invite }) {
 }
 
 function HistoryRow({ invite }: { invite: Invite }) {
-  const status =
-    invite.status === "pending"
-      ? STATUS_BADGE.expired // shouldn't happen — server already remapped, defensive
-      : STATUS_BADGE[invite.status];
+  const t = useT();
+  const statusKind =
+    invite.status === "pending" ? "expired" : invite.status;
+  const tone = STATUS_TONE[statusKind];
   const decidedDate =
     invite.decidedAt ?? invite.expiresAt ?? invite.createdAt;
   return (
@@ -272,43 +258,46 @@ function HistoryRow({ invite }: { invite: Invite }) {
         </p>
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-            status.tone === "good"
+            tone === "good"
               ? "bg-accent-soft text-accent"
               : "bg-bean/60 text-ink/70"
           }`}
         >
-          {status.label}
+          {t(`inbox.status.${statusKind}` as const)}
         </span>
       </header>
       <p className="text-sm leading-[1.5] text-ink/70 line-clamp-2">
         “{invite.requesterTopic}”
       </p>
       <p className="text-xs text-muted">
-        {MODE_LABEL[invite.mode]} · {formatDate(decidedDate)}
+        {t(`inbox.row.mode.${invite.mode}` as const)} · {formatDate(decidedDate)}
       </p>
     </article>
   );
 }
 
-// Compact "5m ago" / "3h ago" / "2d ago" for pending rows — pending rows
-// never live longer than the 7-day TTL so we don't need to handle weeks.
-function timeAgo(iso: string): string {
+// Compact relative time. The dict carries the localised template — only
+// the absolute timestamps stay numeric so word order works for languages
+// that place "ago" before the number ("3 分钟前" / "3 minutes ago").
+function timeAgo(iso: string, t: ReturnType<typeof useT>): string {
   const then = new Date(iso).getTime();
   const diff = Date.now() - then;
   const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("time.justNow");
+  if (mins < 60) return tmpl(t("time.minutesAgo"), { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return tmpl(t("time.hoursAgo"), { n: hours });
   const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return tmpl(t("time.daysAgo"), { n: days });
 }
 
 // Decided rows can live forever — render absolute date so the host can
-// orient ("did I accept this last week or last month?").
+// orient ("did I accept this last week or last month?"). Browser's
+// Intl.DateTimeFormat picks the right month name per locale; passing
+// undefined lets the platform default kick in.
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString("en", {
+  return d.toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
     year: "numeric",

@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
+import { useT } from "@/components/LocaleProvider";
 import { createSupabaseBrowser } from "@/lib/supabase/browser";
 
 // Profile avatar upload widget. Handles file pick → client-side resize to
@@ -33,6 +34,7 @@ export function AvatarUpload({
   // without waiting for router.refresh() to round-trip.
   onChange?: (url: string | null) => void;
 }) {
+  const t = useT();
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [url, setUrl] = useState<string | null>(initialUrl);
@@ -42,11 +44,11 @@ export function AvatarUpload({
   async function handleFile(file: File) {
     setError(null);
     if (!file.type.startsWith("image/")) {
-      setError("Pick an image — JPG, PNG, WebP, or GIF.");
+      setError(t("avatar.error.notImage"));
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setError("Too big — keep it under 8 MB.");
+      setError(t("avatar.error.tooBig"));
       return;
     }
     setBusy("upload");
@@ -140,7 +142,11 @@ export function AvatarUpload({
             disabled={busy !== null}
             className="inline-flex items-center gap-2 rounded-2xl bg-accent px-4 py-2 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
           >
-            {busy === "upload" ? "Uploading…" : url ? "Change photo" : "Upload photo"}
+            {busy === "upload"
+              ? t("avatar.uploading")
+              : url
+                ? t("avatar.change")
+                : t("avatar.upload")}
           </button>
           {url && (
             <button
@@ -149,16 +155,14 @@ export function AvatarUpload({
               disabled={busy !== null}
               className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent disabled:opacity-60"
             >
-              {busy === "remove" ? "Removing…" : "Remove"}
+              {busy === "remove" ? t("avatar.removing") : t("avatar.remove")}
             </button>
           )}
         </div>
         {error ? (
           <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         ) : (
-          <p className="text-sm text-muted">
-            PNG / JPG / WebP / GIF. Auto-cropped square and resized to 256×256.
-          </p>
+          <p className="text-sm text-muted">{t("avatar.hint")}</p>
         )}
       </div>
     </div>

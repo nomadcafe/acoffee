@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useT } from "@/components/LocaleProvider";
 
 // Shown on /profile once the user has claimed a real handle — the
 // "your card is live, here's the URL" moment that closes v0.7 §0.2's
@@ -20,6 +21,7 @@ export function CardSharePanel({
   // of how the user arrived (preview deploy / acoffee.com / localhost).
   origin: string;
 }) {
+  const t = useT();
   const url = `${origin}/${handle}`;
   // Show the bare-domain form for visual cleanliness even though the
   // origin DNS keeps `www.` as canonical — modern share UIs do this. The
@@ -56,10 +58,10 @@ export function CardSharePanel({
     <section className="flex flex-col gap-4 rounded-3xl border border-accent/40 bg-accent-soft/60 p-5 sm:p-6">
       <div className="flex flex-col gap-1">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Your card is live
+          {t("share.eyebrow")}
         </p>
         <h2 className="text-xl font-semibold tracking-tight text-ink sm:text-2xl">
-          Share it — that&apos;s how the invites start.
+          {t("share.h2")}
         </h2>
       </div>
 
@@ -74,20 +76,15 @@ export function CardSharePanel({
           type="button"
           onClick={copyUrl}
           aria-label={
-            copied
-              ? "Card URL copied to clipboard"
-              : "Copy card URL to clipboard"
+            copied ? t("share.copy.ariaCopied") : t("share.copy.ariaIdle")
           }
           className="shrink-0 rounded-xl bg-ink px-3 py-1.5 text-xs font-medium text-page hover:bg-ink/85"
         >
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("share.copied") : t("share.copy")}
         </button>
       </div>
-      {/* Screen-reader-only live region — announces the success state
-          when the button content flips Copy → Copied without forcing
-          a visual reflow. */}
       <span className="sr-only" aria-live="polite">
-        {copied ? "Card URL copied to clipboard." : ""}
+        {copied ? t("share.live.announcement") : ""}
       </span>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -95,7 +92,7 @@ export function CardSharePanel({
           href={`/${handle}`}
           className="inline-flex items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
         >
-          View my card
+          {t("share.viewMyCard")}
           <span aria-hidden>→</span>
         </Link>
         <a
@@ -104,7 +101,7 @@ export function CardSharePanel({
           rel="noreferrer"
           className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
         >
-          Share on X
+          {t("share.shareOnX")}
           <span aria-hidden>↗</span>
         </a>
       </div>

@@ -2,6 +2,8 @@
 import { useActionState, useEffect, useState } from "react";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { LiveCardPreview } from "@/components/LiveCardPreview";
+import { useT } from "@/components/LocaleProvider";
+import { tmpl } from "@/lib/i18n/dict";
 import {
   COFFEE_CHAT_KINDS,
   type CoffeeChatKind,
@@ -37,12 +39,12 @@ function deriveDisplayName(handle: string): string {
     .join(" ");
 }
 
-const KIND_LABELS: Record<CoffeeChatKind, { emoji: string; label: string }> = {
-  coffee: { emoji: "☕", label: "Coffee" },
-  cowork: { emoji: "💻", label: "Cowork" },
-  dinner: { emoji: "🍜", label: "Dinner" },
-  hike: { emoji: "🥾", label: "Hike" },
-  work_talk: { emoji: "💼", label: "Work talk" },
+const KIND_EMOJI: Record<CoffeeChatKind, string> = {
+  coffee: "☕",
+  cowork: "💻",
+  dinner: "🍜",
+  hike: "🥾",
+  work_talk: "💼",
 };
 
 export function ProfileForm({
@@ -52,6 +54,7 @@ export function ProfileForm({
   profile: MyProfile;
   after?: string;
 }) {
+  const t = useT();
   const [state, action, pending] = useActionState(updateProfile, INITIAL);
   const errs = state.fieldErrors ?? {};
   const isAutoHandle = AUTO_HANDLE.test(profile.handle);
@@ -134,22 +137,27 @@ export function ProfileForm({
   // format issues. `available` and `yours` are positive states; they
   // ride the hint slot with a checkmark.
   const handleHint = (() => {
-    if (handleCheck === "checking") return "Checking…";
+    if (handleCheck === "checking") return t("profile.field.handle.checking");
     if (result?.status === "available")
-      return `Available ✓ · acoffee.com/${handle.trim().toLowerCase()}`;
-    if (result?.status === "yours") return "That's your current handle.";
-    if (isAutoHandle) {
-      return "Currently auto-assigned · 3–20 chars · a–z, 0–9, _";
-    }
-    return "3–20 chars · a–z, 0–9, _";
+      return tmpl(t("profile.field.handle.available"), {
+        handle: handle.trim().toLowerCase(),
+      });
+    if (result?.status === "yours") return t("profile.field.handle.yours");
+    if (isAutoHandle) return t("profile.field.handle.hint.auto");
+    return t("profile.field.handle.hint.normal");
   })();
+  // Server's `invalid` carries an English reason string from the action.
+  // Map the most common ones to dict keys; fall back to whatever the
+  // server sent for anything unanticipated.
   const handleErrorOverride = (() => {
-    if (result?.status === "taken")
-      return "That handle is taken — try another.";
-    if (result?.status === "reserved")
-      return "That handle is reserved — try another.";
-    if (result?.status === "invalid" && handle.trim() !== "")
-      return result.reason;
+    if (result?.status === "taken") return t("profile.field.handle.taken");
+    if (result?.status === "reserved") return t("profile.field.handle.reserved");
+    if (result?.status === "invalid" && handle.trim() !== "") {
+      const r = result.reason;
+      if (r.includes("3 characters")) return t("profile.field.handle.tooShort");
+      if (r.includes("Lowercase")) return t("profile.field.handle.badFormat");
+      return r;
+    }
     return undefined;
   })();
 
@@ -165,7 +173,7 @@ export function ProfileForm({
           on desktop CSS order flips it to the right column. */}
       <aside className="order-1 flex flex-col gap-3 lg:order-2 lg:sticky lg:top-6">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
-          Live preview
+          {t("profile.preview.label")}
         </p>
         <LiveCardPreview
           handle={handle}
@@ -176,11 +184,11 @@ export function ProfileForm({
           hasContact={hasContact}
         />
         <p className="text-xs text-muted">
-          Updates as you type. This is what visitors see at{" "}
+          {t("profile.preview.updates.pre")}
           <span className="font-mono text-ink/80">
             acoffee.com/{(handle.trim() || "{handle}")}
           </span>
-          .
+          {t("profile.preview.updates.post")}
         </p>
       </aside>
 
@@ -189,7 +197,7 @@ export function ProfileForm({
 
         <fieldset className="flex flex-col gap-5 border-none p-0">
           <legend className="text-xs font-medium uppercase tracking-wide text-accent">
-            Identity
+            {t("profile.identity.legend")}
           </legend>
           <AvatarUpload
             userId={profile.id}
@@ -199,41 +207,44 @@ export function ProfileForm({
             onChange={setAvatarUrl}
           />
           <Field
-            label="Handle"
+            label={t("profile.field.handle.label")}
             name="handle"
             value={handle}
             onValueChange={setHandle}
-            placeholder={isAutoHandle ? "pick one · e.g. alex_nomad" : undefined}
+            placeholder={
+              isAutoHandle
+                ? t("profile.field.handle.placeholder")
+                : undefined
+            }
             hint={handleHint}
             error={handleErrorOverride ?? errs.handle}
             required
           />
           <Field
-            label="City"
+            label={t("profile.field.city.label")}
             name="city"
             value={city}
             onValueChange={setCity}
-            placeholder="Chiang Mai"
-            hint="Where you want to be found — leave blank if you're between cities"
+            placeholder={t("profile.field.city.placeholder")}
+            hint={t("profile.field.city.hint")}
             error={errs.city}
           />
           <FieldArea
-            label="Status"
+            label={t("profile.field.status.label")}
             name="bio"
             value={bio}
             onValueChange={setBio}
-            hint="One line · what you're doing, what you're up for"
+            hint={t("profile.field.status.hint")}
             error={errs.bio}
           />
         </fieldset>
 
         <fieldset className="flex flex-col gap-3 border-none p-0">
           <legend className="text-xs font-medium uppercase tracking-wide text-accent">
-            What you&apos;re up for
+            {t("profile.upFor.legend")}
           </legend>
           <div className="flex flex-wrap gap-2">
             {COFFEE_CHAT_KINDS.map((k) => {
-              const meta = KIND_LABELS[k];
               const active = selectedKinds.has(k);
               return (
                 <label
@@ -259,47 +270,45 @@ export function ProfileForm({
                     }}
                     className="sr-only"
                   />
-                  <span aria-hidden>{meta.emoji}</span>
-                  <span>{meta.label}</span>
+                  <span aria-hidden>{KIND_EMOJI[k]}</span>
+                  <span>{t(`profile.kind.${k}` as const)}</span>
                 </label>
               );
             })}
           </div>
-          <p className="text-sm text-muted">
-            Pick any — they show up as chips on your public card.
-          </p>
+          <p className="text-sm text-muted">{t("profile.upFor.hint")}</p>
         </fieldset>
 
         <fieldset className="flex flex-col gap-5 border-none p-0">
           <legend className="text-xs font-medium uppercase tracking-wide text-accent">
-            Contact · revealed only after invite
+            {t("profile.contact.legend")}
           </legend>
           <Field
-            label="Telegram"
+            label={t("profile.field.telegram.label")}
             name="telegramHandle"
             value={telegram}
             onValueChange={setTelegram}
-            placeholder="@yourhandle"
-            hint="Recommended · 5–32 letters/digits/_, no spaces"
+            placeholder={t("profile.field.telegram.placeholder")}
+            hint={t("profile.field.telegram.hint")}
             error={errs.telegramHandle}
           />
           <Field
-            label="WhatsApp"
+            label={t("profile.field.whatsapp.label")}
             name="whatsappNumber"
             value={whatsapp}
             onValueChange={setWhatsapp}
-            placeholder="+66812345678"
-            hint="Recommended · include country code with +"
+            placeholder={t("profile.field.whatsapp.placeholder")}
+            hint={t("profile.field.whatsapp.hint")}
             error={errs.whatsappNumber}
           />
           <Field
-            label="Email"
+            label={t("profile.field.email.label")}
             name="emailContact"
             type="email"
             value={emailContact}
             onValueChange={setEmailContact}
-            placeholder="you@example.com"
-            hint="Optional · a public contact email — can differ from sign-in"
+            placeholder={t("profile.field.email.placeholder")}
+            hint={t("profile.field.email.hint")}
             error={errs.emailContact}
           />
         </fieldset>
@@ -310,7 +319,11 @@ export function ProfileForm({
             disabled={pending}
             className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
           >
-            {pending ? "Saving…" : after ? "Save & continue →" : "Save"}
+            {pending
+              ? t("profile.save.pending")
+              : after
+                ? `${t("profile.save.continue")} →`
+                : t("profile.save")}
           </button>
           {state.status === "saved" && (
             <span className="text-sm font-medium text-accent">
