@@ -21,7 +21,11 @@ export function CardSharePanel({
   origin: string;
 }) {
   const url = `${origin}/${handle}`;
-  const displayUrl = url.replace(/^https?:\/\//, "");
+  // Show the bare-domain form for visual cleanliness even though the
+  // origin DNS keeps `www.` as canonical — modern share UIs do this. The
+  // Copy button still copies the actual URL with scheme + www. so DNS
+  // can do its 301 cleanly without an extra hop bug.
+  const displayUrl = url.replace(/^https?:\/\/(www\.)?/, "");
   const [copied, setCopied] = useState(false);
 
   async function copyUrl() {

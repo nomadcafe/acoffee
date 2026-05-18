@@ -87,6 +87,17 @@ export default async function ProfilePage({
   // via a stale link or the signin → next redirect.
   const isOnboarding = onboarding === "1" && !hasRealHandle;
 
+  // Only show the share panel once the card is worth sharing — real
+  // handle + at least one contact channel + a bio. Anything less and
+  // we'd be prompting the user to broadcast a skeleton page that
+  // visitors can't even invite from.
+  const hasContact = !!(
+    profile.telegramHandle ||
+    profile.whatsappNumber ||
+    profile.emailContact
+  );
+  const isPublishable = hasRealHandle && !!profile.bio && hasContact;
+
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-10 sm:px-6 sm:py-14">
       <header className="flex flex-col gap-2">
@@ -105,7 +116,7 @@ export default async function ProfilePage({
         </p>
       </header>
 
-      {hasRealHandle && !isOnboarding && (
+      {isPublishable && !isOnboarding && (
         <CardSharePanel handle={profile.handle} origin={siteUrl} />
       )}
 

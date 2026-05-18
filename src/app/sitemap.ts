@@ -26,6 +26,12 @@ const SHADOWED_HANDLES = new Set([
   "privacy",
 ]);
 
+// Trigger-generated handles (`user_<8 hex>`) are skeleton accounts that
+// haven't finished onboarding — Google indexing them creates ghost
+// pages with "No status yet." which hurts both the user's reputation
+// and the site's perceived liveness in search.
+const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const cards = await fetchPublishedCards();
@@ -66,18 +72,37 @@ async function fetchPublishedCards(): Promise<IndexableCard[]> {
   if (!isAuthConfigured()) return [];
   try {
     const supabase = await createSupabaseServer();
+    // Pull bio + city + contact channels so we can skip cards that have
+    // no real content — auto-generated handles plus first-time users who
+    // never filled anything past sign-in. Letting those into Google's
+    // index is worse than a smaller sitemap.
     const { data, error } = await supabase
       .from("profiles")
-      .select("handle, created_at")
+      .select(
+        "handle, bio, city, telegram_handle, whatsapp_number, email_contact, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(MAX_CARDS);
     if (error) return [];
     return (data ?? [])
+      .filter((r) => {
+        const handle = (r.handle as string).toLowerCase();
+        if (SHADOWED_HANDLES.has(handle)) return false;
+        if (AUTO_HANDLE.test(handle)) return false;
+        // Require at least *some* substance — a bio (status line) or a
+        // city, AND at least one contact channel. Pure-handle skeletons
+        // get filtered out.
+        const hasSubstance = !!(r.bio || r.city);
+        const hasContact =
+          !!r.telegram_handle ||
+          !!r.whatsapp_number ||
+          !!r.email_contact;
+        return hasSubstance && hasContact;
+      })
       .map((r) => ({
         handle: r.handle as string,
         createdAt: r.created_at as string,
-      }))
-      .filter((c) => !SHADOWED_HANDLES.has(c.handle.toLowerCase()));
+      }));
   } catch {
     return [];
   }
