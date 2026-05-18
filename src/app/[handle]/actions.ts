@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { emailNewInvite } from "@/lib/email";
+import { emailInviteReceived, emailNewInvite } from "@/lib/email";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { createSupabaseAdmin, isAuthConfigured } from "@/lib/supabase/server";
 import { INVITE_MODES } from "@/lib/types";
@@ -52,6 +52,16 @@ function trimOrUndefined(v: FormDataEntryValue | null): string | undefined {
   if (typeof v !== "string") return undefined;
   const t = v.trim();
   return t === "" ? undefined : t;
+}
+
+// "alex_nomad" → "Alex Nomad". Same derivation /[handle]/page.tsx +
+// SiteNav use — inline because cross-importing a one-liner is overkill.
+function deriveDisplayName(handle: string): string {
+  return handle
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(" ");
 }
 
 export async function createInvite(
@@ -144,6 +154,7 @@ export async function createInvite(
 
   // Fire-and-forget — never block the visitor on Resend latency. Failures
   // land in Vercel logs via the email helper's catch.
+  const hostDisplayName = deriveDisplayName(hostHandle);
   if (hostNotifyEmail) {
     await emailNewInvite({
       to: hostNotifyEmail,
@@ -155,6 +166,17 @@ export async function createInvite(
       preferredTime: parsed.data.preferredTime ?? null,
     });
   }
+
+  // Confirmation to the visitor — closes the loop ("we got your invite,
+  // they'll reply or it expires in 7d"). Bonus: bad-email bounces show
+  // up here instead of later when the host tries to send the contact
+  // reveal to a typo.
+  await emailInviteReceived({
+    to: parsed.data.requesterEmail,
+    requesterName: parsed.data.requesterName,
+    hostDisplayName,
+    hostHandle,
+  });
 
   // Revalidate the host's profile so the new pending invite shows up in
   // their inbox on next visit. Tag-style invalidation would be cleaner

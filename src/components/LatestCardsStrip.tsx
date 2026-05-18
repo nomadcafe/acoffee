@@ -19,12 +19,15 @@ export function LatestCardsStrip({ cards }: { cards: LatestCard[] }) {
           Folks who joined this week.
         </h2>
       </div>
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="flex flex-wrap gap-4">
         {cards.map((c) => (
-          <li key={c.handle}>
+          <li
+            key={c.handle}
+            className="flex w-full min-w-0 sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.667rem)]"
+          >
             <Link
               href={`/${c.handle}`}
-              className="group flex h-full flex-col gap-3 rounded-3xl border border-bean bg-surface p-5 shadow-[0_8px_24px_-18px_rgba(42,31,24,0.25)] transition-shadow hover:border-accent/60 hover:shadow-[0_16px_36px_-22px_rgba(42,31,24,0.35)]"
+              className="group flex w-full flex-col gap-3 rounded-3xl border border-bean bg-surface p-5 shadow-[0_8px_24px_-18px_rgba(42,31,24,0.25)] transition-shadow hover:border-accent/60 hover:shadow-[0_16px_36px_-22px_rgba(42,31,24,0.35)]"
             >
               <div className="flex items-center gap-3">
                 <Avatar

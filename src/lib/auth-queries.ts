@@ -137,11 +137,40 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []).map((r) => {
+  const rows = data ?? [];
+
+  // Sweep on read: any pending-past-expiry row we just surfaced gets
+  // updated in the background so the DB column matches what we showed
+  // the user. Idempotent — re-running the WHERE clause would match
+  // nothing because the rows are no longer pending. RLS lets the host
+  // update their own rows (invites_update_own). Fire-and-forget; an
+  // error here just means the next read will retry the sweep.
+  const staleIds = rows
+    .filter(
+      (r) =>
+        r.status === "pending" &&
+        new Date(r.expires_at as string) < new Date(),
+    )
+    .map((r) => r.id as string);
+  if (staleIds.length > 0) {
+    void supabase
+      .from("invites")
+      .update({ status: "expired" })
+      .in("id", staleIds)
+      .then(({ error: sweepErr }) => {
+        if (sweepErr) {
+          console.warn(
+            "[getMyInviteHistory] sweep failed (non-fatal)",
+            sweepErr,
+          );
+        }
+      });
+  }
+
+  return rows.map((r) => {
     const base = rowToInvite(r);
     // Surface pending-but-past-expiry rows as `expired` in the typed
-    // shape — the DB column may not have been swept yet (no cron in
-    // v0.8) but the UI should treat them as terminal.
+    // shape even before the background sweep lands.
     if (
       base.status === "pending" &&
       new Date(base.expiresAt) < new Date()

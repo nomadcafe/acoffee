@@ -55,29 +55,65 @@ export async function emailWelcome(args: {
   handle: string;
 }) {
   const cardUrl = `${siteUrl}/${args.handle}`;
-  const profileUrl = `${siteUrl}/profile`;
+  const tweetText = `My coffee chat page is live — invite me for a coffee ☕`;
+  const tweetHref =
+    `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}` +
+    `&url=${encodeURIComponent(cardUrl)}`;
   await sendEmail({
     to: args.to,
     subject: `Welcome, @${args.handle} · your acoffee card is live`,
     text:
       `Welcome to ${siteName}, @${args.handle}.\n\n` +
-      `Your card is now live at ${cardUrl}.\n\n` +
-      `Two quick things to do:\n\n` +
-      `1. Fill the card — city, a one-line status, what you're up for: ${profileUrl}\n` +
-      `2. Share the link in a Slack, a tweet, or DM to a friend in your next city.\n\n` +
-      `When someone clicks "Invite for coffee", they get your contact channels.\n\n— ${siteName}`,
+      `Your card is live at ${cardUrl}.\n\n` +
+      `Now the only thing standing between you and a coffee chat is your card sitting somewhere people can see it. Two clicks:\n\n` +
+      `1. See your card: ${cardUrl}\n` +
+      `2. Share to X with one tap: ${tweetHref}\n` +
+      `   (composes a tweet that says "My coffee chat page is live — invite me for a coffee ☕" linked to your card)\n\n` +
+      `Put the URL in your X / Twitter bio, your Slack signature, your email footer — wherever people who already know you scroll past every day. The first invites usually come from your existing graph.\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:16px;margin:0 0 18px">Welcome to <strong>${siteName}</strong>, <strong>@${args.handle}</strong>.</p>
-<p style="font-size:14px;color:#555;margin:0 0 12px">Your card is now live:</p>
-<p style="font-size:15px;margin:0 0 18px"><a href="${cardUrl}" style="color:#b45309;font-weight:500">${cardUrl} &rarr;</a></p>
-<p style="font-size:14px;color:#555;margin:0 0 12px">Two quick things to do:</p>
-<ol style="font-size:14px;padding-left:20px;margin:0 0 24px">
-  <li style="margin-bottom:8px">Fill the card &mdash; city, a one-line status, what you're up for &mdash; <a href="${profileUrl}" style="color:#b45309">edit your card &rarr;</a></li>
-  <li style="margin-bottom:8px">Share the link in a Slack, a tweet, or DM to a friend in your next city.</li>
-</ol>
-<p style="margin:0 0 28px"><a href="${cardUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">See my card &rarr;</a></p>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You're receiving this because you just signed up.</p>
+<p style="font-size:16px;margin:0 0 14px">Welcome to <strong>${siteName}</strong>, <strong>@${args.handle}</strong>.</p>
+<p style="font-size:15px;margin:0 0 16px">Your card is live at <a href="${cardUrl}" style="color:#b45309;font-weight:500">${cardUrl}</a>.</p>
+<p style="font-size:14px;color:#555;margin:0 0 18px">Now the only thing between you and a coffee chat is your card sitting somewhere people can see it. Two clicks:</p>
+<p style="margin:0 0 12px"><a href="${cardUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">See my card &rarr;</a></p>
+<p style="margin:0 0 24px"><a href="${tweetHref}" style="display:inline-block;background:#fff;color:#1a1a1a;border:1px solid #ddd;padding:9px 17px;border-radius:14px;text-decoration:none;font-weight:500">Share to X &nearr;</a></p>
+<p style="font-size:13px;color:#666;margin:0 0 18px">The Share button composes a tweet that says <em>"My coffee chat page is live — invite me for a coffee ☕"</em> linked to your card. Edit before posting if you want.</p>
+<p style="font-size:13px;color:#666;margin:0 0 8px">Other places that work:</p>
+<ul style="font-size:13px;color:#666;padding-left:20px;margin:0 0 24px">
+  <li style="margin-bottom:4px">Your X / Twitter bio (literally one line)</li>
+  <li style="margin-bottom:4px">Slack signature for the workspaces you&apos;re in</li>
+  <li style="margin-bottom:4px">Email footer</li>
+</ul>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You&apos;re receiving this because you just signed up. First invites usually come from your existing graph, so the more places the link sits, the better.</p>
+</body></html>`,
+  });
+}
+
+// Sent to the visitor right after they submit the invite form on /[handle].
+// Closes the loop ("we got it") and primes them on the 7-day expectation —
+// otherwise a slow host means the visitor wonders if anything happened. A
+// bonus: bad emails bounce here, so we don't waste the host's time later.
+export async function emailInviteReceived(args: {
+  to: string;
+  requesterName: string;
+  hostDisplayName: string;
+  hostHandle: string;
+}) {
+  const cardUrl = `${siteUrl}/${args.hostHandle}`;
+  await sendEmail({
+    to: args.to,
+    subject: `We sent your coffee invite to ${args.hostDisplayName}`,
+    text:
+      `Hi ${args.requesterName},\n\n` +
+      `Your invite to ${args.hostDisplayName} is in their inbox. They'll either accept (you'll get an email with their contact channels) or decline (you'll get a polite note). Either way you'll hear back; if not, the invite expires after 7 days.\n\n` +
+      `Their card: ${cardUrl}\n\n— ${siteName}`,
+    html: `<!doctype html>
+<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
+<p style="font-size:15px;margin:0 0 14px">Hi ${escapeHtml(args.requesterName)},</p>
+<p style="font-size:15px;margin:0 0 14px">Your invite to <strong>${escapeHtml(args.hostDisplayName)}</strong> is in their inbox.</p>
+<p style="font-size:14px;color:#555;margin:0 0 18px">They&apos;ll either accept — you&apos;ll get an email with their contact channels — or decline, in which case you&apos;ll get a polite note. Either way you&apos;ll hear back; if not, the invite expires after 7 days.</p>
+<p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">See their card &rarr;</a></p>
+<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; You&apos;re receiving this because you filled the invite form on ${escapeHtml(args.hostDisplayName)}&apos;s card.</p>
 </body></html>`,
   });
 }
