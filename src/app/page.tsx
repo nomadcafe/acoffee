@@ -140,26 +140,15 @@ export default function Home() {
         </ol>
       </section>
 
-      <footer className="mx-auto w-full max-w-5xl px-4 pb-12 pt-12 sm:px-6">
-        <div className="flex flex-col gap-3 border-t border-bean pt-6">
+      <section className="mx-auto w-full max-w-5xl px-4 pb-12 pt-8 sm:px-6">
+        <div className="border-t border-bean pt-6">
           <p className="font-serif text-base italic text-ink/85">
-            Made between cafés. If you&apos;re reading this from a new city,
-            welcome — make a card so the next person doesn&apos;t feel so
-            alone.
-          </p>
-          <p className="font-mono text-[11px] uppercase tracking-widest text-muted">
-            acoffee ·{" "}
-            <a
-              className="underline-offset-2 hover:text-accent hover:underline"
-              href="https://github.com/nomadcafe/acoffee"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Open source
-            </a>
+            Made between cafés. If you&apos;re reading this from a new
+            city, welcome — make a card so the next person doesn&apos;t
+            feel so alone.
           </p>
         </div>
-      </footer>
+      </section>
     </main>
   );
 }

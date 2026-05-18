@@ -3,6 +3,7 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { OnboardingBanner } from "@/components/OnboardingBanner";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteNav } from "@/components/SiteNav";
 import {
   siteDescription,
@@ -68,10 +69,11 @@ export default function RootLayout({
       lang="en"
       className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-page text-ink">
+      <body className="flex min-h-full flex-col bg-page text-ink">
         <OnboardingBanner />
         <SiteNav />
-        {children}
+        <div className="flex flex-1 flex-col">{children}</div>
+        <SiteFooter />
         {gaId && <GoogleAnalytics gaId={gaId} />}
       </body>
     </html>
