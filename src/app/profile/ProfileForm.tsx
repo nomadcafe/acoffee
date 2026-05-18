@@ -38,11 +38,11 @@ export function ProfileForm({
   );
 
   return (
-    <form action={action} className="flex flex-col gap-7">
+    <form action={action} className="flex flex-col gap-8">
       {after && <input type="hidden" name="after" value={after} />}
 
       <fieldset className="flex flex-col gap-5 border-none p-0">
-        <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
+        <legend className="text-xs font-medium uppercase tracking-wide text-accent">
           Identity
         </legend>
         <Field
@@ -76,7 +76,7 @@ export function ProfileForm({
       </fieldset>
 
       <fieldset className="flex flex-col gap-3 border-none p-0">
-        <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
+        <legend className="text-xs font-medium uppercase tracking-wide text-accent">
           What you&apos;re up for
         </legend>
         <div className="flex flex-wrap gap-2">
@@ -86,10 +86,10 @@ export function ProfileForm({
             return (
               <label
                 key={k}
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
                   active
-                    ? "border-accent bg-accent-soft text-accent"
-                    : "border-bean bg-surface text-ink/85 hover:border-accent/60"
+                    ? "border-accent bg-accent text-page shadow-sm"
+                    : "border-bean bg-surface text-ink/80 hover:border-accent/60 hover:text-accent"
                 }`}
               >
                 <input
@@ -113,13 +113,13 @@ export function ProfileForm({
             );
           })}
         </div>
-        <p className="text-xs text-muted">
-          Pick any. Shown as chips on your public card.
+        <p className="text-sm text-muted">
+          Pick any — they show up as chips on your public card.
         </p>
       </fieldset>
 
       <fieldset className="flex flex-col gap-5 border-none p-0">
-        <legend className="font-mono text-[11px] uppercase tracking-widest text-muted">
+        <legend className="text-xs font-medium uppercase tracking-wide text-accent">
           Contact · revealed only after invite
         </legend>
         <Field
@@ -149,16 +149,16 @@ export function ProfileForm({
         />
       </fieldset>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
           {pending ? "Saving…" : after ? "Save & continue →" : "Save"}
         </button>
         {state.status === "saved" && (
-          <span className="text-sm text-accent">
+          <span className="text-sm font-medium text-accent">
             {state.message}
           </span>
         )}
@@ -192,26 +192,24 @@ function Field({
   required?: boolean;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-ink/85">
-        {label}
-      </span>
+    <label className="flex flex-col gap-2">
+      <span className="text-sm font-medium text-ink/85">{label}</span>
       <input
         name={name}
         type={type ?? "text"}
         defaultValue={defaultValue}
         placeholder={placeholder}
         required={required}
-        className={`rounded-full border bg-surface px-4 py-2 text-sm outline-none focus:border-accent dark:bg-bean/40 ${
+        className={`rounded-2xl border bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 ${
           error
             ? "border-red-400 dark:border-red-500"
             : "border-bean"
         }`}
       />
       {error ? (
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+        <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
       ) : hint ? (
-        <span className="text-xs text-muted">{hint}</span>
+        <span className="text-sm text-muted">{hint}</span>
       ) : null}
     </label>
   );
@@ -231,25 +229,23 @@ function FieldArea({
   error?: string;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-ink/85">
-        {label}
-      </span>
+    <label className="flex flex-col gap-2">
+      <span className="text-sm font-medium text-ink/85">{label}</span>
       <textarea
         name={name}
         defaultValue={defaultValue}
         rows={3}
         maxLength={140}
-        className={`rounded-2xl border bg-surface px-4 py-2 text-sm outline-none focus:border-accent dark:bg-bean/40 ${
+        className={`resize-none rounded-2xl border bg-surface px-4 py-3 text-base leading-[1.5] text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 ${
           error
             ? "border-red-400 dark:border-red-500"
             : "border-bean"
         }`}
       />
       {error ? (
-        <span className="text-xs text-red-600 dark:text-red-400">{error}</span>
+        <span className="text-sm text-red-600 dark:text-red-400">{error}</span>
       ) : hint ? (
-        <span className="text-xs text-muted">{hint}</span>
+        <span className="text-sm text-muted">{hint}</span>
       ) : null}
     </label>
   );
