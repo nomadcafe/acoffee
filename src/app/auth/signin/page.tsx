@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
 import { SignInForm } from "./SignInForm";
 
 export const metadata: Metadata = {
@@ -28,6 +30,21 @@ export default async function SignInPage({
 }) {
   const { next, error, reason, detail } = await searchParams;
   const safe = safeNext(next);
+
+  // If the user is already signed in, the signin form has nothing to do —
+  // shove them straight to `next` (if given), their own card (if a real
+  // handle exists), or /profile as a last resort. Avoids the awkward state
+  // where a logged-in visitor lands here from a stale link or the hero CTA
+  // and still gets shown the "send me a link" form.
+  if (!error) {
+    const session = await getSessionUser();
+    if (session) {
+      if (safe) redirect(safe);
+      const profile = await getMyProfile();
+      if (profile) redirect(`/${profile.handle}`);
+      redirect("/profile");
+    }
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-14 sm:py-20">

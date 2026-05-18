@@ -6,15 +6,13 @@ import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 // route the user to /profile once before letting them in.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
-// Same allow-list as the sign-in form: only same-origin paths. Default
-// lands new users on /chiang-mai (the active city) instead of the home
-// page — they've already seen home if they're signing in, and the city
-// page is where the actual product lives.
-function safeNext(raw: string | null): string {
-  const fallback = "/chiang-mai";
-  if (!raw) return fallback;
-  if (!raw.startsWith("/")) return fallback;
-  if (raw.startsWith("//")) return fallback; // protocol-relative
+// Same allow-list as the sign-in form: only same-origin paths. Returns
+// null for "no valid next" so the callback can fall back to the user's
+// own card page instead of a hard-coded route.
+function safeNext(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/")) return null;
+  if (raw.startsWith("//")) return null; // protocol-relative
   return raw;
 }
 
@@ -61,20 +59,26 @@ export async function GET(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  let userHandle: string | null = null;
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("handle")
       .eq("id", user.id)
       .maybeSingle();
-    const handle = profile?.handle as string | undefined;
-    if (handle && AUTO_HANDLE.test(handle)) {
-      const after = encodeURIComponent(next);
+    userHandle = (profile?.handle as string | undefined) ?? null;
+    if (userHandle && AUTO_HANDLE.test(userHandle)) {
+      // First-time: send to onboarding, remembering where they were
+      // trying to go (their card page by default).
+      const after = encodeURIComponent(next ?? `/${userHandle}`);
       return NextResponse.redirect(
         `${origin}/profile?onboarding=1&after=${after}`,
       );
     }
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  // Returning user (real handle). Honour explicit next, otherwise land
+  // them on their own card so they immediately see what got shared.
+  const destination = next ?? (userHandle ? `/${userHandle}` : "/");
+  return NextResponse.redirect(`${origin}${destination}`);
 }
