@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { signOut } from "@/app/auth/actions";
 import { CardSharePanel } from "@/components/CardSharePanel";
 import { DeleteAccountButton } from "@/components/DeleteAccountButton";
 import { InviteInbox } from "@/components/InviteInbox";
@@ -161,14 +160,6 @@ export default async function ProfilePage({
                 {sessionUser.email ?? "—"}
               </span>
             </p>
-            <form action={signOut} className="self-start">
-              <button
-                type="submit"
-                className="rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
-              >
-                {t(locale, "account.signOut")}
-              </button>
-            </form>
           </section>
 
           <section className="mt-2 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
