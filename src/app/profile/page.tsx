@@ -166,7 +166,7 @@ export default async function ProfilePage({
             <p className="text-xs font-medium uppercase tracking-wide text-red-600 dark:text-red-400">
               Danger zone
             </p>
-            <DeleteAccountButton />
+            <DeleteAccountButton handle={profile.handle} />
           </section>
         </>
       )}

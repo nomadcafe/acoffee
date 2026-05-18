@@ -18,12 +18,34 @@ const MODE_META: Record<InviteMode, { emoji: string; label: string }> = {
 
 const INITIAL: CreateInviteState = { status: "idle" };
 
-export function InviteForm({
+// Outer wrapper carries a reset key — when the user clicks "Send another"
+// after a successful submission we bump the key, which unmounts and
+// remounts the inner form. useActionState resets to INITIAL with the new
+// mount, the controlled FieldArea clears, and the user gets a fresh form
+// without a page navigation. Cheaper than threading reset logic through
+// every controlled input.
+export function InviteForm(props: {
+  hostHandle: string;
+  hostDisplayName: string;
+}) {
+  const [resetCount, setResetCount] = useState(0);
+  return (
+    <InviteFormInner
+      key={resetCount}
+      {...props}
+      onSendAnother={() => setResetCount((n) => n + 1)}
+    />
+  );
+}
+
+function InviteFormInner({
   hostHandle,
   hostDisplayName,
+  onSendAnother,
 }: {
   hostHandle: string;
   hostDisplayName: string;
+  onSendAnother: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(createInvite, INITIAL);
@@ -36,13 +58,20 @@ export function InviteForm({
           Invite sent ✓
         </p>
         <p className="text-sm leading-[1.55] text-ink/80">
-          {hostDisplayName} will get your invite by email. If they
-          accept, their contact channels land in your inbox. If not,
-          you&apos;ll get a polite note either way.
+          {hostDisplayName} will get your invite by email. We just sent
+          you a confirmation too. If they accept, their contact channels
+          land in your inbox; if not, you&apos;ll get a polite note.
         </p>
         <p className="text-xs text-muted">
           Pending invites expire after 7 days.
         </p>
+        <button
+          type="button"
+          onClick={onSendAnother}
+          className="self-start text-sm font-medium text-accent underline-offset-4 hover:underline"
+        >
+          Send another invite to {hostDisplayName} →
+        </button>
       </div>
     );
   }
