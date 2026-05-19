@@ -76,7 +76,8 @@ export async function emailWelcome(args: {
       `  · ${t(args.locale, "email.welcome.place.bio")}\n` +
       `  · ${t(args.locale, "email.welcome.place.slack")}\n` +
       `  · ${t(args.locale, "email.welcome.place.email")}\n\n` +
-      `${t(args.locale, "email.welcome.disclaimer")}\n\n— ${siteName}`,
+      `${t(args.locale, "email.welcome.disclaimer")}\n\n` +
+      `— ${t(args.locale, "email.welcome.signoff")}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
 <p style="font-size:16px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.welcome.h1"), v))}</p>
@@ -91,7 +92,8 @@ export async function emailWelcome(args: {
   <li style="margin-bottom:4px">${escapeHtml(t(args.locale, "email.welcome.place.slack"))}</li>
   <li style="margin-bottom:4px">${escapeHtml(t(args.locale, "email.welcome.place.email"))}</li>
 </ul>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; ${escapeHtml(t(args.locale, "email.welcome.disclaimer"))}</p>
+<p style="font-size:13px;color:#555;margin:0 0 18px">${escapeHtml(t(args.locale, "email.welcome.disclaimer"))}</p>
+<p style="font-size:12px;color:#888;font-style:italic;border-top:1px dashed #ddd;padding-top:16px;margin:0">— ${escapeHtml(t(args.locale, "email.welcome.signoff"))}</p>
 </body></html>`,
   });
 }

@@ -353,21 +353,22 @@ export const en = {
   // (auto handle → real handle). Locale = the host's request locale
   // at the moment they save the form.
   "email.welcome.subject": "Welcome, @{handle} · your acoffee card is live",
-  "email.welcome.h1": "Welcome to acoffee, @{handle}.",
+  "email.welcome.h1": "Hey @{handle} — welcome to acoffee.",
   "email.welcome.cardLive": "Your card is live at {url}.",
   "email.welcome.tagline":
-    "Now the only thing standing between you and a coffee chat is your card sitting somewhere people can see it. Two clicks:",
+    "The card is the whole product — once it's somewhere people can see it, the rest takes care of itself. Two things to do today:",
   "email.welcome.cta.view": "See my card",
   "email.welcome.cta.share": "Share to X",
   "email.welcome.tweetNote":
-    "The Share button composes a tweet that says \"{tweet}\" linked to your card. Edit before posting if you want.",
-  "email.welcome.placesHeader": "Other places that work:",
-  "email.welcome.place.bio": "Your X / Twitter bio (literally one line)",
+    "The Share button composes a tweet (\"{tweet}\") linked to your card — edit before posting if you like.",
+  "email.welcome.placesHeader": "Other places the link works:",
+  "email.welcome.place.bio": "Your X / Twitter bio",
   "email.welcome.place.slack":
-    "Slack signature for the workspaces you're in",
+    "Slack signatures for the workspaces you're already in",
   "email.welcome.place.email": "Email footer",
   "email.welcome.disclaimer":
-    "You're receiving this because you just signed up. First invites usually come from your existing graph, so the more places the link sits, the better.",
+    "First invites usually come from people who already know you. The next one shows up from somewhere unexpected — that's the part I'm hoping for too.",
+  "email.welcome.signoff": "Made between cafés.",
 
   // New-invite email — sent to the host when a visitor submits the
   // invite form. Locale = host's profiles.locale.
@@ -723,21 +724,22 @@ export const zh: Record<DictKey, string> = {
   "email.declined.footer":
     "无需回复。如果情况有变,欢迎你再次联系。",
 
-  "email.welcome.subject": "欢迎,@{handle} · 你的 acoffee 名片已上线",
-  "email.welcome.h1": "欢迎来到 acoffee,@{handle}。",
+  "email.welcome.subject": "欢迎 @{handle} · 你的 acoffee 名片已上线",
+  "email.welcome.h1": "嘿 @{handle} —— 欢迎来到 acoffee。",
   "email.welcome.cardLive": "你的名片已上线: {url}",
   "email.welcome.tagline":
-    "现在你和咖啡邀约之间只差一件事——把名片放在别人能看到的地方。两步:",
+    "名片就是整个产品——它出现在别人看得到的地方，剩下的事会自然发生。今天就两件事:",
   "email.welcome.cta.view": "查看我的名片",
   "email.welcome.cta.share": "分享到 X",
   "email.welcome.tweetNote":
-    "「分享到 X」按钮会预填一条推文「{tweet}」并附上你的名片链接。发送前可以编辑。",
-  "email.welcome.placesHeader": "其他有效的地方:",
-  "email.welcome.place.bio": "X / Twitter 简介(一行就够)",
-  "email.welcome.place.slack": "你所在 Slack 工作区的签名",
+    "「分享到 X」会预填一条推文「{tweet}」附上你的名片链接,发送前你可以改。",
+  "email.welcome.placesHeader": "其他可以贴的地方:",
+  "email.welcome.place.bio": "X / Twitter 简介",
+  "email.welcome.place.slack": "你已经在的 Slack 工作区签名",
   "email.welcome.place.email": "邮件签名",
   "email.welcome.disclaimer":
-    "你收到这封邮件,是因为刚刚注册。第一批邀请通常来自你现有的人脉——所以链接放得越多越好。",
+    "第一批邀请通常来自你已经认识的人。下一个会从你没预料的地方冒出来——那才是我期待的部分。",
+  "email.welcome.signoff": "在咖啡馆之间做的。",
 
   "email.newInvite.subject": "{name} 想要{modePhrase}——关于: {topic}",
   "email.newInvite.modePhrase.online": "线上咖啡聊",
@@ -1097,21 +1099,22 @@ export const ja: Record<DictKey, string> = {
     "返信不要です。状況が変われば、いつでもまた声をかけてください。",
 
   "email.welcome.subject":
-    "ようこそ、@{handle} さん · acoffee カードが公開されました",
-  "email.welcome.h1": "acoffee へようこそ、@{handle} さん。",
+    "ようこそ @{handle} さん · acoffee カードが公開されました",
+  "email.welcome.h1": "@{handle} さん、acoffee へようこそ。",
   "email.welcome.cardLive": "あなたのカードはこちらです: {url}",
   "email.welcome.tagline":
-    "コーヒーの誘いまであと一歩——あとはカードを誰かが見る場所に置くだけ。2 クリックで完了:",
+    "カードがすべて——誰かが見える場所に置けば、あとは自然に動き始める。今日やることは二つ:",
   "email.welcome.cta.view": "自分のカードを見る",
   "email.welcome.cta.share": "X でシェア",
   "email.welcome.tweetNote":
     "「X でシェア」ボタンを押すと「{tweet}」というツイートが下書きされます——投稿前に編集も可能。",
-  "email.welcome.placesHeader": "他にも効く場所:",
-  "email.welcome.place.bio": "X / Twitter のプロフィール(1 行で十分)",
-  "email.welcome.place.slack": "Slack ワークスペースの署名",
+  "email.welcome.placesHeader": "他に貼れる場所:",
+  "email.welcome.place.bio": "X / Twitter のプロフィール",
+  "email.welcome.place.slack": "すでに入っている Slack ワークスペースの署名",
   "email.welcome.place.email": "メールの署名",
   "email.welcome.disclaimer":
-    "登録したばかりなのでこのメールが届いています。最初の招待は既存のつながりから来ることが多いので、リンクは多くの場所に置いておくほど良いです。",
+    "最初の招待は、すでに知っている誰かから来ることが多い。次の招待は、思いがけない場所から——それを私も期待しています。",
+  "email.welcome.signoff": "カフェの合間に作っています。",
 
   "email.newInvite.subject": "{name} さんが{modePhrase} ——「{topic}」",
   "email.newInvite.modePhrase.online": "オンラインのコーヒーチャットを希望",
