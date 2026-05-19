@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -15,8 +16,19 @@ import {
 } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
+import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
+
+// Rate-limit helper for signed-in server actions. Keys on user.id when
+// available (otherwise falls back to IP) so a single signed-in account
+// can't dodge limits by rotating IPs, nor can two users at the same
+// office block each other.
+async function rlKey(scope: string, userId: string | null): Promise<string> {
+  if (userId) return `${scope}:u:${userId}`;
+  const ip = ipFromHeaders(await headers());
+  return `${scope}:ip:${ip}`;
+}
 
 // Narrow Supabase's `unknown` value to our Locale union before passing
 // downstream — keeps the email helpers honest if anyone ever loosens
@@ -222,6 +234,21 @@ export async function updateProfile(
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Sign in to edit your profile." };
 
+  // Per-user rate limit: 10 saves / minute is plenty for normal editing
+  // bursts (typo fixes, social-row adds) and cheap enough to stop a
+  // signed-in client from hammering the row. 60 / hour is the longer
+  // backstop against slow but persistent abuse.
+  const updLimit = checkRateLimit(await rlKey("updateProfile", user.id), [
+    { max: 10, windowMs: 60_000 },
+    { max: 60, windowMs: 60 * 60_000 },
+  ]);
+  if (!updLimit.allowed) {
+    return {
+      status: "error",
+      message: `Slow down — try again in ${updLimit.retryAfterSec}s.`,
+    };
+  }
+
   // Read the previous handle BEFORE the update so we can detect the
   // auto-handle → real-handle transition (= onboarding completion) and
   // fire the welcome email exactly once.
@@ -361,6 +388,25 @@ export async function checkHandleAvailable(
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Tightly cap availability lookups so this action can't be turned into
+  // a handle-enumeration probe. 30 / min is enough for normal typing
+  // (the form debounces keystrokes), and 200 / hour catches slow scans.
+  // Keyed on user.id when signed in so an attacker can't dodge by
+  // rotating IPs from one account.
+  const hcLimit = checkRateLimit(
+    await rlKey("checkHandle", user?.id ?? null),
+    [
+      { max: 30, windowMs: 60_000 },
+      { max: 200, windowMs: 60 * 60_000 },
+    ],
+  );
+  if (!hcLimit.allowed) {
+    return {
+      status: "invalid",
+      reason: `Too many checks — slow down and retry in ${hcLimit.retryAfterSec}s.`,
+    };
+  }
+
   const { data, error } = await supabase
     .from("profiles")
     .select("id")
@@ -405,6 +451,19 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
   } = await supabase.auth.getUser();
   if (!user) {
     return { status: "error", message: "No session — sign in first." };
+  }
+
+  // Hard backstop: nobody legitimately deletes their account more than a
+  // couple of times. Caps a confused or hostile client from churning
+  // service-role delete calls.
+  const delLimit = checkRateLimit(await rlKey("deleteAccount", user.id), [
+    { max: 3, windowMs: 60 * 60_000 },
+  ]);
+  if (!delLimit.allowed) {
+    return {
+      status: "error",
+      message: `Too many delete attempts — try again later.`,
+    };
   }
 
   // Best-effort avatar cleanup. Failure here is loggable but not fatal —
@@ -482,6 +541,20 @@ async function decideInvite(
   } = await supabase.auth.getUser();
   if (!user) {
     return { status: "error", message: "Sign in to manage invites." };
+  }
+
+  // Host inbox decisions are uncommon enough that 30 / minute is way
+  // above legitimate use. This caps a scripted client from racing
+  // through pending invites + firing notification emails to visitors.
+  const decLimit = checkRateLimit(await rlKey("decideInvite", user.id), [
+    { max: 30, windowMs: 60_000 },
+    { max: 120, windowMs: 60 * 60_000 },
+  ]);
+  if (!decLimit.allowed) {
+    return {
+      status: "error",
+      message: `Slow down — try again in ${decLimit.retryAfterSec}s.`,
+    };
   }
 
   // Fetch the invite via RLS-scoped read — the policy already restricts

@@ -43,7 +43,14 @@ export function AvatarUpload({
 
   async function handleFile(file: File) {
     setError(null);
-    if (!file.type.startsWith("image/")) {
+    // file.type comes from the browser, which trusts the OS, which trusts
+    // the file extension. A user can rename `evil.svg` → `evil.svg.jpg`
+    // and the browser will report `image/jpeg`. Read the first few bytes
+    // and match against real PNG/JPEG/WebP/GIF magic numbers instead.
+    // (The canvas re-encode below would defang an SVG anyway, but a real
+    // format check gives a much friendlier error than "createImageBitmap
+    // failed".)
+    if (!(await isSupportedImage(file))) {
       setError(t("avatar.error.notImage"));
       return;
     }
@@ -167,6 +174,54 @@ export function AvatarUpload({
       </div>
     </div>
   );
+}
+
+// Magic-byte check for the four formats we accept. Reads the first 12
+// bytes (enough for WebP's RIFF/WEBP signature, which spans bytes 0-3
+// and 8-11) and matches against:
+//   PNG:  89 50 4E 47 0D 0A 1A 0A
+//   JPEG: FF D8 FF
+//   GIF:  47 49 46 38                 (GIF8 — covers 87a + 89a)
+//   WebP: 52 49 46 46 ?? ?? ?? ?? 57 45 42 50   (RIFF....WEBP)
+// Returns true only for one of the above. Anything else (SVG, HTML
+// disguised as JPEG, MP4, …) gets rejected before we touch the canvas.
+async function isSupportedImage(file: File): Promise<boolean> {
+  if (file.size < 12) return false;
+  const head = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  // PNG
+  if (
+    head[0] === 0x89 &&
+    head[1] === 0x50 &&
+    head[2] === 0x4e &&
+    head[3] === 0x47
+  ) {
+    return true;
+  }
+  // JPEG
+  if (head[0] === 0xff && head[1] === 0xd8 && head[2] === 0xff) return true;
+  // GIF
+  if (
+    head[0] === 0x47 &&
+    head[1] === 0x49 &&
+    head[2] === 0x46 &&
+    head[3] === 0x38
+  ) {
+    return true;
+  }
+  // WebP — RIFF…WEBP
+  if (
+    head[0] === 0x52 &&
+    head[1] === 0x49 &&
+    head[2] === 0x46 &&
+    head[3] === 0x46 &&
+    head[8] === 0x57 &&
+    head[9] === 0x45 &&
+    head[10] === 0x42 &&
+    head[11] === 0x50
+  ) {
+    return true;
+  }
+  return false;
 }
 
 // Centre-crop to a square + downscale to `size` × `size`. Encodes WebP

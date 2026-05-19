@@ -45,6 +45,12 @@ const RESERVED_HANDLES = new Set([
   "en",
 ]);
 
+// Same handle format the profile form + DB CHECK enforce. Used here as a
+// cheap pre-filter so bot probes (`xmlrpc.php`, `wp-login.php`, `.env`,
+// `robots.txt.bak`, etc.) 404 without burning a Supabase round-trip.
+// Mirrors the regex in profile/actions.ts checkHandleAvailable().
+const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
+
 // v0.8 deliberately strips raw contact channels from the public-facing
 // fetch. Visitors no longer receive TG/WA/Email in the page payload —
 // the invite-then-email flow on accept is the only path to those values
@@ -133,6 +139,11 @@ export async function generateMetadata(
   { params }: { params: Promise<{ handle: string }> },
 ): Promise<Metadata> {
   const { handle } = await params;
+  // Same shortcut as HandlePage — skip the DB for obviously-malformed
+  // probe handles so generateMetadata doesn't double the cost.
+  if (!HANDLE_RE.test(handle.toLowerCase())) {
+    return { title: "Card not found · acoffee", robots: { index: false } };
+  }
   const profile = await fetchPublicProfile(handle);
   if (!profile) {
     return { title: "Card not found · acoffee", robots: { index: false } };
@@ -172,7 +183,10 @@ export default async function HandlePage(
   { params }: { params: Promise<{ handle: string }> },
 ) {
   const { handle } = await params;
-  if (RESERVED_HANDLES.has(handle.toLowerCase())) notFound();
+  const lower = handle.toLowerCase();
+  // Reject bot probes (`xmlrpc.php`, `.env`, etc.) before hitting the DB.
+  if (!HANDLE_RE.test(lower)) notFound();
+  if (RESERVED_HANDLES.has(lower)) notFound();
   const profile = await fetchPublicProfile(handle);
   if (!profile) notFound();
 
