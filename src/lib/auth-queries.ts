@@ -225,6 +225,9 @@ export type LatestCard = {
   city: string | null;
   status: string | null;
   avatarUrl: string | null;
+  // Surfaced on the strip as small emoji chips — gives each tile a
+  // hint of personality without crowding the bigger /[handle] card.
+  coffeeChatKinds: CoffeeChatKind[];
 };
 
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
@@ -236,7 +239,7 @@ export async function listLatestCards(limit = 5): Promise<LatestCard[]> {
   // side without coming back short of `limit`.
   const { data, error } = await supabase
     .from("profiles")
-    .select("handle, bio, city, avatar_url, created_at")
+    .select("handle, bio, city, avatar_url, coffee_chat_kinds, created_at")
     .order("created_at", { ascending: false })
     .limit(limit * 3);
   if (error) return [];
@@ -257,6 +260,7 @@ export async function listLatestCards(limit = 5): Promise<LatestCard[]> {
       city: (r.city as string | null) ?? null,
       status: (r.bio as string | null) ?? null,
       avatarUrl: (r.avatar_url as string | null) ?? null,
+      coffeeChatKinds: parseChatKinds(r.coffee_chat_kinds),
     }));
 }
 

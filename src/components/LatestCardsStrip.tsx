@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { KIND_EMOJI } from "@/components/CardBody";
 import type { LatestCard } from "@/lib/auth-queries";
 import { type Locale, t } from "@/lib/i18n/dict";
 
@@ -34,17 +35,17 @@ export function LatestCardsStrip({
           >
             <Link
               href={`/${c.handle}`}
-              className="group flex w-full flex-col gap-3 rounded-3xl border border-bean bg-surface p-5 shadow-[0_8px_24px_-18px_rgba(42,31,24,0.25)] transition-shadow hover:border-accent/60 hover:shadow-[0_16px_36px_-22px_rgba(42,31,24,0.35)]"
+              className="group flex w-full flex-col gap-4 rounded-3xl border border-bean bg-surface p-5 shadow-[0_8px_24px_-18px_rgba(42,31,24,0.25)] transition-all duration-300 hover:-translate-y-1 hover:border-accent/60 hover:shadow-[0_24px_44px_-24px_rgba(42,31,24,0.4)]"
             >
               <div className="flex items-center gap-3">
                 <Avatar
                   handle={c.handle}
                   displayName={c.displayName}
                   src={c.avatarUrl}
-                  size="md"
+                  size="lg"
                 />
                 <div className="flex min-w-0 flex-col">
-                  <p className="truncate text-base font-semibold text-ink group-hover:text-accent">
+                  <p className="truncate text-lg font-semibold leading-tight text-ink group-hover:text-accent">
                     {c.displayName}
                   </p>
                   <p className="truncate text-sm text-muted">
@@ -57,6 +58,22 @@ export function LatestCardsStrip({
                 <p className="line-clamp-3 text-sm leading-[1.5] text-ink/75">
                   {c.status}
                 </p>
+              )}
+              {c.coffeeChatKinds.length > 0 && (
+                // Emoji-only chips so 3-5 kinds still fit one row even
+                // on a narrow column. Labels stay on the full /[handle]
+                // card; the strip is a "glance" surface.
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {c.coffeeChatKinds.map((k) => (
+                    <span
+                      key={k}
+                      aria-label={k}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-accent/15 bg-accent-soft text-base"
+                    >
+                      {KIND_EMOJI[k]}
+                    </span>
+                  ))}
+                </div>
               )}
             </Link>
           </li>

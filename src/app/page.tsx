@@ -181,12 +181,13 @@ export async function HomeView({ locale }: { locale: Locale }) {
         </ol>
       </section>
 
-      {/* Same wrapping pattern as the Why section — gives the latest
-          cards strip its own panel and keeps the rhythm consistent.
-          Guarded so we don't render an empty banded div when there's
-          nothing to show (LatestCardsStrip returns null in that case). */}
+      {/* Latest cards live on a warm accent wash so the bg-surface
+          tiles inside pop forward. The Why section above uses
+          bg-surface (matching the tile colour from CardBody), so
+          alternating to a warmer band here also keeps the page from
+          feeling like one continuous cream. */}
       {latestCards.length > 0 && (
-        <div className="w-full border-y border-bean/40 bg-surface">
+        <div className="w-full border-y border-accent/15 bg-accent-soft/30">
           <LatestCardsStrip cards={latestCards} locale={locale} />
         </div>
       )}
