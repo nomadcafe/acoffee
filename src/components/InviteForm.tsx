@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
 import { useT } from "@/components/LocaleProvider";
+import { trackEvent } from "@/lib/analytics";
 import { tmpl } from "@/lib/i18n/dict";
 import { INVITE_MODES, type InviteMode } from "@/lib/types";
 
@@ -72,6 +73,18 @@ function InviteFormInner({
   // tell them "check this inbox" without us re-deriving it from FormData
   // (it's already wiped by the time we render the result).
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+
+  // Fire the GA4 event once when the action transitions to `sent`.
+  // Effect dependency is state.status — re-runs only on transition, so
+  // the resetCount remount strategy means a second invite from the same
+  // session fires its own event after the form remounts.
+  useEffect(() => {
+    if (state.status === "sent") {
+      trackEvent("invite_sent", {
+        skip_confirm: state.needsConfirm === false,
+      });
+    }
+  }, [state]);
 
   if (state.status === "sent") {
     // Two success shapes: when the visitor is signed in we skip the

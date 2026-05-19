@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { approveInvite, rejectInvite } from "@/app/profile/actions";
 import { useT } from "@/components/LocaleProvider";
+import { trackEvent } from "@/lib/analytics";
 import { tmpl } from "@/lib/i18n/dict";
 import type { Invite } from "@/lib/types";
 
@@ -164,6 +165,12 @@ function PendingRow({ invite }: { invite: Invite }) {
       const action = next === "accepted" ? approveInvite : rejectInvite;
       const result = await action(invite.id);
       if (result.status === "ok") {
+        // Funnel event fires only on confirmed-success — surface inline
+        // errors don't pollute the metric.
+        trackEvent(
+          next === "accepted" ? "invite_accepted" : "invite_declined",
+          { mode: invite.mode },
+        );
         setDecided(next);
         router.refresh();
       } else {

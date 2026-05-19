@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ConfirmEventBeacon } from "@/components/ConfirmEventBeacon";
 import { emailNewInvite } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
@@ -124,25 +125,30 @@ export default async function ConfirmPage({
 function Body({ outcome, locale }: { outcome: Outcome; locale: Locale }) {
   if (outcome.kind === "success") {
     return (
-      <Panel
-        tone="success"
-        title={t(locale, "confirm.success.title")}
-        body={tmpl(t(locale, "confirm.success.body"), {
-          host: outcome.hostDisplayName,
-        })}
-        primary={
-          <Link
-            href={`/${outcome.hostHandle}`}
-            className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
-          >
-            {tmpl(t(locale, "confirm.success.viewCard"), {
-              host: outcome.hostDisplayName,
-            })}
-            <span aria-hidden>→</span>
-          </Link>
-        }
-        backLabel={t(locale, "confirm.backHome")}
-      />
+      <>
+        {/* Client-side mount fires the GA event. Server component path
+            can't talk to gtag directly. */}
+        <ConfirmEventBeacon />
+        <Panel
+          tone="success"
+          title={t(locale, "confirm.success.title")}
+          body={tmpl(t(locale, "confirm.success.body"), {
+            host: outcome.hostDisplayName,
+          })}
+          primary={
+            <Link
+              href={`/${outcome.hostHandle}`}
+              className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
+            >
+              {tmpl(t(locale, "confirm.success.viewCard"), {
+                host: outcome.hostDisplayName,
+              })}
+              <span aria-hidden>→</span>
+            </Link>
+          }
+          backLabel={t(locale, "confirm.backHome")}
+        />
+      </>
     );
   }
 

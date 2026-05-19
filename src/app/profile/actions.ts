@@ -126,12 +126,18 @@ const ProfileSchema = z.object({
 // platform-dependent) but still needs a field-error slot so the form
 // can surface "Instagram: username only — …" inline.
 type ExtraFields = "socialLinks";
+export type ProfileEventName = "signup_completed" | "card_published";
 export type ProfileState = {
   status: "idle" | "saved" | "error";
   message?: string;
   fieldErrors?: Partial<
     Record<keyof z.infer<typeof ProfileSchema> | ExtraFields, string>
   >;
+  // Funnel events for the client to fire post-save. Server detects
+  // transitions (auto-handle → real handle, incomplete → publishable)
+  // and pushes the event names back so the GA bridge doesn't have to
+  // mirror the same diff logic on the client.
+  events?: ProfileEventName[];
 };
 
 function trimOrUndefined(v: FormDataEntryValue | null): string | undefined {
@@ -327,9 +333,12 @@ export async function updateProfile(
   // On onboarding completion (auto → real handle), always send the user to
   // their freshly-claimed card so they see the artefact live with their
   // own avatar + status. The `after` we received from /auth/callback was
-  // keyed on the now-stale auto handle and would 404; ignore it.
+  // keyed on the now-stale auto handle and would 404; ignore it. The
+  // `welcome=1` query param is the GA beacon's signal to fire the
+  // `signup_completed` event; the beacon strips the query so a refresh
+  // doesn't double-count.
   if (isOnboardingCompletion) {
-    redirect(`/${parsed.data.handle}`);
+    redirect(`/${parsed.data.handle}?welcome=1`);
   }
 
   // Returning-user save: honour any explicit `after` (used by other entry

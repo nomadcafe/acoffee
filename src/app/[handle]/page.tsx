@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
 import { InviteForm } from "@/components/InviteForm";
+import { WelcomeBeacon } from "@/components/WelcomeBeacon";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
@@ -217,6 +218,11 @@ export default async function HandlePage(
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
+      {/* Owner-only GA beacon. Fires `signup_completed` when the
+          updateProfile redirect lands here with ?welcome=1 and strips
+          the query. Other visitors don't trigger this since the param
+          is never set on a fresh visit. */}
+      <WelcomeBeacon />
       <p className="text-sm font-medium text-muted">
         <Link href="/" className="hover:text-accent">
           acoffee
