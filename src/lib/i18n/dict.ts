@@ -219,6 +219,12 @@ export const en = {
   "avatar.error.notImage": "Pick an image — JPG, PNG, WebP, or GIF.",
   "avatar.error.tooBig": "Too big — keep it under 8 MB.",
 
+  // OnboardingBanner — keeps nudging the user to pick a real handle as
+  // long as the auto-generated `user_<hex>` one is still in place.
+  "onboarding.banner.text":
+    "You're showing up as {handle} — pick a real handle so others can find you.",
+  "onboarding.banner.cta": "Pick a handle →",
+
   // CardSharePanel
   "share.eyebrow": "Your card is live",
   "share.h2": "Share it — that's how the invites start.",
@@ -572,6 +578,10 @@ export const zh: Record<DictKey, string> = {
   "avatar.error.notImage": "选一张图——JPG、PNG、WebP 或 GIF。",
   "avatar.error.tooBig": "太大了——请小于 8 MB。",
 
+  "onboarding.banner.text":
+    "你现在显示为 {handle} —— 挑一个真正的 handle 让别人能找到你。",
+  "onboarding.banner.cta": "选个 handle →",
+
   "share.eyebrow": "你的名片已上线",
   "share.h2": "分享它——这是邀请开始的地方。",
   "share.copy": "复制",
@@ -901,6 +911,10 @@ export const ja: Record<DictKey, string> = {
   "avatar.error.notImage":
     "画像を選んでください——JPG、PNG、WebP、GIF。",
   "avatar.error.tooBig": "サイズが大きすぎます——8 MB 以下に。",
+
+  "onboarding.banner.text":
+    "現在 {handle} として表示されています — 本物の handle を選んで、他の人に見つけてもらいましょう。",
+  "onboarding.banner.cta": "handle を選ぶ →",
 
   "share.eyebrow": "カードが公開されました",
   "share.h2": "シェアしましょう——招待が始まる場所です。",

@@ -71,9 +71,15 @@ export function SocialsEditor({
         {links.map((link, i) => {
           const meta = PLATFORMS[link.platform];
           return (
+            // Row layout: on mobile (< sm) the input wraps to its own
+            // line because it's w-full, so the first row is just the
+            // icon + select + ✕ button. On sm+ everything sits on one
+            // row (icon · select · input · button) via the sm: order /
+            // width overrides. flex-wrap is what enables the mobile
+            // wrap without breaking the desktop single-row layout.
             <li
               key={i}
-              className="flex items-stretch gap-2 rounded-2xl border border-bean bg-surface p-2"
+              className="flex flex-wrap items-stretch gap-2 rounded-2xl border border-bean bg-surface p-2"
             >
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent">
                 <SocialIcon platform={link.platform} />
@@ -86,7 +92,7 @@ export function SocialsEditor({
                     platform: e.target.value as SocialPlatform,
                   })
                 }
-                className="h-10 shrink-0 rounded-xl border border-bean bg-surface px-2 text-sm text-ink/85 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                className="h-10 flex-1 rounded-xl border border-bean bg-surface px-2 text-base text-ink/85 sm:text-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 sm:w-36 sm:flex-none"
               >
                 {SOCIAL_PLATFORMS.map((p) => (
                   <option key={p} value={p}>
@@ -94,18 +100,11 @@ export function SocialsEditor({
                   </option>
                 ))}
               </select>
-              <input
-                type="text"
-                value={link.value}
-                onChange={(e) => updateRow(i, { value: e.target.value })}
-                placeholder={meta.placeholder}
-                className="h-10 min-w-0 flex-1 rounded-xl border border-bean bg-surface px-3 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/20"
-              />
               <button
                 type="button"
                 onClick={() => removeRow(i)}
                 aria-label={t("profile.socials.remove")}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-muted hover:bg-bean/40 hover:text-accent"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-muted hover:bg-bean/40 hover:text-accent sm:order-last"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -119,6 +118,17 @@ export function SocialsEditor({
                   <path d="M6 6l12 12M18 6L6 18" />
                 </svg>
               </button>
+              {/* Value input. On mobile this wraps to its own row
+                  because of w-full + flex-wrap; on desktop the button
+                  above takes order-last so the input visually sits
+                  between the select and the button. */}
+              <input
+                type="text"
+                value={link.value}
+                onChange={(e) => updateRow(i, { value: e.target.value })}
+                placeholder={meta.placeholder}
+                className="h-10 w-full min-w-0 rounded-xl border border-bean bg-surface px-3 text-base text-ink outline-none sm:text-sm focus:border-accent focus:ring-2 focus:ring-accent/20 sm:w-auto sm:flex-1"
+              />
             </li>
           );
         })}
