@@ -5,7 +5,7 @@ import { CardBody } from "@/components/CardBody";
 import { InviteForm } from "@/components/InviteForm";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
-import { getLocale } from "@/lib/i18n";
+import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
@@ -194,10 +194,11 @@ export default async function HandlePage(
   // Owner detection: if the signed-in viewer's handle matches the page,
   // they get edit affordances instead of the "make your own" CTA, and
   // an "almost there" nudge when the card has no status or contact yet.
-  const [viewer, sessionUser, locale] = await Promise.all([
+  const [viewer, sessionUser, locale, homeHref] = await Promise.all([
     getMyProfile(),
     getSessionUser(),
     getLocale(),
+    currentHomeHref(),
   ]);
   const isOwner = viewer?.handle === profile.handle;
   const isIncomplete = !profile.bio || !profile.hasContact;
@@ -224,7 +225,7 @@ export default async function HandlePage(
           is never set on a fresh visit. */}
       <WelcomeBeacon />
       <p className="text-sm font-medium text-muted">
-        <Link href="/" className="hover:text-accent">
+        <Link href={homeHref} className="hover:text-accent">
           acoffee
         </Link>
         <span className="mx-1.5 text-bean">·</span>

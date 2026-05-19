@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLocale } from "@/lib/i18n";
+import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t } from "@/lib/i18n/dict";
 
 export const metadata: Metadata = {
@@ -11,7 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function NotFound() {
-  const locale = await getLocale();
+  const [locale, homeHref] = await Promise.all([
+    getLocale(),
+    currentHomeHref(),
+  ]);
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-2xl flex-col justify-center gap-6 px-4 py-16 sm:px-6 sm:py-20">
       <p className="text-xs font-medium uppercase tracking-wide text-accent">
@@ -25,7 +28,7 @@ export default async function NotFound() {
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
         <Link
-          href="/"
+          href={homeHref}
           className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
         >
           <span aria-hidden>←</span>

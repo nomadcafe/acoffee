@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ConfirmEventBeacon } from "@/components/ConfirmEventBeacon";
 import { emailNewInvite } from "@/lib/email";
-import { getLocale } from "@/lib/i18n";
+import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { createSupabaseAdmin } from "@/lib/supabase/server";
 import { type InviteMode } from "@/lib/types";
@@ -110,19 +110,28 @@ export default async function ConfirmPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const [outcome, locale] = await Promise.all([
+  const [outcome, locale, homeHref] = await Promise.all([
     processConfirm(token),
     getLocale(),
+    currentHomeHref(),
   ]);
 
   return (
     <main className="mx-auto flex min-h-[70vh] w-full max-w-2xl flex-col justify-center gap-5 px-4 py-16 sm:px-6 sm:py-20">
-      <Body outcome={outcome} locale={locale} />
+      <Body outcome={outcome} locale={locale} homeHref={homeHref} />
     </main>
   );
 }
 
-function Body({ outcome, locale }: { outcome: Outcome; locale: Locale }) {
+function Body({
+  outcome,
+  locale,
+  homeHref,
+}: {
+  outcome: Outcome;
+  locale: Locale;
+  homeHref: string;
+}) {
   if (outcome.kind === "success") {
     return (
       <>
@@ -147,6 +156,7 @@ function Body({ outcome, locale }: { outcome: Outcome; locale: Locale }) {
             </Link>
           }
           backLabel={t(locale, "confirm.backHome")}
+          homeHref={homeHref}
         />
       </>
     );
@@ -161,6 +171,7 @@ function Body({ outcome, locale }: { outcome: Outcome; locale: Locale }) {
           host: outcome.hostDisplayName,
         })}
         backLabel={t(locale, "confirm.backHome")}
+        homeHref={homeHref}
       />
     );
   }
@@ -172,6 +183,7 @@ function Body({ outcome, locale }: { outcome: Outcome; locale: Locale }) {
         title={t(locale, "confirm.expired.title")}
         body={t(locale, "confirm.expired.body")}
         backLabel={t(locale, "confirm.backHome")}
+        homeHref={homeHref}
       />
     );
   }
@@ -182,6 +194,7 @@ function Body({ outcome, locale }: { outcome: Outcome; locale: Locale }) {
       title={t(locale, "confirm.notFound.title")}
       body={t(locale, "confirm.notFound.body")}
       backLabel={t(locale, "confirm.backHome")}
+      homeHref={homeHref}
     />
   );
 }
@@ -192,12 +205,14 @@ function Panel({
   body,
   primary,
   backLabel,
+  homeHref,
 }: {
   tone: "success" | "muted";
   title: string;
   body: string;
   primary?: React.ReactNode;
   backLabel: string;
+  homeHref: string;
 }) {
   return (
     <section
@@ -214,7 +229,7 @@ function Panel({
       <div className="mt-2 flex flex-wrap items-center gap-3">
         {primary}
         <Link
-          href="/"
+          href={homeHref}
           className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
         >
           {backLabel}

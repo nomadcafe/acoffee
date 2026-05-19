@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { countMyPendingInvites } from "@/lib/auth-queries";
-import { getLocale } from "@/lib/i18n";
+import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/UserMenu";
@@ -60,13 +60,16 @@ export async function SiteNav() {
   const [session, pendingCount] = supabaseConfigured
     ? await Promise.all([readSessionProfile(), countMyPendingInvites()])
     : [null, 0];
-  const locale = await getLocale();
+  const [locale, homeHref] = await Promise.all([
+    getLocale(),
+    currentHomeHref(),
+  ]);
 
   return (
     <nav className="relative z-40 border-b border-bean bg-page/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
         <Link
-          href="/"
+          href={homeHref}
           aria-label="aCoffee — home"
           className="inline-flex items-baseline text-lg tracking-tight text-ink hover:opacity-80"
         >
