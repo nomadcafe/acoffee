@@ -3,11 +3,16 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { emailInviteConfirm } from "@/lib/email";
+import { emailInviteConfirm, emailNewInvite } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
+import { type Locale } from "@/lib/i18n/dict";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
-import { createSupabaseAdmin, isAuthConfigured } from "@/lib/supabase/server";
-import { INVITE_MODES } from "@/lib/types";
+import {
+  createSupabaseAdmin,
+  createSupabaseServer,
+  isAuthConfigured,
+} from "@/lib/supabase/server";
+import { INVITE_MODES, type InviteMode } from "@/lib/types";
 
 // Visitor-side action backing the InviteForm on /[handle]. No auth required
 // — visitors don't have accounts. The server is the gateway: validates the
@@ -42,7 +47,11 @@ const InviteSchema = z.object({
 
 export type CreateInviteState =
   | { status: "idle" }
-  | { status: "sent" }
+  // `needsConfirm: false` means the visitor was a signed-in acoffee user
+  // whose auth email matched the submitted email, so we skipped the AA2
+  // confirm round-trip and pushed straight to the host. The form uses
+  // this to render the right success copy.
+  | { status: "sent"; needsConfirm: boolean }
   | {
       status: "error";
       message: string;
@@ -125,6 +134,21 @@ export async function createInvite(
     };
   }
 
+  // Check if the visitor is a signed-in acoffee user whose auth email
+  // matches the email they typed. If so, we trust the address (Supabase
+  // verified it during signup) and skip the AA2 confirm round-trip —
+  // status=pending immediately, host email fires here. Anonymous
+  // visitors still go through the original confirm flow.
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user: visitor },
+  } = await supabase.auth.getUser();
+  const visitorEmail = visitor?.email?.toLowerCase() ?? null;
+  const skipConfirm =
+    !!visitor &&
+    !!visitorEmail &&
+    visitorEmail === parsed.data.requesterEmail.toLowerCase();
+
   // Admin client — bypasses RLS for the host lookup + insert. The public
   // INSERT policy would work too, but going through admin lets us read the
   // host's email + handle in the same query without exposing them in a
@@ -141,15 +165,23 @@ export async function createInvite(
   const hostId = host.id as string;
   const hostHandle = host.handle as string;
 
+  // Block a signed-in user from inviting themselves — silly + would
+  // pollute their own inbox. Anonymous visitors can't trigger this
+  // because we wouldn't know the visitor identity.
+  if (visitor && visitor.id === hostId) {
+    return { status: "error", message: "You can't invite yourself." };
+  }
+
   // Snapshot the visitor's locale on the row — the host's accept/decline
   // happens later and the cookie/header chain is gone by then. Without
   // this, follow-up emails to the visitor would fall back to English
   // even if they submitted in zh/ja.
   const locale = await getLocale();
-  // Random token powering the confirm link emailed to the visitor.
-  // crypto.randomUUID is unguessable enough for this; the unique index
-  // on confirm_token doubles as the lookup path.
-  const confirmToken = crypto.randomUUID();
+  // For the AA2 path: random token powering the confirm link emailed to
+  // the visitor. crypto.randomUUID is unguessable enough; the unique
+  // index on confirm_token doubles as the lookup path. For the
+  // skip-confirm path: null + status='pending' goes straight through.
+  const confirmToken = skipConfirm ? null : crypto.randomUUID();
   const { error: insertErr } = await admin.from("invites").insert({
     host_id: hostId,
     requester_name: parsed.data.requesterName,
@@ -158,8 +190,9 @@ export async function createInvite(
     mode: parsed.data.mode,
     preferred_time: parsed.data.preferredTime ?? null,
     requester_locale: locale,
-    status: "unconfirmed",
+    status: skipConfirm ? "pending" : "unconfirmed",
     confirm_token: confirmToken,
+    confirmed_at: skipConfirm ? new Date().toISOString() : null,
   });
   if (insertErr) {
     return {
@@ -168,25 +201,55 @@ export async function createInvite(
     };
   }
 
-  // AA2 anti-spam: the host is NOT notified here. Visitor must click
-  // the confirm link in this email first; that promotes the row to
-  // `pending` and triggers emailNewInvite to the host. Until they
-  // click, the invite stays invisible to the host — fake emails bounce
-  // here without disturbing anyone.
   const hostDisplayName = deriveDisplayName(hostHandle);
-  await emailInviteConfirm({
-    to: parsed.data.requesterEmail,
-    requesterName: parsed.data.requesterName,
-    hostDisplayName,
-    hostHandle,
-    confirmToken,
-    locale,
-  });
+  if (skipConfirm) {
+    // Signed-in path: fire the host notification immediately. Mirrors
+    // the work the confirm route does after a visitor clicks their
+    // confirm link, just inlined here because there's no link to send.
+    const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
+    const hostNotifyEmail = hostAuth.user?.email ?? null;
+    const { data: hostProfile } = await admin
+      .from("profiles")
+      .select("locale")
+      .eq("id", hostId)
+      .maybeSingle();
+    const hostLocaleRaw = hostProfile?.locale as string | null | undefined;
+    const hostLocale: Locale =
+      hostLocaleRaw === "zh" || hostLocaleRaw === "ja"
+        ? hostLocaleRaw
+        : "en";
+    if (hostNotifyEmail) {
+      await emailNewInvite({
+        to: hostNotifyEmail,
+        hostHandle,
+        requesterName: parsed.data.requesterName,
+        requesterEmail: parsed.data.requesterEmail,
+        requesterTopic: parsed.data.requesterTopic,
+        mode: parsed.data.mode as InviteMode,
+        preferredTime: parsed.data.preferredTime ?? null,
+        locale: hostLocale,
+      });
+    }
+  } else {
+    // AA2 anti-spam: the host is NOT notified here. Visitor must click
+    // the confirm link in this email first; that promotes the row to
+    // `pending` and triggers emailNewInvite to the host. Fake emails
+    // bounce here without disturbing anyone.
+    await emailInviteConfirm({
+      to: parsed.data.requesterEmail,
+      requesterName: parsed.data.requesterName,
+      hostDisplayName,
+      hostHandle,
+      // confirmToken is non-null on the AA2 branch by construction.
+      confirmToken: confirmToken!,
+      locale,
+    });
+  }
 
   // Revalidate the host's profile so the new pending invite shows up in
   // their inbox on next visit. Tag-style invalidation would be cleaner
   // but path-based revalidation is enough at this scale.
   revalidatePath("/profile");
 
-  return { status: "sent" };
+  return { status: "sent", needsConfirm: !skipConfirm };
 }

@@ -47,6 +47,13 @@ export const en = {
   "latest.eyebrow": "Latest cards",
   "latest.h2": "Folks who joined this week.",
 
+  // Home page "Why this exists" — personal narrative section between
+  // the hero and How-it-works. First-person voice; gives the product a
+  // reason instead of just a feature pitch.
+  "home.why.eyebrow": "Why",
+  "home.why.body":
+    "I made acoffee because the people you brush past — at coworking, on a flight, in a group chat — deserve a graceful way to ask for coffee. Not 'add me on LinkedIn'. Not a phone-number trade. Just one link in your bio that says: sure, here's how.",
+
   // Home page signature footer
   "homeFooter.signature":
     "Made between cafés. If you're reading this from a new city, welcome — make a card so the next person doesn't feel so alone.",
@@ -400,6 +407,24 @@ export const en = {
   "invite.sent.check.ttl": "Unconfirmed invites expire after 7 days.",
   "invite.sent.check.sendAnother": "Use a different email →",
 
+  // Signed-in shortcut — visitor was already on acoffee, we skipped
+  // the AA2 confirm round-trip and pushed straight to the host.
+  "invite.sent.direct.title": "Sent",
+  "invite.sent.direct.body":
+    "{name} has your invite. They'll email you back if they accept.",
+
+  // Sign-in nudge on the gate (closed-form state) — invites acoffee
+  // users to sign in for the streamlined path.
+  "invite.gate.signinPrompt": "Already on acoffee?",
+  "invite.gate.signinLink": "Sign in to skip email confirm →",
+  "invite.gate.signedInAs":
+    "Sending as @{handle} · contact unlocks on accept",
+
+  // Banner inside the open form for signed-in visitors.
+  "invite.form.signedIn":
+    "Signed in as @{handle} — invite goes straight through, no email confirm needed.",
+  "invite.form.email.locked": "Using your account email",
+
   // Confirm page — what the visitor sees after clicking the link.
   "confirm.success.title": "Your invite is on its way",
   "confirm.success.body":
@@ -447,6 +472,10 @@ export const zh: Record<DictKey, string> = {
 
   "latest.eyebrow": "最近加入",
   "latest.h2": "本周加入的人。",
+
+  "home.why.eyebrow": "为什么",
+  "home.why.body":
+    "做 acoffee 是因为——你在咖啡馆、在飞机上、在群里擦肩而过的那些有意思的人，应该有一种不尴尬的方式被你约一杯咖啡。不是「加 LinkedIn」，也不是直接要手机号。bio 里挂一个链接就够了：来吧，约喝咖啡，看这里。",
 
   "homeFooter.signature":
     "在咖啡馆之间做的。如果你在一个陌生城市看到这个——欢迎。做张名片，让下一个人不那么孤单。",
@@ -736,6 +765,18 @@ export const zh: Record<DictKey, string> = {
   "invite.sent.check.ttl": "未确认的邀请 7 天后过期。",
   "invite.sent.check.sendAnother": "换一个邮箱 →",
 
+  "invite.sent.direct.title": "已送达",
+  "invite.sent.direct.body": "{name} 已经收到你的邀请。他接受后会邮件回复你。",
+
+  "invite.gate.signinPrompt": "已经是 acoffee 用户?",
+  "invite.gate.signinLink": "登录后免邮箱确认 →",
+  "invite.gate.signedInAs":
+    "以 @{handle} 身份发起 · 被接受后才公开联系方式",
+
+  "invite.form.signedIn":
+    "以 @{handle} 身份发送 — 邀请直接送达，无需邮箱确认。",
+  "invite.form.email.locked": "使用你的账号邮箱",
+
   "confirm.success.title": "邀请正在路上",
   "confirm.success.body":
     "{host} 现在已经收到你的邀请。接受或拒绝时你会收到邮件。",
@@ -779,6 +820,10 @@ export const ja: Record<DictKey, string> = {
 
   "latest.eyebrow": "最近のカード",
   "latest.h2": "今週始めた人たち。",
+
+  "home.why.eyebrow": "なぜ",
+  "home.why.body":
+    "acoffee を作ったのは——コワーキングで、飛行機で、グループチャットですれ違うあの面白い人たちに、気まずくならずにコーヒーを誘える方法があるべきだと思ったから。「LinkedIn 追加して」でもなく、電話番号交換でもなく。bio に一つのリンクがあるだけでいい:いいよ、コーヒー、こうやって聞いて。",
 
   "homeFooter.signature":
     "カフェの合間に作っています。新しい街でこれを読んでいるなら——ようこそ。カードを作って、次にここに来る誰かが孤独にならないようにしよう。",
@@ -1095,6 +1140,19 @@ export const ja: Record<DictKey, string> = {
     "{email} に確認リンクを送りました。クリックすると {name} さんに招待が届きます。クリックするまで相手には何も届きません。",
   "invite.sent.check.ttl": "未確認の招待は 7 日後に期限切れになります。",
   "invite.sent.check.sendAnother": "別のメールアドレスを使う →",
+
+  "invite.sent.direct.title": "送信しました",
+  "invite.sent.direct.body":
+    "{name} さんに招待が届きました。承認されたらメールで返信が来ます。",
+
+  "invite.gate.signinPrompt": "acoffee アカウントをお持ちですか?",
+  "invite.gate.signinLink": "サインインしてメール確認をスキップ →",
+  "invite.gate.signedInAs":
+    "@{handle} として送信 · 承認後に連絡先が公開されます",
+
+  "invite.form.signedIn":
+    "@{handle} として送信 — 招待は直接届きます。メール確認は不要です。",
+  "invite.form.email.locked": "アカウントメールを使用",
 
   "confirm.success.title": "招待を送信しました",
   "confirm.success.body":

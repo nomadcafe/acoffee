@@ -1,10 +1,22 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
 import { useT } from "@/components/LocaleProvider";
 import { tmpl } from "@/lib/i18n/dict";
 import { INVITE_MODES, type InviteMode } from "@/lib/types";
+
+// What /[handle]/page.tsx passes when the viewer is a signed-in
+// acoffee user who isn't the card owner. The presence of this object
+// switches the form into the "skip email confirm" path — auth email
+// is pre-filled and locked, name pre-fills to the viewer's display
+// name, and submission goes straight to the host (no AA2 round-trip).
+export type VisitorSession = {
+  handle: string;
+  displayName: string;
+  email: string;
+};
 
 // Public-facing invite form. Replaces the v0.7 client-side reveal — the
 // host's contact channels are no longer shipped to the browser; visitors
@@ -29,6 +41,7 @@ const INITIAL: CreateInviteState = { status: "idle" };
 export function InviteForm(props: {
   hostHandle: string;
   hostDisplayName: string;
+  visitorSession: VisitorSession | null;
 }) {
   const [resetCount, setResetCount] = useState(0);
   return (
@@ -43,10 +56,12 @@ export function InviteForm(props: {
 function InviteFormInner({
   hostHandle,
   hostDisplayName,
+  visitorSession,
   onSendAnother,
 }: {
   hostHandle: string;
   hostDisplayName: string;
+  visitorSession: VisitorSession | null;
   onSendAnother: () => void;
 }) {
   const t = useT();
@@ -59,18 +74,29 @@ function InviteFormInner({
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
 
   if (state.status === "sent") {
+    // Two success shapes: when the visitor is signed in we skip the
+    // email-confirm round-trip, so the message reads "sent to the host
+    // — they'll reply by email when they accept". Falls back to the
+    // existing AA2 confirm copy for anonymous visitors.
+    const skipConfirm = state.needsConfirm === false;
     return (
       <div className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent-soft/60 p-5">
         <p className="text-base font-semibold text-accent">
-          {t("invite.sent.check.title")}
+          {skipConfirm
+            ? t("invite.sent.direct.title")
+            : t("invite.sent.check.title")}
         </p>
         <p className="text-sm leading-[1.55] text-ink/80">
-          {tmpl(t("invite.sent.check.body"), {
-            name: hostDisplayName,
-            email: submittedEmail ?? "your inbox",
-          })}
+          {skipConfirm
+            ? tmpl(t("invite.sent.direct.body"), { name: hostDisplayName })
+            : tmpl(t("invite.sent.check.body"), {
+                name: hostDisplayName,
+                email: submittedEmail ?? "your inbox",
+              })}
         </p>
-        <p className="text-xs text-muted">{t("invite.sent.check.ttl")}</p>
+        {!skipConfirm && (
+          <p className="text-xs text-muted">{t("invite.sent.check.ttl")}</p>
+        )}
         <button
           type="button"
           onClick={onSendAnother}
@@ -84,16 +110,38 @@ function InviteFormInner({
 
   if (!open) {
     return (
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-muted">{t("invite.gate.text")}</p>
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
-        >
-          {t("invite.gate.cta")}
-          <span aria-hidden>→</span>
-        </button>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted">
+            {visitorSession
+              ? tmpl(t("invite.gate.signedInAs"), {
+                  handle: visitorSession.handle,
+                })
+              : t("invite.gate.text")}
+          </p>
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
+          >
+            {t("invite.gate.cta")}
+            <span aria-hidden>→</span>
+          </button>
+        </div>
+        {!visitorSession && (
+          // Quiet sign-in nudge for acoffee users — clicking goes to
+          // /auth/signin?next=/{thisHandle}, bringing them back here
+          // signed in so the form auto-fills and skips the AA2 confirm.
+          <p className="text-xs text-muted">
+            {t("invite.gate.signinPrompt")}{" "}
+            <Link
+              href={`/auth/signin?next=${encodeURIComponent(`/${hostHandle}`)}`}
+              className="font-medium text-accent underline-offset-4 hover:underline"
+            >
+              {t("invite.gate.signinLink")}
+            </Link>
+          </p>
+        )}
       </div>
     );
   }
@@ -128,21 +176,40 @@ function InviteFormInner({
         </button>
       </div>
 
+      {visitorSession && (
+        // Signed-in banner. Tells the visitor (1) which acoffee
+        // identity they're sending from, (2) that the email confirm
+        // step is skipped. Lives above the form fields so it's seen
+        // before they look at the inputs.
+        <div className="rounded-2xl border border-accent/40 bg-accent-soft/40 px-3 py-2.5 text-xs text-ink/85">
+          {tmpl(t("invite.form.signedIn"), {
+            handle: visitorSession.handle,
+          })}
+        </div>
+      )}
+
       <Field
         label={t("invite.form.name.label")}
         name="requesterName"
         placeholder={t("invite.form.name.placeholder")}
         error={errs.requesterName}
         required
+        defaultValue={visitorSession?.displayName}
       />
       <Field
         label={t("invite.form.email.label")}
         name="requesterEmail"
         type="email"
         placeholder={t("invite.form.email.placeholder")}
-        hint={tmpl(t("invite.form.email.hint"), { name: hostDisplayName })}
+        hint={
+          visitorSession
+            ? t("invite.form.email.locked")
+            : tmpl(t("invite.form.email.hint"), { name: hostDisplayName })
+        }
         error={errs.requesterEmail}
         required
+        defaultValue={visitorSession?.email}
+        readOnly={!!visitorSession}
       />
       <FieldArea
         label={t("invite.form.topic.label")}
@@ -223,6 +290,8 @@ function Field({
   hint,
   error,
   required,
+  defaultValue,
+  readOnly,
 }: {
   label: string;
   name: string;
@@ -231,6 +300,8 @@ function Field({
   hint?: string;
   error?: string;
   required?: boolean;
+  defaultValue?: string;
+  readOnly?: boolean;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -240,7 +311,11 @@ function Field({
         type={type ?? "text"}
         placeholder={placeholder}
         required={required}
-        className={`rounded-2xl border bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 ${
+        defaultValue={defaultValue}
+        readOnly={readOnly}
+        className={`rounded-2xl border px-4 py-3 text-base text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20 ${
+          readOnly ? "bg-bean/30 cursor-not-allowed" : "bg-surface"
+        } ${
           error
             ? "border-red-400 dark:border-red-500"
             : "border-bean"

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
 import { InviteForm } from "@/components/InviteForm";
-import { getMyProfile } from "@/lib/auth-queries";
+import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
@@ -193,10 +193,25 @@ export default async function HandlePage(
   // Owner detection: if the signed-in viewer's handle matches the page,
   // they get edit affordances instead of the "make your own" CTA, and
   // an "almost there" nudge when the card has no status or contact yet.
-  const viewer = await getMyProfile();
+  const [viewer, sessionUser, locale] = await Promise.all([
+    getMyProfile(),
+    getSessionUser(),
+    getLocale(),
+  ]);
   const isOwner = viewer?.handle === profile.handle;
   const isIncomplete = !profile.bio || !profile.hasContact;
-  const locale = await getLocale();
+  // Viewer is a signed-in acoffee user but NOT the card owner — they
+  // qualify for the streamlined invite path (skip email confirm).
+  // Owners viewing their own card don't see a form at all so we don't
+  // need to gate that case here.
+  const visitorSession =
+    sessionUser && viewer && !isOwner
+      ? {
+          handle: viewer.handle,
+          displayName: deriveDisplayName(viewer.handle),
+          email: sessionUser.email ?? "",
+        }
+      : null;
 
   const joinedLabel = formatJoined(profile.joinedAt);
 
@@ -261,6 +276,7 @@ export default async function HandlePage(
             <InviteForm
               hostHandle={profile.handle}
               hostDisplayName={profile.displayName}
+              visitorSession={visitorSession}
             />
           ) : (
             <p className="text-sm text-muted">

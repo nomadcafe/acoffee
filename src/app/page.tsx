@@ -117,6 +117,19 @@ export async function HomeView({ locale }: { locale: Locale }) {
         </div>
       </section>
 
+      {/* "Why this exists" — personal narrative tucked between the hero
+          and How-it-works. Single-column, serif italic, slightly
+          oversized so it reads like a quote rather than body copy.
+          The eyebrow + short body keep it under one screen. */}
+      <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+        <p className="text-sm font-medium uppercase tracking-wide text-accent">
+          {t(locale, "home.why.eyebrow")}
+        </p>
+        <p className="mt-3 font-serif text-2xl italic leading-[1.45] text-ink/85 sm:text-3xl sm:leading-[1.4]">
+          {t(locale, "home.why.body")}
+        </p>
+      </section>
+
       <section
         id="how-it-works"
         className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-4 py-20 sm:px-6 sm:py-24"
