@@ -118,17 +118,20 @@ export async function HomeView({ locale }: { locale: Locale }) {
       </section>
 
       {/* "Why this exists" — personal narrative tucked between the hero
-          and How-it-works. Single-column, serif italic, slightly
-          oversized so it reads like a quote rather than body copy.
-          The eyebrow + short body keep it under one screen. */}
-      <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
-        <p className="text-sm font-medium uppercase tracking-wide text-accent">
-          {t(locale, "home.why.eyebrow")}
-        </p>
-        <p className="mt-3 font-serif text-2xl italic leading-[1.45] text-ink/85 sm:text-3xl sm:leading-[1.4]">
-          {t(locale, "home.why.body")}
-        </p>
-      </section>
+          and How-it-works. Wrapped in a full-width bg-surface band so
+          the page alternates page → surface → page → surface → page
+          from hero down, giving each section a clearer edge instead of
+          one continuous cream wash. */}
+      <div className="w-full border-y border-bean/40 bg-surface">
+        <section className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
+          <p className="text-sm font-medium uppercase tracking-wide text-accent">
+            {t(locale, "home.why.eyebrow")}
+          </p>
+          <p className="mt-3 font-serif text-2xl italic leading-[1.45] text-ink/85 sm:text-3xl sm:leading-[1.4]">
+            {t(locale, "home.why.body")}
+          </p>
+        </section>
+      </div>
 
       <section
         id="how-it-works"
@@ -178,7 +181,15 @@ export async function HomeView({ locale }: { locale: Locale }) {
         </ol>
       </section>
 
-      <LatestCardsStrip cards={latestCards} locale={locale} />
+      {/* Same wrapping pattern as the Why section — gives the latest
+          cards strip its own panel and keeps the rhythm consistent.
+          Guarded so we don't render an empty banded div when there's
+          nothing to show (LatestCardsStrip returns null in that case). */}
+      {latestCards.length > 0 && (
+        <div className="w-full border-y border-bean/40 bg-surface">
+          <LatestCardsStrip cards={latestCards} locale={locale} />
+        </div>
+      )}
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-12 pt-8 sm:px-6">
         <div className="border-t border-bean pt-6">
