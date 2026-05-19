@@ -1,5 +1,6 @@
 import { Avatar } from "./Avatar";
 import { SocialIcon } from "./icons/SocialIcons";
+import { t, type Locale } from "@/lib/i18n/dict";
 import { PLATFORMS } from "@/lib/socials";
 import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 
@@ -10,15 +11,17 @@ import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 // triggers signup on the landing card, expands contact options on the real
 // card). Both are passed in as ReactNodes so this file stays presentational.
 
-export const KIND_META: Record<
-  CoffeeChatKind,
-  { emoji: string; label: string }
-> = {
-  coffee: { emoji: "☕", label: "Coffee" },
-  cowork: { emoji: "💻", label: "Cowork" },
-  dinner: { emoji: "🍜", label: "Dinner" },
-  hike: { emoji: "🥾", label: "Hike" },
-  work_talk: { emoji: "💼", label: "Work talk" },
+// Emoji per chat kind. Labels for each kind live in the dict
+// (profile.kind.* — shared with the form chips), keyed by locale so
+// the card renders 「咖啡」/「コーヒー」/「Coffee」 etc. depending on the
+// caller's locale prop. KIND_META stays exported only as the emoji
+// lookup; label resolution happens inline below.
+export const KIND_EMOJI: Record<CoffeeChatKind, string> = {
+  coffee: "☕",
+  cowork: "💻",
+  dinner: "🍜",
+  hike: "🥾",
+  work_talk: "💼",
 };
 
 export type CardBodyProps = {
@@ -40,11 +43,11 @@ export type CardBodyProps = {
   avatarUrl?: string | null;
   badge?: React.ReactNode;
   footer: React.ReactNode;
-};
-
-const GENDER_LABEL: Record<Gender, string> = {
-  woman: "♀ woman",
-  man: "♂ man",
+  // Required so localised strings (chat kind labels, gender pill, the
+  // "No status yet." fallback) render in the right language. Callers
+  // pass the resolved locale they already have — getLocale() on the
+  // server, useLocale() inside client components.
+  locale: Locale;
 };
 
 export function CardBody({
@@ -59,10 +62,12 @@ export function CardBody({
   avatarUrl,
   badge,
   footer,
+  locale,
 }: CardBodyProps) {
-  const metaParts = [city, locator, gender ? GENDER_LABEL[gender] : null].filter(
-    Boolean,
-  );
+  const genderLabel = gender
+    ? t(locale, `profile.field.gender.opt.${gender}` as const)
+    : null;
+  const metaParts = [city, locator, genderLabel].filter(Boolean);
   // Compose the public URL + tooltip per link using the central
   // platform registry, then render below the chat-kind chips. Skip
   // any malformed row defensively so a stale jsonb can't break paint.
@@ -137,23 +142,20 @@ export function CardBody({
           {status}
         </p>
       ) : (
-        <p className="relative text-sm text-muted">No status yet.</p>
+        <p className="relative text-sm text-muted">{t(locale, "card.noStatus")}</p>
       )}
 
       {kinds.length > 0 && (
         <div className="relative flex flex-wrap gap-2">
-          {kinds.map((k) => {
-            const m = KIND_META[k];
-            return (
-              <span
-                key={k}
-                className="inline-flex items-center gap-1.5 rounded-full border border-accent/15 bg-accent-soft px-3 py-1 text-xs font-medium text-accent"
-              >
-                <span aria-hidden>{m.emoji}</span>
-                {m.label}
-              </span>
-            );
-          })}
+          {kinds.map((k) => (
+            <span
+              key={k}
+              className="inline-flex items-center gap-1.5 rounded-full border border-accent/15 bg-accent-soft px-3 py-1 text-xs font-medium text-accent"
+            >
+              <span aria-hidden>{KIND_EMOJI[k]}</span>
+              {t(locale, `profile.kind.${k}` as const)}
+            </span>
+          ))}
         </div>
       )}
 

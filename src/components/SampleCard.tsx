@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CardBody } from "./CardBody";
+import { t, type Locale } from "@/lib/i18n/dict";
 import type { CoffeeChatKind } from "@/lib/types";
 
 // Magazine-style preview of an acoffee card, used in the home hero so a
@@ -30,9 +31,14 @@ const DEFAULT_SAMPLE: SampleCardData = {
 export function SampleCard({
   data = DEFAULT_SAMPLE,
   ctaHref = "/auth/signin?next=%2Fprofile%3Fonboarding%3D1",
+  locale,
 }: {
   data?: SampleCardData;
   ctaHref?: string;
+  // Required so the badge / footer / CTA strings on the hero card
+  // render in the right language. Home page passes its resolved
+  // locale through.
+  locale: Locale;
 }) {
   return (
     <div className="group relative isolate">
@@ -59,7 +65,7 @@ export function SampleCard({
           <span className="absolute inline-flex h-1.5 w-1.5 animate-ping rounded-full bg-accent/60" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
         </span>
-        Live preview
+        {t(locale, "sample.live")}
       </div>
 
       {/* Card with a slight idle tilt on lg+ so the hero has visual
@@ -76,21 +82,24 @@ export function SampleCard({
           kinds={data.kinds}
           badge={
             <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[10px] font-medium text-accent">
-              Sample
+              {t(locale, "sample.badge")}
             </span>
           }
           footer={
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted">Contact unlocks on invite</p>
+              <p className="text-xs text-muted">
+                {t(locale, "sample.contactUnlock")}
+              </p>
               <Link
                 href={ctaHref}
                 className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
               >
-                Invite for coffee
+                {t(locale, "invite.gate.cta")}
                 <span aria-hidden>→</span>
               </Link>
             </div>
           }
+          locale={locale}
         />
       </div>
     </div>

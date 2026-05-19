@@ -245,6 +245,7 @@ export default async function HandlePage(
         gender={profile.gender}
         socialLinks={profile.socialLinks}
         avatarUrl={profile.avatarUrl}
+        locale={locale}
         footer={
           isOwner ? (
             // Owner self-view: the in-card footer is just a quiet

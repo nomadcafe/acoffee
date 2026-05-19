@@ -90,6 +90,22 @@ export const en = {
   "invite.gate.text": "Contact unlocks on accepted invite",
   "invite.gate.cta": "Invite for coffee",
 
+  // CardBody — meta strings reused across SampleCard / LiveCardPreview / real card
+  "card.noStatus": "No status yet.",
+
+  // SampleCard on the home hero
+  "sample.live": "Live preview",
+  "sample.badge": "Sample",
+  "sample.contactUnlock": "Contact unlocks on invite",
+
+  // LiveCardPreview on /profile
+  "preview.badge": "Preview",
+  "preview.noContact": "Add a contact channel — otherwise no one can invite you",
+
+  // SiteNav signed-out CTA + pending-invite tooltip
+  "nav.signIn": "Sign in",
+  "nav.invitesPending": "{n} pending invite{plural}",
+
   // InviteForm — open form
   "invite.form.title": "Invite {name} for coffee",
   "invite.form.cancel": "Cancel",
@@ -174,6 +190,7 @@ export const en = {
   "profile.field.handle.reserved":
     "That handle is reserved — try another.",
   "profile.field.handle.tooShort": "Needs at least 3 characters.",
+  "profile.field.handle.fallbackName": "Your name",
   "profile.field.handle.badFormat":
     "Lowercase letters, digits, and _ only.",
   "profile.field.city.label": "City",
@@ -465,6 +482,18 @@ export const zh: Record<DictKey, string> = {
   "invite.gate.text": "联系方式将在邀请被接受后通过邮件发给你",
   "invite.gate.cta": "邀请喝咖啡",
 
+  "card.noStatus": "还没填 status。",
+
+  "sample.live": "实时预览",
+  "sample.badge": "样例",
+  "sample.contactUnlock": "联系方式在邀请被接受后才公开",
+
+  "preview.badge": "预览",
+  "preview.noContact": "添加一个联系方式——否则没人能邀请你",
+
+  "nav.signIn": "登录",
+  "nav.invitesPending": "{n} 条待处理邀请",
+
   "invite.form.title": "邀请 {name} 喝咖啡",
   "invite.form.cancel": "取消",
   "invite.form.name.label": "你的名字",
@@ -540,6 +569,7 @@ export const zh: Record<DictKey, string> = {
   "profile.field.handle.taken": "这个 handle 被占了,换一个试试。",
   "profile.field.handle.reserved": "这个 handle 被保留,换一个试试。",
   "profile.field.handle.tooShort": "至少要 3 个字符。",
+  "profile.field.handle.fallbackName": "你的名字",
   "profile.field.handle.badFormat": "只能用小写字母、数字和 _。",
   "profile.field.city.label": "城市",
   "profile.field.city.placeholder": "Chiang Mai",
@@ -788,6 +818,18 @@ export const ja: Record<DictKey, string> = {
   "invite.gate.text": "招待が承認されたらメールで連絡先が届きます",
   "invite.gate.cta": "コーヒーに誘う",
 
+  "card.noStatus": "まだステータスがありません。",
+
+  "sample.live": "ライブプレビュー",
+  "sample.badge": "サンプル",
+  "sample.contactUnlock": "連絡先は招待が承認されたら公開",
+
+  "preview.badge": "プレビュー",
+  "preview.noContact": "連絡先を追加してください — そうでないと誰も招待できません",
+
+  "nav.signIn": "サインイン",
+  "nav.invitesPending": "未処理の招待 {n} 件",
+
   "invite.form.title": "{name} さんをコーヒーに誘う",
   "invite.form.cancel": "キャンセル",
   "invite.form.name.label": "あなたの名前",
@@ -869,6 +911,7 @@ export const ja: Record<DictKey, string> = {
   "profile.field.handle.reserved":
     "この handle は予約されています——別のものをどうぞ。",
   "profile.field.handle.tooShort": "3 文字以上にしてください。",
+  "profile.field.handle.fallbackName": "あなたの名前",
   "profile.field.handle.badFormat":
     "小文字、数字、_ のみ使用できます。",
   "profile.field.city.label": "都市",

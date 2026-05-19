@@ -113,7 +113,7 @@ export async function HomeView({ locale }: { locale: Locale }) {
           </div>
         </div>
         <div className="lg:pt-2">
-          <SampleCard />
+          <SampleCard locale={locale} />
         </div>
       </section>
 

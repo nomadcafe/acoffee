@@ -1,6 +1,7 @@
 "use client";
 
 import { CardBody } from "./CardBody";
+import { useLocale, useT } from "./LocaleProvider";
 import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 
 // Real-time card preview that lives next to ProfileForm. Same CardBody
@@ -12,8 +13,8 @@ import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 // All inputs are kept as plain strings/arrays at this layer so ProfileForm
 // can hand over whatever the controlled inputs currently hold, including
 // half-typed values — no need to debounce or wait for blur.
-function deriveDisplayName(handle: string): string {
-  if (!handle) return "Your name";
+function deriveDisplayName(handle: string, fallback: string): string {
+  if (!handle) return fallback;
   return handle
     .split("_")
     .filter(Boolean)
@@ -40,11 +41,13 @@ export function LiveCardPreview({
   socialLinks?: SocialLink[];
   hasContact: boolean;
 }) {
+  const t = useT();
+  const locale = useLocale();
   const safeHandle = handle.trim() || "your-handle";
   return (
     <CardBody
       handle={safeHandle}
-      displayName={deriveDisplayName(safeHandle)}
+      displayName={deriveDisplayName(safeHandle, t("profile.field.handle.fallbackName"))}
       city={city}
       locator={null}
       status={status}
@@ -52,17 +55,18 @@ export function LiveCardPreview({
       gender={gender}
       socialLinks={socialLinks}
       avatarUrl={avatarUrl}
+      locale={locale}
       badge={
         <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[10px] font-medium text-accent">
-          Preview
+          {t("preview.badge")}
         </span>
       }
       footer={
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted">
             {hasContact
-              ? "Contact unlocks on invite"
-              : "Add a contact channel — otherwise no one can invite you"}
+              ? t("sample.contactUnlock")
+              : t("preview.noContact")}
           </p>
           <span
             aria-hidden
@@ -72,7 +76,7 @@ export function LiveCardPreview({
                 : "bg-bean/60 text-ink/50"
             }`}
           >
-            Invite for coffee
+            {t("invite.gate.cta")}
             <span>→</span>
           </span>
         </div>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { countMyPendingInvites } from "@/lib/auth-queries";
+import { getLocale } from "@/lib/i18n";
+import { t, tmpl } from "@/lib/i18n/dict";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { UserMenu } from "@/components/UserMenu";
 
@@ -58,6 +60,7 @@ export async function SiteNav() {
   const [session, pendingCount] = supabaseConfigured
     ? await Promise.all([readSessionProfile(), countMyPendingInvites()])
     : [null, 0];
+  const locale = await getLocale();
 
   return (
     <nav className="relative z-40 border-b border-bean bg-page/80 backdrop-blur">
@@ -85,13 +88,19 @@ export async function SiteNav() {
             <Link
               href="/profile"
               className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-page shadow-sm hover:bg-accent-hover"
-              title={`${pendingCount} pending invite${pendingCount === 1 ? "" : "s"}`}
+              title={tmpl(t(locale, "nav.invitesPending"), {
+                n: pendingCount,
+                plural: pendingCount === 1 ? "" : "s",
+              })}
             >
               <span className="relative inline-flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-1.5 w-1.5 animate-ping rounded-full bg-page/60" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-page" />
               </span>
-              {pendingCount} invite{pendingCount === 1 ? "" : "s"}
+              {tmpl(t(locale, "nav.invitesPending"), {
+                n: pendingCount,
+                plural: pendingCount === 1 ? "" : "s",
+              })}
             </Link>
           )}
           {supabaseConfigured &&
@@ -107,7 +116,7 @@ export async function SiteNav() {
                 href="/auth/signin"
                 className="rounded-2xl bg-accent px-4 py-2 font-medium text-page shadow-sm hover:bg-accent-hover hover:shadow-md"
               >
-                Sign in
+                {t(locale, "nav.signIn")}
               </Link>
             ))}
         </div>
