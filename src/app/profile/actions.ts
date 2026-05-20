@@ -17,6 +17,7 @@ import {
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
+import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
 
@@ -38,28 +39,6 @@ function isInviteLocale(v: unknown): v is Locale {
 }
 
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
-
-// Handles that would shadow / conflict with top-level routes if claimed.
-// Kept in sync with the same list in app/[handle]/page.tsx — they enforce
-// the same rule from two ends (signup-time vs render-time).
-const RESERVED_HANDLES = new Set([
-  "api",
-  "auth",
-  "profile",
-  "chiang-mai",
-  "osaka",
-  "lisbon",
-  "bali",
-  "settings",
-  "admin",
-  "about",
-  "help",
-  "terms",
-  "privacy",
-  "zh",
-  "ja",
-  "en",
-]);
 
 function safeAfter(raw: FormDataEntryValue | null): string | undefined {
   if (typeof raw !== "string" || !raw) return undefined;

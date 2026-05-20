@@ -16,35 +16,8 @@ import {
   type Gender,
   type SocialLink,
 } from "@/lib/types";
+import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { parseSocialLinks } from "@/lib/socials";
-
-// Reserved handles that would shadow real top-level routes. The signup-time
-// validator should also reject these (added in actions.ts), but keep the
-// list here as a defense-in-depth 404 — Next's static routing already wins
-// today, but a future static→dynamic route swap would silently break that.
-const RESERVED_HANDLES = new Set([
-  "api",
-  "auth",
-  "profile",
-  "chiang-mai",
-  "osaka",
-  "lisbon",
-  "bali",
-  "settings",
-  "admin",
-  "about",
-  "help",
-  "terms",
-  "privacy",
-  "sitemap.xml",
-  "robots.txt",
-  // Locale-prefix folders for SEO i18n. /zh/ and /ja/ are static
-  // routes that Next will match first, but list them here too so a
-  // future routing swap can't silently lease them as handles.
-  "zh",
-  "ja",
-  "en",
-]);
 
 // Same handle format the profile form + DB CHECK enforce. Used here as a
 // cheap pre-filter so bot probes (`xmlrpc.php`, `wp-login.php`, `.env`,

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { SHADOWED_HANDLES } from "@/lib/reserved-handles";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 
@@ -12,24 +13,6 @@ import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 // and keep the response small. Past 1k cards we'll page or split this
 // into a sitemap index — Phase 2.
 const MAX_CARDS = 1000;
-// Reuse RESERVED_HANDLES from [handle]/page.tsx? Avoid a cross-import for
-// a list of strings we never need to mutate — just filter on read.
-const SHADOWED_HANDLES = new Set([
-  "api",
-  "auth",
-  "profile",
-  "settings",
-  "admin",
-  "about",
-  "help",
-  "terms",
-  "privacy",
-  // Locale-prefix folders for SEO i18n. /zh and /ja are static routes
-  // that own these handle slugs — never list them as cards.
-  "zh",
-  "ja",
-  "en",
-]);
 
 // Trigger-generated handles (`user_<8 hex>`) are skeleton accounts that
 // haven't finished onboarding — Google indexing them creates ghost
