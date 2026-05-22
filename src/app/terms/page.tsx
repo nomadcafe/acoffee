@@ -42,7 +42,7 @@ function TermsEn() {
       <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
         Ground rules — keep it human.
       </h1>
-      <p className="text-sm text-muted">Last updated 2026-05-18</p>
+      <p className="text-sm text-muted">Last updated 2026-05-22</p>
 
       <Section title="Your card, your responsibility">
         Anything you put on your card — handle, status, city, contact
@@ -117,6 +117,12 @@ function TermsEn() {
         .
       </Section>
 
+      <Section title="Not affiliated with Buy Me a Coffee">
+        acoffee is an independent project. We are not affiliated with,
+        endorsed by, or connected to Buy Me a Coffee
+        (buymeacoffee.com) in any way.
+      </Section>
+
       <Section title="Changes">
         These terms can change — if material, we&apos;ll bump the date at
         the top and email everyone with a real handle. By continuing to
@@ -135,7 +141,7 @@ function TermsZh() {
       <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
         基本规则 —— 保持人味。
       </h1>
-      <p className="text-sm text-muted">最后更新 2026-05-18</p>
+      <p className="text-sm text-muted">最后更新 2026-05-22</p>
 
       <Section title="你的名片,你的责任">
         你放在名片上的所有内容 —— handle、status、城市、联系方式 ——
@@ -202,6 +208,11 @@ function TermsZh() {
         。
       </Section>
 
+      <Section title="与 Buy Me a Coffee 无关">
+        acoffee 是独立项目,与 Buy Me a Coffee(buymeacoffee.com)没有
+        任何关联、合作或授权关系。
+      </Section>
+
       <Section title="条款变更">
         条款可能调整 —— 如有实质变更,我们会更新顶部日期并邮件通知所有
         有真 handle 的用户。变更后继续使用 acoffee 视为接受新条款。
@@ -219,7 +230,7 @@ function TermsJa() {
       <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
         基本ルール —— 人間味を大切に。
       </h1>
-      <p className="text-sm text-muted">最終更新 2026-05-18</p>
+      <p className="text-sm text-muted">最終更新 2026-05-22</p>
 
       <Section title="あなたのカード、あなたの責任">
         カードに記載する内容 —— handle、ステータス、都市、連絡先 ——
@@ -289,6 +300,11 @@ function TermsJa() {
           docs/vision.md
         </Link>{" "}
         にあります。
+      </Section>
+
+      <Section title="Buy Me a Coffee との関係について">
+        acoffee は独立したプロジェクトです。Buy Me a Coffee
+        (buymeacoffee.com)との提携・推薦・関連は一切ありません。
       </Section>
 
       <Section title="規約の変更">
