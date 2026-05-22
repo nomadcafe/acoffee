@@ -126,6 +126,20 @@ const BRAND_AND_GENERIC = [
   "feedback",
   "changelog",
   "roadmap",
+
+  // Generic English words commonly squatted for SEO juice or to
+  // signal fake authority. Cheap names someone could grab to game
+  // search ("acoffee.com/free", "acoffee.com/finance") — block them
+  // up front so the namespace stays personal.
+  "finance",
+  "financial",
+  "free",
+  "show",
+  "code",
+  "dot",
+  "domain",
+  "domains",
+  "sex",
 ];
 
 // Master set. Frozen so a hot-reload doesn't accidentally mutate it.
