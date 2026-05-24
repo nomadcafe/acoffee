@@ -204,6 +204,10 @@ export const en = {
   "profile.field.city.placeholder": "Chiang Mai",
   "profile.field.city.hint":
     "Where you want to be found — leave blank if you're between cities",
+  "profile.field.cityUntil.label": "Until (optional)",
+  "profile.field.cityUntil.hint":
+    "Add a date if you're just passing through — leave blank if you live here.",
+  "presence.banner": "In {city} until {date}",
   "profile.field.status.label": "Status",
   "profile.field.status.hint":
     "One line · what you're doing, what you're up for",
@@ -605,6 +609,10 @@ export const zh: Record<DictKey, string> = {
   "profile.field.city.placeholder": "Chiang Mai",
   "profile.field.city.hint":
     "你希望别人能在哪里找到你——在城市间漂泊就留空",
+  "profile.field.cityUntil.label": "到（可选）",
+  "profile.field.cityUntil.hint":
+    "只是路过就填个日期；长期住在这儿就留空。",
+  "presence.banner": "在 {city}，到 {date}",
   "profile.field.status.label": "状态",
   "profile.field.status.hint": "一句话 · 你在做什么、想约什么",
   "profile.field.telegram.label": "Telegram",
@@ -965,6 +973,10 @@ export const ja: Record<DictKey, string> = {
   "profile.field.city.placeholder": "Chiang Mai",
   "profile.field.city.hint":
     "見つけてもらいたい場所——移動中なら空欄で OK",
+  "profile.field.cityUntil.label": "まで（任意）",
+  "profile.field.cityUntil.hint":
+    "通り過ぎるだけなら日付を入れて。住んでいるなら空欄で OK。",
+  "presence.banner": "{city} に滞在中（〜{date}）",
   "profile.field.status.label": "ステータス",
   "profile.field.status.hint":
     "1 行 · 今何をしている / 何に乗ってくるか",

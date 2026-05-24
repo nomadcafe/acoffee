@@ -72,6 +72,7 @@ export function ProfileForm({
     isAutoHandle ? "" : profile.handle,
   );
   const [city, setCity] = useState(profile.city ?? "");
+  const [cityUntil, setCityUntil] = useState(profile.cityUntil ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
   const [telegram, setTelegram] = useState(profile.telegramHandle ?? "");
   const [whatsapp, setWhatsapp] = useState(profile.whatsappNumber ?? "");
@@ -192,6 +193,7 @@ export function ProfileForm({
           handle={handle}
           avatarUrl={avatarUrl}
           city={city.trim() || null}
+          cityUntil={cityUntil.trim() || null}
           status={bio.trim() || null}
           kinds={Array.from(selectedKinds)}
           gender={gender === "" ? null : gender}
@@ -244,6 +246,22 @@ export function ProfileForm({
             hint={t("profile.field.city.hint")}
             error={errs.city}
           />
+          {/* v0.11 — optional "until" date. Only meaningful when a city
+              is set; if there's no city we'd render an orphan date input
+              with nothing to anchor to, so hide it until the user types
+              a city. Server action also drops cityUntil when city is
+              empty, so the two sides agree. */}
+          {city.trim().length > 0 && (
+            <Field
+              label={t("profile.field.cityUntil.label")}
+              name="cityUntil"
+              type="date"
+              value={cityUntil}
+              onValueChange={setCityUntil}
+              hint={t("profile.field.cityUntil.hint")}
+              error={errs.cityUntil}
+            />
+          )}
           <FieldArea
             label={t("profile.field.status.label")}
             name="bio"

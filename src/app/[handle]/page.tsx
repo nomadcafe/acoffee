@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
 import { InviteForm } from "@/components/InviteForm";
+import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
@@ -35,6 +36,9 @@ type PublicProfile = {
   displayName: string;
   bio: string | null;
   city: string | null;
+  // v0.11 — ISO date (YYYY-MM-DD) for the presence banner. Past dates
+  // are kept in the type but PresenceBanner suppresses them at render.
+  cityUntil: string | null;
   coffeeChatKinds: CoffeeChatKind[];
   // v0.9 — gender soft signal. null = "prefer not to say".
   gender: Gender | null;
@@ -58,7 +62,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url, created_at, updated_at",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -70,6 +74,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
     displayName: deriveDisplayName(data.handle as string),
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
+    cityUntil: (data.city_until as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
     socialLinks: parseSocialLinks(data.social_links),
@@ -229,6 +234,12 @@ export default async function HandlePage(
           </Link>
         </section>
       )}
+
+      <PresenceBanner
+        city={profile.city}
+        cityUntil={profile.cityUntil}
+        locale={locale}
+      />
 
       <CardBody
         handle={profile.handle}

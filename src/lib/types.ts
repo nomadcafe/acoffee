@@ -44,6 +44,11 @@ export type MyProfile = {
   handle: string;
   bio: string | null;
   city: string | null;
+  // v0.11 — nomad-aware presence hint. ISO date (YYYY-MM-DD) the user
+  // expects to leave the city by. null = residents / no end date. The
+  // app treats past dates as stale (city renders without a banner) so
+  // no cleanup job is needed.
+  cityUntil: string | null;
   coffeeChatKinds: CoffeeChatKind[];
   gender: Gender | null;
   telegramHandle: string | null;

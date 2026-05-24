@@ -69,6 +69,19 @@ const ProfileSchema = z.object({
     .string()
     .max(60, "City is at most 60 characters.")
     .optional(),
+  // v0.11 — optional ISO date (YYYY-MM-DD) for "I'm here until X".
+  // Past dates are accepted on write (the row may have rolled past
+  // its own date between two edits and we don't want a save to fail
+  // because of it); the read path treats stale dates as "no banner"
+  // so they self-cool. Upper bound matches the DB CHECK loosely.
+  cityUntil: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a calendar date.")
+    .refine((s) => {
+      const d = new Date(`${s}T00:00:00Z`);
+      return !Number.isNaN(d.getTime()) && s >= "2024-01-01" && s <= "2100-01-01";
+    }, "Pick a date within the next few years.")
+    .optional(),
   coffeeChatKinds: z
     .array(z.enum(COFFEE_CHAT_KINDS))
     .max(COFFEE_CHAT_KINDS.length)
@@ -163,6 +176,7 @@ export async function updateProfile(
     handle: trimOrUndefined(formData.get("handle")),
     bio: trimOrUndefined(formData.get("bio")),
     city: normaliseCity(trimOrUndefined(formData.get("city"))),
+    cityUntil: trimOrUndefined(formData.get("cityUntil")),
     coffeeChatKinds: rawKinds,
     telegramHandle: trimOrUndefined(formData.get("telegramHandle")),
     whatsappNumber: trimOrUndefined(formData.get("whatsappNumber")),
@@ -267,12 +281,20 @@ export async function updateProfile(
       ? l.value.trim()
       : l.value.replace(/^@/, "").trim(),
   }));
+  // If the user cleared their city, drop city_until too — a "until" date
+  // without a city is nonsense and would render as orphan banner state.
+  const cityUntil =
+    parsed.data.city && parsed.data.cityUntil
+      ? parsed.data.cityUntil
+      : null;
+
   const { error } = await supabase
     .from("profiles")
     .update({
       handle: parsed.data.handle,
       bio: parsed.data.bio ?? null,
       city: parsed.data.city ?? null,
+      city_until: cityUntil,
       coffee_chat_kinds: parsed.data.coffeeChatKinds ?? [],
       telegram_handle: telegram,
       whatsapp_number: parsed.data.whatsappNumber ?? null,

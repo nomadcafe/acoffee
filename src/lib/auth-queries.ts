@@ -22,7 +22,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -33,6 +33,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     handle: data.handle as string,
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
+    cityUntil: (data.city_until as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
     telegramHandle: (data.telegram_handle as string | null) ?? null,

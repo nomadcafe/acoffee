@@ -1,6 +1,7 @@
 "use client";
 
 import { CardBody } from "./CardBody";
+import { PresenceBanner } from "./PresenceBanner";
 import { useLocale, useT } from "./LocaleProvider";
 import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export function LiveCardPreview({
   handle,
   avatarUrl,
   city,
+  cityUntil,
   status,
   kinds,
   gender,
@@ -35,6 +37,7 @@ export function LiveCardPreview({
   handle: string;
   avatarUrl?: string | null;
   city: string | null;
+  cityUntil?: string | null;
   status: string | null;
   kinds: CoffeeChatKind[];
   gender?: Gender | null;
@@ -45,7 +48,13 @@ export function LiveCardPreview({
   const locale = useLocale();
   const safeHandle = handle.trim() || "your-handle";
   return (
-    <CardBody
+    <div className="flex flex-col gap-3">
+      <PresenceBanner
+        city={city}
+        cityUntil={cityUntil ?? null}
+        locale={locale}
+      />
+      <CardBody
       handle={safeHandle}
       displayName={deriveDisplayName(safeHandle, t("profile.field.handle.fallbackName"))}
       city={city}
@@ -82,5 +91,6 @@ export function LiveCardPreview({
         </div>
       }
     />
+    </div>
   );
 }
