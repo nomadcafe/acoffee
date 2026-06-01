@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CardBody } from "@/components/CardBody";
+import { CardSharePanel } from "@/components/CardSharePanel";
 import { InviteForm } from "@/components/InviteForm";
 import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
@@ -279,12 +280,20 @@ export default async function HandlePage(
         }
       />
 
+      {/* Owner-only share panel — same surface as /profile, with the
+          "View my card" link suppressed since you're already on it. Only
+          shown once the card is worth sharing (has a status + a contact
+          channel); the incomplete state above is the call to action
+          before that. */}
+      {isOwner && !isIncomplete && (
+        <CardSharePanel handle={profile.handle} origin={siteUrl} hideViewCard />
+      )}
+
       <footer className="mt-2 flex flex-col gap-3 border-t border-dashed border-bean pt-6">
         {isOwner ? (
           <>
             <p className="text-sm italic text-ink/70">
-              Your card lives here. Share the URL anywhere, or come back to
-              edit it anytime.
+              Your card lives here. Come back to edit it anytime.
             </p>
             <Link
               href="/profile"

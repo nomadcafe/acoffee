@@ -263,6 +263,8 @@ export const en = {
   "share.live.announcement": "Card URL copied to clipboard.",
   "share.viewMyCard": "View my card",
   "share.shareOnX": "Share on X",
+  "share.native": "Share",
+  "share.channelAria": "Share on {channel}",
 
   // Account section
   "account.eyebrow": "Account",
@@ -659,6 +661,8 @@ export const zh: Record<DictKey, string> = {
   "share.live.announcement": "名片 URL 已复制到剪贴板。",
   "share.viewMyCard": "查看我的名片",
   "share.shareOnX": "分享到 X",
+  "share.native": "分享",
+  "share.channelAria": "分享到 {channel}",
 
   "account.eyebrow": "账户",
   "account.yourCard": "你的名片:",
@@ -1029,6 +1033,8 @@ export const ja: Record<DictKey, string> = {
     "カードの URL をクリップボードにコピーしました。",
   "share.viewMyCard": "自分のカードを見る",
   "share.shareOnX": "X でシェア",
+  "share.native": "シェア",
+  "share.channelAria": "{channel} でシェア",
 
   "account.eyebrow": "アカウント",
   "account.yourCard": "あなたのカード:",
