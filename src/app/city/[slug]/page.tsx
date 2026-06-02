@@ -2,19 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CityCardRow } from "@/components/CityCardRow";
 import { listCityCards } from "@/lib/auth-queries";
-import { cityDisplayFromSlug } from "@/lib/city";
+import { CITY_INDEX_FLOOR, cityDisplayFromSlug } from "@/lib/city";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { cityAlternates } from "@/lib/i18n/routes";
 
 export const revalidate = 3600;
-
-// Below this many present cards a city page is too thin to be useful as
-// a search landing page, so we noindex it (but still render — keeping the
-// inbound link alive with a "be the first" prompt beats a 404). Mirrors
-// the SocialProof floor philosophy: a sparse list reads as "no one's
-// here" rather than signal.
-const INDEX_FLOOR = 3;
 
 export async function generateMetadata({
   params,
@@ -34,7 +27,9 @@ export async function generateMetadata({
     alternates: cityAlternates(slug, locale),
     // Thin pages stay out of the index until they fill up.
     robots:
-      cards.length < INDEX_FLOOR ? { index: false, follow: true } : undefined,
+      cards.length < CITY_INDEX_FLOOR
+        ? { index: false, follow: true }
+        : undefined,
     openGraph: { title, description, type: "website" },
   };
 }

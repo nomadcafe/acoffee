@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { CityView } from "@/app/city/[slug]/page";
 import { listCityCards } from "@/lib/auth-queries";
-import { cityDisplayFromSlug } from "@/lib/city";
+import { CITY_INDEX_FLOOR, cityDisplayFromSlug } from "@/lib/city";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { cityAlternates } from "@/lib/i18n/routes";
 
 // SEO-only locale variant of /city/[slug]. URL stays /ja/city/…; the
 // proxy sets x-url-locale=ja so any getLocale() inside resolves to ja.
 export const revalidate = 3600;
-
-const INDEX_FLOOR = 3;
 
 export async function generateMetadata({
   params,
@@ -28,7 +26,9 @@ export async function generateMetadata({
     description,
     alternates: cityAlternates(slug, "ja"),
     robots:
-      cards.length < INDEX_FLOOR ? { index: false, follow: true } : undefined,
+      cards.length < CITY_INDEX_FLOOR
+        ? { index: false, follow: true }
+        : undefined,
     openGraph: { title, description, type: "website" },
   };
 }

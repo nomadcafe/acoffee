@@ -12,6 +12,13 @@
 
 import { type Locale } from "./i18n/dict";
 
+// A city page is only worth indexing once it has at least this many
+// present cards — below it the page noindexes (still rendering a
+// "be the first" state) and stays out of the sitemap. One number shared
+// by the page metadata and the sitemap so the two never disagree about
+// which city pages are crawlable.
+export const CITY_INDEX_FLOOR = 3;
+
 export function toCitySlug(city: string): string {
   return city.trim().toLowerCase().replace(/\s+/g, "-");
 }

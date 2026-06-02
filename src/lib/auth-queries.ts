@@ -5,7 +5,7 @@ import type {
   MyProfile,
 } from "./types";
 import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
-import { cityNameFromSlug, toCitySlug } from "./city";
+import { CITY_INDEX_FLOOR, cityNameFromSlug, toCitySlug } from "./city";
 import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
@@ -403,13 +403,12 @@ export type ActiveCity = { city: string; slug: string; count: number };
 // card; this floor only governs the home teaser.
 const CITY_STRIP_MIN_CARDS = 2;
 
-// Cities to feature on the home page: group the present, reachable,
-// discoverable cards (same gating as listCityCards, minus the city
-// filter) by normalised slug, keep those above the floor, busiest first.
-// Counts come from the most-recently-active 300 present cards — enough at
-// this scale; revisit with a SQL aggregate if a single city ever exceeds
-// that many active cards at once.
-export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
+// Group the present, reachable, discoverable cards (same gating as
+// listCityCards, minus the city filter) by normalised slug, busiest
+// first, with no floor or cap applied. Counts come from the most-
+// recently-active 500 present cards — enough at this scale; revisit with
+// a SQL aggregate if the active set ever outgrows that.
+async function groupActiveCities(): Promise<ActiveCity[]> {
   if (!isAuthConfigured()) return [];
   const supabase = await createSupabaseServer();
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -427,7 +426,7 @@ export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
     )
     .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`)
     .order("updated_at", { ascending: false })
-    .limit(300);
+    .limit(500);
   if (error) return [];
 
   const groups = new Map<string, { city: string; count: number }>();
@@ -442,10 +441,23 @@ export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
   }
 
   return [...groups.entries()]
-    .filter(([, g]) => g.count >= CITY_STRIP_MIN_CARDS)
     .map(([slug, g]) => ({ city: g.city, slug, count: g.count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, limit);
+    .sort((a, b) => b.count - a.count);
+}
+
+// Cities to feature on the home strip: busiest first, only those past the
+// home floor (a lone card reads as "no one's here").
+export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
+  const cities = await groupActiveCities();
+  return cities.filter((c) => c.count >= CITY_STRIP_MIN_CARDS).slice(0, limit);
+}
+
+// Cities crawlable enough to belong in the sitemap — same floor the city
+// page uses to decide noindex, so the sitemap never lists a page that
+// tells Google not to index it.
+export async function listIndexableCities(): Promise<ActiveCity[]> {
+  const cities = await groupActiveCities();
+  return cities.filter((c) => c.count >= CITY_INDEX_FLOOR);
 }
 
 // "alex_nomad" → "Alex Nomad". Inline to avoid a cross-module import for
