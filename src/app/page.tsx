@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-// import { LatestCardsStrip } from "@/components/LatestCardsStrip"; // hidden — see comment in JSX
 import { SampleCard } from "@/components/SampleCard";
-// import { listLatestCards } from "@/lib/auth-queries"; // hidden — see comment in JSX
+import { SocialProof } from "@/components/SocialProof";
+import { countPublishedCards } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t, type Locale } from "@/lib/i18n/dict";
 import { homeAlternates } from "@/lib/i18n/routes";
@@ -26,7 +26,7 @@ export default async function Home() {
 }
 
 export async function HomeView({ locale }: { locale: Locale }) {
-  // const latestCards = await listLatestCards(6); // hidden — see comment in JSX
+  const cardCount = await countPublishedCards();
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -111,6 +111,10 @@ export async function HomeView({ locale }: { locale: Locale }) {
               {t(locale, "hero.cta.howItWorks")}
             </Link>
           </div>
+          {/* Social proof — a live card count, shown only once it's past
+              the floor (see SocialProof). Sits under the CTA where it
+              reinforces the action without crowding the headline. */}
+          <SocialProof count={cardCount} locale={locale} />
         </div>
         <div className="lg:pt-2">
           <SampleCard locale={locale} />
@@ -180,15 +184,6 @@ export async function HomeView({ locale }: { locale: Locale }) {
           ))}
         </ol>
       </section>
-
-      {/* Latest cards hidden while signup volume is low — an empty/sparse
-          strip reads as "no one's here" rather than social proof. Re-enable
-          (and restore the listLatestCards call above + imports) once there
-          are enough fresh cards to fill the row.
-      <div className="w-full border-y border-accent/15 bg-accent-soft/30">
-        <LatestCardsStrip cards={latestCards} locale={locale} />
-      </div>
-      */}
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-12 pt-8 sm:px-6">
         <div className="border-t border-bean pt-6">

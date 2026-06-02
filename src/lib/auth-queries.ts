@@ -265,6 +265,25 @@ export async function listLatestCards(limit = 5): Promise<LatestCard[]> {
     }));
 }
 
+// Count of "real" published cards for the home-page social-proof line.
+// Same intent as listLatestCards' filter — drop the `user_<hex>` auto
+// skeletons and rows with no bio AND no city — but as a head-only exact
+// count so we never pull rows just to size a number. Anonymous read via
+// the public profiles_read RLS; runs under the home's hourly ISR, not
+// per request. The LIKE pattern escapes the underscore (default Postgres
+// escape) so it matches the literal `user_` prefix, not "user" + wildcard.
+export async function countPublishedCards(): Promise<number> {
+  if (!isAuthConfigured()) return 0;
+  const supabase = await createSupabaseServer();
+  const { count, error } = await supabase
+    .from("profiles")
+    .select("handle", { count: "exact", head: true })
+    .not("handle", "like", "user\\_%")
+    .or("bio.not.is.null,city.not.is.null");
+  if (error) return 0;
+  return count ?? 0;
+}
+
 // "alex_nomad" → "Alex Nomad". Inline to avoid a cross-module import for
 // a one-liner; mirrors the same derivation /[handle]/page.tsx + SiteNav use.
 function deriveDisplayName(handle: string): string {
