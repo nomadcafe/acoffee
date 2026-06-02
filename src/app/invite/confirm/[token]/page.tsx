@@ -5,7 +5,7 @@ import { emailNewInvite } from "@/lib/email";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { createSupabaseAdmin } from "@/lib/supabase/server";
-import { type InviteMode } from "@/lib/types";
+import { type CoffeeChatKind } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ async function processConfirm(token: string): Promise<Outcome> {
   const { data: invite, error } = await admin
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, expires_at, requester_locale, confirmed_at",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, expires_at, requester_locale, confirmed_at",
     )
     .eq("confirm_token", token)
     .maybeSingle();
@@ -110,7 +110,7 @@ async function processConfirm(token: string): Promise<Outcome> {
       requesterName: invite.requester_name as string,
       requesterEmail: invite.requester_email as string,
       requesterTopic: invite.requester_topic as string,
-      mode: invite.mode as InviteMode,
+      kind: invite.requested_kind as CoffeeChatKind,
       preferredTime: (invite.preferred_time as string | null) ?? null,
       locale: hostLocale,
     });

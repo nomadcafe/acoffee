@@ -143,10 +143,7 @@ export const en = {
   "invite.form.topic.label": "What you'd like to chat about",
   "invite.form.topic.placeholder":
     "I'm starting a domains-focused newsletter and would love to swap notes — saw your card via your tweet.",
-  "invite.form.mode.legend": "How do you want to meet?",
-  "invite.form.mode.online": "Online",
-  "invite.form.mode.in_person": "In person",
-  "invite.form.mode.either": "Either",
+  "invite.form.kind.legend": "What would you like to do with {name}?",
   "invite.form.time.label": "Preferred time (optional)",
   "invite.form.time.placeholder":
     "Tue / Thu afternoons · or any morning next week",
@@ -320,9 +317,6 @@ export const en = {
     "No past invites yet. Once you accept or decline a few they'll live here.",
   "inbox.row.email": "Email:",
   "inbox.row.when": "When:",
-  "inbox.row.mode.online": "💻 Online",
-  "inbox.row.mode.in_person": "🍵 In person",
-  "inbox.row.mode.either": "🤷 Either",
   "inbox.action.accept": "Accept",
   "inbox.action.decline": "Decline",
   "inbox.confirm.accepted":
@@ -399,10 +393,13 @@ export const en = {
   // invite form. Locale = host's profiles.locale.
   "email.newInvite.subject":
     "{name} wants {modePhrase} — re: {topic}",
-  "email.newInvite.modePhrase.online": "an online coffee chat",
-  "email.newInvite.modePhrase.in_person": "an in-person coffee",
-  "email.newInvite.modePhrase.either":
-    "a coffee chat (online or in person)",
+  // {modePhrase} is filled with one of these activity phrases, keyed by
+  // the kind the visitor picked (always one the host advertised).
+  "email.newInvite.kindPhrase.coffee": "a coffee",
+  "email.newInvite.kindPhrase.cowork": "a coworking session",
+  "email.newInvite.kindPhrase.dinner": "dinner",
+  "email.newInvite.kindPhrase.hike": "a hike",
+  "email.newInvite.kindPhrase.work_talk": "a work chat",
   "email.newInvite.heading":
     "{name} wants {modePhrase} with you on acoffee.",
   "email.newInvite.field.topic": "Topic:",
@@ -575,10 +572,7 @@ export const zh: Record<DictKey, string> = {
   "invite.form.topic.label": "想聊什么",
   "invite.form.topic.placeholder":
     "我在做一个域名相关的 newsletter,想交换一些想法——从你的推文看到你的名片。",
-  "invite.form.mode.legend": "线上还是线下?",
-  "invite.form.mode.online": "线上",
-  "invite.form.mode.in_person": "面聊",
-  "invite.form.mode.either": "都可以",
+  "invite.form.kind.legend": "想和 {name} 一起做点什么?",
   "invite.form.time.label": "偏好时间(可选)",
   "invite.form.time.placeholder": "周二/周四下午,或下周早上任何时间",
   "invite.form.time.hint": "随便写——接受后双方再敲具体时间。",
@@ -729,9 +723,6 @@ export const zh: Record<DictKey, string> = {
     "暂无历史记录。接受或拒绝几个邀请后它们会出现在这里。",
   "inbox.row.email": "邮箱:",
   "inbox.row.when": "时间:",
-  "inbox.row.mode.online": "💻 线上",
-  "inbox.row.mode.in_person": "🍵 面聊",
-  "inbox.row.mode.either": "🤷 都行",
   "inbox.action.accept": "接受",
   "inbox.action.decline": "拒绝",
   "inbox.confirm.accepted": "已接受——正在邮件把联系方式发给 {name}。",
@@ -789,9 +780,11 @@ export const zh: Record<DictKey, string> = {
   "email.welcome.signoff": "在咖啡馆之间做的。",
 
   "email.newInvite.subject": "{name} 想要{modePhrase}——关于: {topic}",
-  "email.newInvite.modePhrase.online": "线上咖啡聊",
-  "email.newInvite.modePhrase.in_person": "面聊咖啡",
-  "email.newInvite.modePhrase.either": "咖啡聊(线上或面聊都行)",
+  "email.newInvite.kindPhrase.coffee": "喝咖啡",
+  "email.newInvite.kindPhrase.cowork": "一起办公",
+  "email.newInvite.kindPhrase.dinner": "吃饭",
+  "email.newInvite.kindPhrase.hike": "一起爬山",
+  "email.newInvite.kindPhrase.work_talk": "聊聊工作",
   "email.newInvite.heading": "{name} 想在 acoffee 上和你{modePhrase}。",
   "email.newInvite.field.topic": "主题:",
   "email.newInvite.field.time": "偏好时间:",
@@ -952,10 +945,7 @@ export const ja: Record<DictKey, string> = {
   "invite.form.topic.label": "何の話をしたいですか",
   "invite.form.topic.placeholder":
     "ドメイン関連のニュースレターを始めるので意見交換したい——あなたのツイートからカードを見つけました。",
-  "invite.form.mode.legend": "オンライン or 対面?",
-  "invite.form.mode.online": "オンライン",
-  "invite.form.mode.in_person": "対面",
-  "invite.form.mode.either": "どちらでも",
+  "invite.form.kind.legend": "{name} さんと何をしたいですか?",
   "invite.form.time.label": "希望の時間帯(任意)",
   "invite.form.time.placeholder":
     "火/木の午後、または来週の朝ならいつでも",
@@ -1119,9 +1109,6 @@ export const ja: Record<DictKey, string> = {
     "履歴はまだありません。承認や辞退をするとここに残ります。",
   "inbox.row.email": "メール:",
   "inbox.row.when": "時間:",
-  "inbox.row.mode.online": "💻 オンライン",
-  "inbox.row.mode.in_person": "🍵 対面",
-  "inbox.row.mode.either": "🤷 どちらでも",
   "inbox.action.accept": "承認",
   "inbox.action.decline": "辞退",
   "inbox.confirm.accepted":
@@ -1187,10 +1174,11 @@ export const ja: Record<DictKey, string> = {
   "email.welcome.signoff": "カフェの合間に作っています。",
 
   "email.newInvite.subject": "{name} さんが{modePhrase} ——「{topic}」",
-  "email.newInvite.modePhrase.online": "オンラインのコーヒーチャットを希望",
-  "email.newInvite.modePhrase.in_person": "対面のコーヒーを希望",
-  "email.newInvite.modePhrase.either":
-    "コーヒーチャット(オンラインまたは対面)を希望",
+  "email.newInvite.kindPhrase.coffee": "コーヒーを希望",
+  "email.newInvite.kindPhrase.cowork": "コワーキングを希望",
+  "email.newInvite.kindPhrase.dinner": "ディナーを希望",
+  "email.newInvite.kindPhrase.hike": "ハイキングを希望",
+  "email.newInvite.kindPhrase.work_talk": "仕事の話を希望",
   "email.newInvite.heading":
     "{name} さんが acoffee で{modePhrase}しています。",
   "email.newInvite.field.topic": "話題:",

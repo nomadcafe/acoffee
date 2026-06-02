@@ -12,7 +12,7 @@ import {
   createSupabaseServer,
   isAuthConfigured,
 } from "@/lib/supabase/server";
-import { INVITE_MODES, type InviteMode } from "@/lib/types";
+import { COFFEE_CHAT_KINDS, type CoffeeChatKind } from "@/lib/types";
 
 // Visitor-side action backing the InviteForm on /[handle]. No auth required
 // — visitors don't have accounts. The server is the gateway: validates the
@@ -38,7 +38,7 @@ const InviteSchema = z.object({
     .string()
     .min(1, "Add a line about what you'd like to chat about.")
     .max(280, "Topic is at most 280 characters."),
-  mode: z.enum(INVITE_MODES),
+  requestedKind: z.enum(COFFEE_CHAT_KINDS),
   preferredTime: z
     .string()
     .max(80, "Time hint is at most 80 characters.")
@@ -90,7 +90,7 @@ export async function createInvite(
     requesterName: trimOrUndefined(formData.get("requesterName")),
     requesterEmail: trimOrUndefined(formData.get("requesterEmail")),
     requesterTopic: trimOrUndefined(formData.get("requesterTopic")),
-    mode: trimOrUndefined(formData.get("mode")),
+    requestedKind: trimOrUndefined(formData.get("requestedKind")),
     preferredTime: trimOrUndefined(formData.get("preferredTime")),
   });
   if (!parsed.success) {
@@ -187,7 +187,7 @@ export async function createInvite(
     requester_name: parsed.data.requesterName,
     requester_email: parsed.data.requesterEmail,
     requester_topic: parsed.data.requesterTopic,
-    mode: parsed.data.mode,
+    requested_kind: parsed.data.requestedKind,
     preferred_time: parsed.data.preferredTime ?? null,
     requester_locale: locale,
     status: skipConfirm ? "pending" : "unconfirmed",
@@ -225,7 +225,7 @@ export async function createInvite(
         requesterName: parsed.data.requesterName,
         requesterEmail: parsed.data.requesterEmail,
         requesterTopic: parsed.data.requesterTopic,
-        mode: parsed.data.mode as InviteMode,
+        kind: parsed.data.requestedKind as CoffeeChatKind,
         preferredTime: parsed.data.preferredTime ?? null,
         locale: hostLocale,
       });

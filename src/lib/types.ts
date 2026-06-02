@@ -58,12 +58,12 @@ export type MyProfile = {
   avatarUrl: string | null;
 };
 
-// v0.8 form-based invite. `mode` is what the requester is asking for —
-// "online" / "in_person" / "either" — not a hard constraint, just a hint
-// to the host so they can decide whether to accept.
-export const INVITE_MODES = ["online", "in_person", "either"] as const;
-export type InviteMode = (typeof INVITE_MODES)[number];
-
+// v12 — the invite's `requested_kind` is one of the host's advertised
+// coffee_chat_kinds (the chips on the card), so what the visitor asks for
+// maps directly to what the host said they're up for. Replaces the v0.8
+// online/in_person/either `mode` axis, which was orthogonal to the card
+// and left those chips purely decorative. Nullable in the DB: rows
+// created before v12 have no kind, so the UI guards for null.
 export const INVITE_STATUSES = [
   "unconfirmed",
   "pending",
@@ -79,7 +79,8 @@ export type Invite = {
   requesterName: string;
   requesterEmail: string;
   requesterTopic: string;
-  mode: InviteMode;
+  // One of the host's coffee_chat_kinds, or null for pre-v12 invites.
+  requestedKind: CoffeeChatKind | null;
   preferredTime: string | null;
   status: InviteStatus;
   createdAt: string;

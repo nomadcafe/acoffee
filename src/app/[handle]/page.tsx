@@ -268,6 +268,7 @@ export default async function HandlePage(
             <InviteForm
               hostHandle={profile.handle}
               hostDisplayName={profile.displayName}
+              hostKinds={profile.coffeeChatKinds}
               visitorSession={visitorSession}
             />
           ) : (

@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { type Locale, t, tmpl } from "./i18n/dict";
 import { siteName, siteUrl } from "./site";
-import type { InviteMode } from "./types";
+import type { CoffeeChatKind } from "./types";
 
 // Email is best-effort. RESEND_API_KEY + EMAIL_FROM missing → skip; send
 // failure → log only, never throw. We don't want a flaky email provider
@@ -172,14 +172,17 @@ export async function emailNewInvite(args: {
   requesterName: string;
   requesterEmail: string;
   requesterTopic: string;
-  mode: InviteMode;
+  kind: CoffeeChatKind;
   preferredTime: string | null;
   locale: Locale;
 }) {
   const inboxUrl = `${siteUrl}/profile`;
+  // Fills the `{modePhrase}` slot in the subject/heading templates with
+  // an activity phrase ("a coffee", "a hike", …) derived from the kind
+  // the visitor picked — which is always one the host advertised.
   const modePhrase = t(
     args.locale,
-    `email.newInvite.modePhrase.${args.mode}` as const,
+    `email.newInvite.kindPhrase.${args.kind}` as const,
   );
   const v = {
     name: args.requesterName,

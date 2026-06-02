@@ -2,7 +2,6 @@ import type {
   CoffeeChatKind,
   Gender,
   Invite,
-  InviteMode,
   MyProfile,
 } from "./types";
 import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
@@ -114,7 +113,7 @@ export async function getMyPendingInvites(): Promise<Invite[]> {
   const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, created_at, expires_at, decided_at",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at",
     )
     .eq("host_id", user.id)
     .eq("status", "pending")
@@ -140,7 +139,7 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
   const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, created_at, expires_at, decided_at",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at",
     )
     .eq("host_id", user.id)
     .or(
@@ -305,7 +304,7 @@ function rowToInvite(r: Record<string, unknown>): Invite {
     requesterName: r.requester_name as string,
     requesterEmail: r.requester_email as string,
     requesterTopic: r.requester_topic as string,
-    mode: r.mode as InviteMode,
+    requestedKind: (r.requested_kind as CoffeeChatKind | null) ?? null,
     preferredTime: (r.preferred_time as string | null) ?? null,
     status: r.status as Invite["status"],
     createdAt: r.created_at as string,

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
+import { KIND_EMOJI } from "@/components/CardBody";
 import { useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
 import { tmpl } from "@/lib/i18n/dict";
-import { INVITE_MODES, type InviteMode } from "@/lib/types";
+import { type CoffeeChatKind } from "@/lib/types";
 
 // What /[handle]/page.tsx passes when the viewer is a signed-in
 // acoffee user who isn't the card owner. The presence of this object
@@ -25,13 +26,15 @@ export type VisitorSession = {
 // channels via email after the host accepts. Form lives inline on the
 // /[handle] card (expands below the Invite button on click) so there's
 // no page navigation between "I want to invite" and "I've inviting".
-const MODE_EMOJI: Record<InviteMode, string> = {
-  online: "💻",
-  in_person: "🍵",
-  either: "🤷",
-};
 
 const INITIAL: CreateInviteState = { status: "idle" };
+
+// The visitor picks from the kinds the host advertised on their card.
+// A host with no kinds set still needs something to ask for, so fall
+// back to a lone "coffee" — the namesake and safest default.
+function effectiveKinds(kinds: CoffeeChatKind[]): CoffeeChatKind[] {
+  return kinds.length > 0 ? kinds : ["coffee"];
+}
 
 // Outer wrapper carries a reset key — when the user clicks "Send another"
 // after a successful submission we bump the key, which unmounts and
@@ -42,6 +45,7 @@ const INITIAL: CreateInviteState = { status: "idle" };
 export function InviteForm(props: {
   hostHandle: string;
   hostDisplayName: string;
+  hostKinds: CoffeeChatKind[];
   visitorSession: VisitorSession | null;
 }) {
   const [resetCount, setResetCount] = useState(0);
@@ -57,18 +61,21 @@ export function InviteForm(props: {
 function InviteFormInner({
   hostHandle,
   hostDisplayName,
+  hostKinds,
   visitorSession,
   onSendAnother,
 }: {
   hostHandle: string;
   hostDisplayName: string;
+  hostKinds: CoffeeChatKind[];
   visitorSession: VisitorSession | null;
   onSendAnother: () => void;
 }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(createInvite, INITIAL);
-  const [mode, setMode] = useState<InviteMode>("either");
+  const kinds = effectiveKinds(hostKinds);
+  const [kind, setKind] = useState<CoffeeChatKind>(kinds[0]);
   // Track the email the visitor just submitted, so the success state can
   // tell them "check this inbox" without us re-deriving it from FormData
   // (it's already wiped by the time we render the result).
@@ -235,14 +242,14 @@ function InviteFormInner({
 
       <fieldset className="flex flex-col gap-2 border-none p-0">
         <legend className="text-sm font-medium text-ink/85">
-          {t("invite.form.mode.legend")}
+          {tmpl(t("invite.form.kind.legend"), { name: hostDisplayName })}
         </legend>
         <div className="flex flex-wrap gap-2">
-          {INVITE_MODES.map((m) => {
-            const active = mode === m;
+          {kinds.map((k) => {
+            const active = kind === k;
             return (
               <label
-                key={m}
+                key={k}
                 className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
                   active
                     ? "border-accent bg-accent text-page shadow-sm"
@@ -251,14 +258,14 @@ function InviteFormInner({
               >
                 <input
                   type="radio"
-                  name="mode"
-                  value={m}
+                  name="requestedKind"
+                  value={k}
                   checked={active}
-                  onChange={() => setMode(m)}
+                  onChange={() => setKind(k)}
                   className="sr-only"
                 />
-                <span aria-hidden>{MODE_EMOJI[m]}</span>
-                <span>{t(`invite.form.mode.${m}` as const)}</span>
+                <span aria-hidden>{KIND_EMOJI[k]}</span>
+                <span>{t(`profile.kind.${k}` as const)}</span>
               </label>
             );
           })}

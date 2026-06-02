@@ -3,10 +3,21 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { approveInvite, rejectInvite } from "@/app/profile/actions";
+import { KIND_EMOJI } from "@/components/CardBody";
 import { useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
 import { tmpl } from "@/lib/i18n/dict";
 import type { Invite } from "@/lib/types";
+
+// "emoji + localised label" for the kind the visitor asked for, or null
+// for pre-v12 invites that have no kind (those rows just omit the chip).
+function kindLabel(
+  kind: Invite["requestedKind"],
+  t: ReturnType<typeof useT>,
+): string | null {
+  if (!kind) return null;
+  return `${KIND_EMOJI[kind]} ${t(`profile.kind.${kind}` as const)}`;
+}
 
 // "unconfirmed" should never reach the inbox — getMyInviteHistory filters
 // it out — but TypeScript needs the union to be exhaustive. Map it to the
@@ -169,7 +180,7 @@ function PendingRow({ invite }: { invite: Invite }) {
         // errors don't pollute the metric.
         trackEvent(
           next === "accepted" ? "invite_accepted" : "invite_declined",
-          { mode: invite.mode },
+          { kind: invite.requestedKind ?? "unknown" },
         );
         setDecided(next);
         router.refresh();
@@ -201,7 +212,10 @@ function PendingRow({ invite }: { invite: Invite }) {
           {invite.requesterName}
         </p>
         <p className="text-xs text-muted">
-          {timeAgo(invite.createdAt, t)} · {t(`inbox.row.mode.${invite.mode}` as const)}
+          {timeAgo(invite.createdAt, t)}
+          {kindLabel(invite.requestedKind, t)
+            ? ` · ${kindLabel(invite.requestedKind, t)}`
+            : ""}
         </p>
       </header>
 
@@ -287,7 +301,10 @@ function HistoryRow({ invite }: { invite: Invite }) {
         “{invite.requesterTopic}”
       </p>
       <p className="text-xs text-muted">
-        {t(`inbox.row.mode.${invite.mode}` as const)} · {formatDate(decidedDate)}
+        {kindLabel(invite.requestedKind, t)
+          ? `${kindLabel(invite.requestedKind, t)} · `
+          : ""}
+        {formatDate(decidedDate)}
       </p>
     </article>
   );
