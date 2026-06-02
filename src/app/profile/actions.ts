@@ -288,6 +288,11 @@ export async function updateProfile(
       ? parsed.data.cityUntil
       : null;
 
+  // v12 — city-discovery opt-out. Hidden input always submits "true"/
+  // "false"; treat anything but an explicit "false" as listed (the
+  // default), so a missing value can never silently hide a card.
+  const discoverable = formData.get("discoverable") !== "false";
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -301,6 +306,7 @@ export async function updateProfile(
       email_contact: parsed.data.emailContact ?? null,
       gender: parsed.data.gender ?? null,
       social_links: normalisedSocials,
+      discoverable,
       locale,
     })
     .eq("id", user.id);

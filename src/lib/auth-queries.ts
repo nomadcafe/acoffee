@@ -5,6 +5,7 @@ import type {
   MyProfile,
 } from "./types";
 import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
+import { cityNameFromSlug } from "./city";
 import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
@@ -21,7 +22,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url, discoverable",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -40,6 +41,9 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     emailContact: (data.email_contact as string | null) ?? null,
     socialLinks: parseSocialLinks(data.social_links),
     avatarUrl: (data.avatar_url as string | null) ?? null,
+    // NOT NULL default true in the DB, so this is always a real boolean;
+    // coerce defensively in case of a legacy null.
+    discoverable: (data.discoverable as boolean | null) ?? true,
   };
 }
 
@@ -285,6 +289,108 @@ export async function countPublishedCards(): Promise<number> {
     .or("bio.not.is.null,city.not.is.null");
   if (error) return 0;
   return count ?? 0;
+}
+
+// One card on a /city/[slug] discovery page. Same public surface as the
+// /[handle] card minus the gated contacts — the visitor invites from the
+// card page, not the list.
+export type CityCard = {
+  handle: string;
+  displayName: string;
+  city: string | null;
+  // Future-only after filtering: the row's city_until iff it's still
+  // ahead of today, else null. Drives the "here until X" badge so a
+  // stale past date never shows.
+  cityUntil: string | null;
+  status: string | null;
+  avatarUrl: string | null;
+  coffeeChatKinds: CoffeeChatKind[];
+  gender: Gender | null;
+};
+
+// A resident with no end-date counts as "around" only while their card
+// is fresh — past this window an abandoned card drops off the city page
+// on its own, so the list stays a snapshot of who's here now rather than
+// a permanent roster. Tune to taste.
+const CITY_RESIDENT_WINDOW_DAYS = 45;
+
+// Cards shown on /city/[slug]: people who are in `city` AND reachable
+// (have a contact channel, so invites actually work) AND "present" —
+// either a future city_until (a nomad passing through) or a recently-
+// touched card (a local/regular). Opted-out (discoverable=false) and
+// skeleton auto-handles are excluded. Sorted presence-first (soonest to
+// leave at the top — invite them before they go), then fresh residents
+// by recency. Capped so a big city can't return an unbounded list.
+export async function listCityCards(slug: string): Promise<CityCard[]> {
+  if (!isAuthConfigured()) return [];
+  const name = cityNameFromSlug(slug);
+  if (!name) return [];
+  const supabase = await createSupabaseServer();
+  const todayIso = new Date().toISOString().slice(0, 10); // city_until is a DATE
+  const cutoffIso = new Date(
+    Date.now() - CITY_RESIDENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("profiles")
+    // Contact columns are filtered on below but deliberately NOT selected
+    // — the list never needs the values, so they stay server-side in
+    // Postgres and never reach this process.
+    .select(
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, avatar_url, updated_at",
+    )
+    // ilike = case-insensitive equality (no wildcards) against the
+    // Title-cased stored value.
+    .ilike("city", name)
+    .eq("discoverable", true)
+    .not("handle", "match", AUTO_HANDLE.source)
+    // Multiple .or() groups AND together: must be reachable …
+    .or(
+      "telegram_handle.not.is.null,whatsapp_number.not.is.null,email_contact.not.is.null",
+    )
+    // … and present (future end-date OR recently active).
+    .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`)
+    .limit(50);
+  if (error) return [];
+
+  const cards = (data ?? []).map((r) => {
+    const rawUntil = (r.city_until as string | null) ?? null;
+    // Keep the date only if it's genuinely ahead of today; a past date
+    // means "this person lives here now", so it shouldn't badge.
+    const activeUntil = rawUntil && rawUntil >= todayIso ? rawUntil : null;
+    return {
+      handle: r.handle as string,
+      displayName: deriveDisplayName(r.handle as string),
+      city: (r.city as string | null) ?? null,
+      cityUntil: activeUntil,
+      status: (r.bio as string | null) ?? null,
+      avatarUrl: (r.avatar_url as string | null) ?? null,
+      coffeeChatKinds: parseChatKinds(r.coffee_chat_kinds),
+      gender: parseGender(r.gender),
+      _updatedAt: (r.updated_at as string | undefined) ?? "",
+    };
+  });
+
+  cards.sort((a, b) => {
+    // Presence-active (has a future city_until) sorts above residents.
+    if (a.cityUntil && !b.cityUntil) return -1;
+    if (!a.cityUntil && b.cityUntil) return 1;
+    // Both leaving: soonest-to-leave first (more urgent to invite).
+    if (a.cityUntil && b.cityUntil) return a.cityUntil < b.cityUntil ? -1 : 1;
+    // Both residents: most recently active first.
+    return a._updatedAt < b._updatedAt ? 1 : -1;
+  });
+
+  // Drop the sort-only field before returning.
+  return cards.slice(0, 30).map((c) => ({
+    handle: c.handle,
+    displayName: c.displayName,
+    city: c.city,
+    cityUntil: c.cityUntil,
+    status: c.status,
+    avatarUrl: c.avatarUrl,
+    coffeeChatKinds: c.coffeeChatKinds,
+    gender: c.gender,
+  }));
 }
 
 // "alex_nomad" → "Alex Nomad". Inline to avoid a cross-module import for

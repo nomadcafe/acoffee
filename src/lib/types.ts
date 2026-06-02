@@ -56,6 +56,9 @@ export type MyProfile = {
   emailContact: string | null;
   socialLinks: SocialLink[];
   avatarUrl: string | null;
+  // v12 — whether the card is listed on city discovery pages. Default
+  // true; the owner can opt out (still shareable by direct link).
+  discoverable: boolean;
 };
 
 // v12 — the invite's `requested_kind` is one of the host's advertised

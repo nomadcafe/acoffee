@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { SocialIcon } from "./icons/SocialIcons";
 import { t, type Locale } from "@/lib/i18n/dict";
@@ -28,6 +29,10 @@ export type CardBodyProps = {
   handle: string;
   displayName: string;
   city: string | null;
+  // When set, the city in the meta line links here (the /city/[slug]
+  // discovery page). Omitted by SampleCard / LiveCardPreview, where the
+  // city is mock or not yet discoverable — those render it as plain text.
+  cityHref?: string | null;
   // A short, magazine-style locator line under the name. Sample card shows
   // "landed Mon"; real card may show "Joined May 2026" or similar. Optional
   // — pass null to hide the row.
@@ -54,6 +59,7 @@ export function CardBody({
   handle,
   displayName,
   city,
+  cityHref,
   locator,
   status,
   kinds,
@@ -67,7 +73,27 @@ export function CardBody({
   const genderLabel = gender
     ? t(locale, `profile.field.gender.opt.${gender}` as const)
     : null;
-  const metaParts = [city, locator, genderLabel].filter(Boolean);
+  // The city can be a link (to its discovery page) while the rest of the
+  // meta line stays plain text, so build nodes rather than a joined
+  // string. Keys are stable part names, not array indices.
+  const metaNodes: { key: string; node: React.ReactNode }[] = [];
+  if (city) {
+    metaNodes.push({
+      key: "city",
+      node: cityHref ? (
+        <Link
+          href={cityHref}
+          className="underline-offset-2 hover:text-accent hover:underline"
+        >
+          {city}
+        </Link>
+      ) : (
+        city
+      ),
+    });
+  }
+  if (locator) metaNodes.push({ key: "locator", node: locator });
+  if (genderLabel) metaNodes.push({ key: "gender", node: genderLabel });
   // Compose the public URL + tooltip per link using the central
   // platform registry, then render below the chat-kind chips. Skip
   // any malformed row defensively so a stale jsonb can't break paint.
@@ -127,8 +153,15 @@ export function CardBody({
               @{handle}
             </span>
           </div>
-          {metaParts.length > 0 && (
-            <p className="text-sm text-muted">{metaParts.join(" · ")}</p>
+          {metaNodes.length > 0 && (
+            <p className="text-sm text-muted">
+              {metaNodes.map((part, i) => (
+                <span key={part.key}>
+                  {i > 0 && <span className="mx-1 text-bean">·</span>}
+                  {part.node}
+                </span>
+              ))}
+            </p>
           )}
         </div>
       </div>

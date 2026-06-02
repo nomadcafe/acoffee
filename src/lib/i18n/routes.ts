@@ -44,6 +44,25 @@ export const privacyAlternates = (locale: Locale) =>
 export const termsAlternates = (locale: Locale) =>
   marketingAlternates("/terms", locale);
 
+// City discovery pages mirror the marketing 3-URL + reciprocal-hreflang
+// shape, but the slug is dynamic so they get their own builder rather
+// than joining the fixed MarketingSlug union.
+export function cityPath(slug: string, locale: Locale): string {
+  return locale === "en" ? `/city/${slug}` : `/${locale}/city/${slug}`;
+}
+
+export function cityAlternates(slug: string, locale: Locale) {
+  return {
+    canonical: cityPath(slug, locale),
+    languages: {
+      en: cityPath(slug, "en"),
+      zh: cityPath(slug, "zh"),
+      ja: cityPath(slug, "ja"),
+      "x-default": cityPath(slug, "en"),
+    },
+  };
+}
+
 // Pull the locale prefix off a path so the LanguageSwitcher can ask "what
 // surface is the user looking at, with whatever locale prefix stripped?"
 // Returns `null` when the path isn't a marketing surface — in that case

@@ -7,6 +7,7 @@ import { InviteForm } from "@/components/InviteForm";
 import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
+import { toCitySlug } from "@/lib/city";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
@@ -195,6 +196,11 @@ export default async function HandlePage(
       : null;
 
   const joinedLabel = formatJoined(profile.joinedAt, locale);
+  // Link the city (meta line + presence banner) to its discovery page so
+  // a visitor can find others around the same place. Independent of this
+  // card's own discoverable flag — the link is a "who else is here" aid,
+  // not a claim that this person is listed.
+  const cityHref = profile.city ? `/city/${toCitySlug(profile.city)}` : null;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
@@ -240,12 +246,14 @@ export default async function HandlePage(
         city={profile.city}
         cityUntil={profile.cityUntil}
         locale={locale}
+        href={cityHref}
       />
 
       <CardBody
         handle={profile.handle}
         displayName={profile.displayName}
         city={profile.city}
+        cityHref={cityHref}
         locator={joinedLabel}
         status={profile.bio}
         kinds={profile.coffeeChatKinds}

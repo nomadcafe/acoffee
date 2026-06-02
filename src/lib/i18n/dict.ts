@@ -119,6 +119,26 @@ export const en = {
   "card.visitor.footer.note":
     "Like this card? Make your own — share what you're working on, get invited for coffee in your next city.",
 
+  // /city/[slug] discovery page
+  "city.breadcrumb": "Around town",
+  "city.h1": "Folks around {city}",
+  "city.subhead":
+    "People with a coffee card here right now. Open a card to invite them.",
+  "city.footer.note":
+    "Around {city} too? Make a card so the next person can find you.",
+  "city.row.until": "until {date}",
+  "city.empty.body":
+    "No one's set a coffee card around {city} yet — or they've moved on.",
+  "city.empty.cta.note": "Be the first. Make a card and start the table.",
+  "city.meta.title": "Coffee in {city} · acoffee",
+  "city.meta.description":
+    "Find people around {city} open to a coffee, a cowork, or a chat — and make your own coffee card.",
+
+  // Profile — city discovery opt-out
+  "profile.field.discoverable.label": "List me on the {city} page",
+  "profile.field.discoverable.hint":
+    "Lets people browsing your city find your card. Your card stays shareable by link either way.",
+
   // SampleCard on the home hero
   "sample.live": "Live preview",
   "sample.badge": "Sample",
@@ -552,6 +572,21 @@ export const zh: Record<DictKey, string> = {
   "card.visitor.footer.note":
     "喜欢这张名片？也做一张你自己的——分享你在做的事，在下一座城市被约咖啡。",
 
+  "city.breadcrumb": "这座城市",
+  "city.h1": "{city} 附近的人",
+  "city.subhead": "此刻在这里挂着咖啡名片的人。点开名片就能约。",
+  "city.footer.note": "你也在 {city}？做张名片，让下一个人能找到你。",
+  "city.row.until": "到 {date}",
+  "city.empty.body": "{city} 附近还没人挂咖啡名片——或者他们已经离开了。",
+  "city.empty.cta.note": "做第一张吧，把这桌开起来。",
+  "city.meta.title": "{city} 的咖啡 · acoffee",
+  "city.meta.description":
+    "找到 {city} 附近愿意一起喝咖啡、办公或聊聊的人——也做一张你自己的咖啡名片。",
+
+  "profile.field.discoverable.label": "把我列进 {city} 页面",
+  "profile.field.discoverable.hint":
+    "让浏览你所在城市的人能找到你的名片。无论开关与否，名片都还能用链接分享。",
+
   "sample.live": "实时预览",
   "sample.badge": "样例",
   "sample.contactUnlock": "联系方式在邀请被接受后才公开",
@@ -923,6 +958,24 @@ export const ja: Record<DictKey, string> = {
   "card.owner.footer.cta": "カードを編集",
   "card.visitor.footer.note":
     "このカードが気に入った？自分のも作ろう——取り組んでいることを共有して、次の街でコーヒーに誘われよう。",
+
+  "city.breadcrumb": "この街",
+  "city.h1": "{city} 周辺の人たち",
+  "city.subhead":
+    "いまここにコーヒーカードを公開している人たち。カードを開いて誘おう。",
+  "city.footer.note":
+    "あなたも {city} 周辺に？カードを作って、次の人に見つけてもらおう。",
+  "city.row.until": "{date}まで",
+  "city.empty.body":
+    "{city} 周辺にはまだ誰もコーヒーカードを公開していません——もう移動したのかも。",
+  "city.empty.cta.note": "最初の一人になろう。カードを作ってテーブルを開こう。",
+  "city.meta.title": "{city} のコーヒー · acoffee",
+  "city.meta.description":
+    "{city} 周辺でコーヒー・コワーク・おしゃべりに前向きな人を見つけよう——自分のコーヒーカードも作れます。",
+
+  "profile.field.discoverable.label": "{city} ページに掲載する",
+  "profile.field.discoverable.hint":
+    "あなたの街を見ている人がカードを見つけられます。どちらでもカードはリンクで共有できます。",
 
   "sample.live": "ライブプレビュー",
   "sample.badge": "サンプル",
