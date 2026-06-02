@@ -69,18 +69,33 @@ async function processConfirm(token: string): Promise<Outcome> {
     return { kind: "expired" };
   }
 
-  const { error: updateErr } = await admin
+  // Guard the promotion on the row still being `unconfirmed` so two
+  // concurrent clicks (double-tap, or an email client prefetching the
+  // link then the visitor clicking) can't both win the transition and
+  // each fire a host notification. Only the request that flips the
+  // status gets a row back; the loser sees `alreadyDone` and sends
+  // nothing. `.select()` is what lets us read the affected-row count.
+  const { data: won, error: updateErr } = await admin
     .from("invites")
     .update({
       status: "pending",
       confirmed_at: new Date().toISOString(),
     })
-    .eq("id", invite.id as string);
+    .eq("id", invite.id as string)
+    .eq("status", "unconfirmed")
+    .select("id")
+    .maybeSingle();
   if (updateErr) {
     // Don't render "success" if the write didn't take — visitor can
     // retry the link (which will hit the `alreadyDone` branch only if
     // a parallel request already won).
     return { kind: "notFound" };
+  }
+  if (!won) {
+    // A parallel request already promoted this row. Treat as a repeat
+    // click: confirm the outcome to the visitor, but don't re-notify
+    // the host.
+    return { kind: "alreadyDone", hostHandle, hostDisplayName };
   }
 
   // Now the host gets the heads-up. Pull their auth email via the admin

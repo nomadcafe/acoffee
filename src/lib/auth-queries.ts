@@ -266,19 +266,23 @@ export async function listLatestCards(limit = 5): Promise<LatestCard[]> {
 }
 
 // Count of "real" published cards for the home-page social-proof line.
-// Same intent as listLatestCards' filter — drop the `user_<hex>` auto
-// skeletons and rows with no bio AND no city — but as a head-only exact
-// count so we never pull rows just to size a number. Anonymous read via
-// the public profiles_read RLS; runs under the home's hourly ISR, not
-// per request. The LIKE pattern escapes the underscore (default Postgres
-// escape) so it matches the literal `user_` prefix, not "user" + wildcard.
+// Same intent as listLatestCards' filter — drop the auto skeletons and
+// rows with no bio AND no city — but as a head-only exact count so we
+// never pull rows just to size a number. Anonymous read via the public
+// profiles_read RLS; runs under the home's hourly ISR, not per request.
+//
+// Reuses AUTO_HANDLE.source via the `match` operator (PostgREST `~`,
+// POSIX regex) so the skeleton-handle definition stays byte-identical to
+// listLatestCards' client-side filter — a plain `like 'user\_%'` would
+// also drop legitimately-chosen handles like `user_smith`, which the
+// exact `^user_[a-f0-9]{8}$` shape leaves in.
 export async function countPublishedCards(): Promise<number> {
   if (!isAuthConfigured()) return 0;
   const supabase = await createSupabaseServer();
   const { count, error } = await supabase
     .from("profiles")
     .select("handle", { count: "exact", head: true })
-    .not("handle", "like", "user\\_%")
+    .not("handle", "match", AUTO_HANDLE.source)
     .or("bio.not.is.null,city.not.is.null");
   if (error) return 0;
   return count ?? 0;

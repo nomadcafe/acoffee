@@ -597,12 +597,24 @@ async function decideInvite(
     };
   }
 
-  const { error: updateErr } = await supabase
+  // Guard the transition on the row still being `pending` so two
+  // concurrent decisions (a double-tapped Accept, or Accept racing
+  // Decline) can't both win and each fire a visitor email. Only the
+  // request that flips the status gets a row back; the loser bails
+  // without sending. The status pre-check above is the fast path; this
+  // is the actual race guard.
+  const { data: won, error: updateErr } = await supabase
     .from("invites")
     .update({ status: next, decided_at: new Date().toISOString() })
-    .eq("id", inviteId);
+    .eq("id", inviteId)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
   if (updateErr) {
     return { status: "error", message: updateErr.message };
+  }
+  if (!won) {
+    return { status: "error", message: "Invite was already handled." };
   }
 
   // Need the host's profile + contacts to compose the accept email —
