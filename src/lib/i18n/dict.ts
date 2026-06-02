@@ -102,6 +102,23 @@ export const en = {
   // CardBody — meta strings reused across SampleCard / LiveCardPreview / real card
   "card.noStatus": "No status yet.",
 
+  // /[handle] page chrome — breadcrumb, owner incomplete-card nudge,
+  // and the page-footer CTAs (owner edit vs visitor "make your own").
+  "card.breadcrumb": "Coffee card",
+  "card.nudge.eyebrow": "Almost there",
+  "card.nudge.title": "This is your card — it's looking sparse.",
+  "card.nudge.body.both":
+    "Add a one-line status and a contact channel — that's what makes the card worth sharing.",
+  "card.nudge.body.status":
+    "Add a one-line status so visitors see what you're up to.",
+  "card.nudge.body.contact":
+    "Add at least one contact channel (Telegram, WhatsApp, or email) — otherwise no one can actually invite you.",
+  "card.nudge.cta": "Finish your card",
+  "card.owner.footer.note": "Your card lives here. Come back to edit it anytime.",
+  "card.owner.footer.cta": "Edit my card",
+  "card.visitor.footer.note":
+    "Like this card? Make your own — share what you're working on, get invited for coffee in your next city.",
+
   // SampleCard on the home hero
   "sample.live": "Live preview",
   "sample.badge": "Sample",
@@ -524,6 +541,20 @@ export const zh: Record<DictKey, string> = {
 
   "card.noStatus": "还没填 status。",
 
+  "card.breadcrumb": "咖啡名片",
+  "card.nudge.eyebrow": "就差一点",
+  "card.nudge.title": "这是你的名片——看起来还有点空。",
+  "card.nudge.body.both":
+    "加一句 status，再留一个联系方式——这样名片才值得分享。",
+  "card.nudge.body.status": "加一句 status，让访客知道你在忙什么。",
+  "card.nudge.body.contact":
+    "至少留一个联系方式（Telegram、WhatsApp 或邮箱）——否则没人能真的约到你。",
+  "card.nudge.cta": "把名片补完",
+  "card.owner.footer.note": "你的名片就在这里，随时回来编辑。",
+  "card.owner.footer.cta": "编辑我的名片",
+  "card.visitor.footer.note":
+    "喜欢这张名片？也做一张你自己的——分享你在做的事，在下一座城市被约咖啡。",
+
   "sample.live": "实时预览",
   "sample.badge": "样例",
   "sample.contactUnlock": "联系方式在邀请被接受后才公开",
@@ -884,6 +915,21 @@ export const ja: Record<DictKey, string> = {
   "invite.gate.cta": "コーヒーに誘う",
 
   "card.noStatus": "まだステータスがありません。",
+
+  "card.breadcrumb": "コーヒーカード",
+  "card.nudge.eyebrow": "あと少し",
+  "card.nudge.title": "これはあなたのカードです——まだ少し寂しい感じ。",
+  "card.nudge.body.both":
+    "一言ステータスと連絡先をひとつ——それがカードを共有する価値にします。",
+  "card.nudge.body.status":
+    "一言ステータスを加えて、訪問者にいま何をしているか伝えましょう。",
+  "card.nudge.body.contact":
+    "連絡先を最低ひとつ（Telegram・WhatsApp・メール）——でないと誰も実際に誘えません。",
+  "card.nudge.cta": "カードを仕上げる",
+  "card.owner.footer.note": "あなたのカードはここにあります。いつでも編集しに戻ってください。",
+  "card.owner.footer.cta": "カードを編集",
+  "card.visitor.footer.note":
+    "このカードが気に入った？自分のも作ろう——取り組んでいることを共有して、次の街でコーヒーに誘われよう。",
 
   "sample.live": "ライブプレビュー",
   "sample.badge": "サンプル",

@@ -8,7 +8,7 @@ import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
 import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
-import { t, tmpl } from "@/lib/i18n/dict";
+import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 import {
@@ -194,7 +194,7 @@ export default async function HandlePage(
         }
       : null;
 
-  const joinedLabel = formatJoined(profile.joinedAt);
+  const joinedLabel = formatJoined(profile.joinedAt, locale);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
@@ -208,29 +208,29 @@ export default async function HandlePage(
           acoffee
         </Link>
         <span className="mx-1.5 text-bean">·</span>
-        Coffee card
+        {t(locale, "card.breadcrumb")}
       </p>
 
       {isOwner && isIncomplete && (
         <section className="flex flex-col gap-3 rounded-3xl border border-accent/40 bg-accent-soft/60 p-5 sm:p-6">
           <p className="text-xs font-medium uppercase tracking-wide text-accent">
-            Almost there
+            {t(locale, "card.nudge.eyebrow")}
           </p>
           <h2 className="text-lg font-semibold tracking-tight text-ink">
-            This is your card — it&apos;s looking sparse.
+            {t(locale, "card.nudge.title")}
           </h2>
           <p className="text-sm leading-[1.55] text-ink/70">
             {!profile.bio && !profile.hasContact
-              ? "Add a one-line status and a contact channel — that's what makes the card worth sharing."
+              ? t(locale, "card.nudge.body.both")
               : !profile.bio
-                ? "Add a one-line status so visitors see what you're up to."
-                : "Add at least one contact channel (Telegram, WhatsApp, or email) — otherwise no one can actually invite you."}
+                ? t(locale, "card.nudge.body.status")
+                : t(locale, "card.nudge.body.contact")}
           </p>
           <Link
             href="/profile"
             className="inline-flex self-start items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
           >
-            Finish your card
+            {t(locale, "card.nudge.cta")}
             <span aria-hidden>→</span>
           </Link>
         </section>
@@ -293,27 +293,26 @@ export default async function HandlePage(
         {isOwner ? (
           <>
             <p className="text-sm italic text-ink/70">
-              Your card lives here. Come back to edit it anytime.
+              {t(locale, "card.owner.footer.note")}
             </p>
             <Link
               href="/profile"
               className="inline-flex self-start items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
             >
-              Edit my card
+              {t(locale, "card.owner.footer.cta")}
               <span aria-hidden>→</span>
             </Link>
           </>
         ) : (
           <>
             <p className="text-sm italic text-ink/70">
-              Like this card? Make your own — share what you&apos;re
-              working on, get invited for coffee in your next city.
+              {t(locale, "card.visitor.footer.note")}
             </p>
             <Link
               href="/auth/signin?next=%2Fprofile%3Fonboarding%3D1"
               className="inline-flex self-start items-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
             >
-              Make your card
+              {t(locale, "hero.cta.makeCard")}
               <span aria-hidden>→</span>
             </Link>
           </>
@@ -324,11 +323,21 @@ export default async function HandlePage(
 }
 
 // "May 2026" granularity — month + year is enough magazine-style metadata
-// without leaking exact signup days.
-function formatJoined(iso: string): string {
+// without leaking exact signup days. The date is formatted in the
+// viewer's locale and wrapped in the localised `account.joined` template
+// (en "Joined {date}" / zh "{date} 加入" / ja "{date} 参加") so the meta
+// line doesn't mix English into a zh/ja card.
+function formatJoined(iso: string, locale: Locale): string {
   const d = new Date(iso);
-  return `Joined ${d.toLocaleDateString("en", {
+  const date = d.toLocaleDateString(localeToBcp47(locale), {
     month: "short",
     year: "numeric",
-  })}`;
+  });
+  return tmpl(t(locale, "account.joined"), { date });
+}
+
+// zh needs the region subtag for Intl to pick the right month names;
+// en/ja work as-is. Mirrors PresenceBanner's local helper.
+function localeToBcp47(locale: Locale): string {
+  return locale === "zh" ? "zh-CN" : locale;
 }
