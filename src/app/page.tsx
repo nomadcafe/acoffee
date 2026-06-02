@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SampleCard } from "@/components/SampleCard";
+import { HomeCities } from "@/components/HomeCities";
 import { SocialProof } from "@/components/SocialProof";
-import { countPublishedCards } from "@/lib/auth-queries";
+import { countPublishedCards, listActiveCities } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t, type Locale } from "@/lib/i18n/dict";
 import { homeAlternates } from "@/lib/i18n/routes";
@@ -26,7 +27,10 @@ export default async function Home() {
 }
 
 export async function HomeView({ locale }: { locale: Locale }) {
-  const cardCount = await countPublishedCards();
+  const [cardCount, activeCities] = await Promise.all([
+    countPublishedCards(),
+    listActiveCities(),
+  ]);
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -184,6 +188,8 @@ export async function HomeView({ locale }: { locale: Locale }) {
           ))}
         </ol>
       </section>
+
+      <HomeCities cities={activeCities} locale={locale} />
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-12 pt-8 sm:px-6">
         <div className="border-t border-bean pt-6">

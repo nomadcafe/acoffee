@@ -5,7 +5,7 @@ import type {
   MyProfile,
 } from "./types";
 import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
-import { cityNameFromSlug } from "./city";
+import { cityNameFromSlug, toCitySlug } from "./city";
 import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
@@ -391,6 +391,61 @@ export async function listCityCards(slug: string): Promise<CityCard[]> {
     coffeeChatKinds: c.coffeeChatKinds,
     gender: c.gender,
   }));
+}
+
+// A city with enough present cards to be worth surfacing on the home
+// "people are around here" strip.
+export type ActiveCity = { city: string; slug: string; count: number };
+
+// A city needs at least this many present cards before it shows on the
+// home strip — one lone card reads as "no one's here", same reasoning as
+// SocialProof's floor. The /city page itself still lists from the first
+// card; this floor only governs the home teaser.
+const CITY_STRIP_MIN_CARDS = 2;
+
+// Cities to feature on the home page: group the present, reachable,
+// discoverable cards (same gating as listCityCards, minus the city
+// filter) by normalised slug, keep those above the floor, busiest first.
+// Counts come from the most-recently-active 300 present cards — enough at
+// this scale; revisit with a SQL aggregate if a single city ever exceeds
+// that many active cards at once.
+export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const cutoffIso = new Date(
+    Date.now() - CITY_RESIDENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("city, updated_at")
+    .not("city", "is", null)
+    .eq("discoverable", true)
+    .not("handle", "match", AUTO_HANDLE.source)
+    .or(
+      "telegram_handle.not.is.null,whatsapp_number.not.is.null,email_contact.not.is.null",
+    )
+    .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`)
+    .order("updated_at", { ascending: false })
+    .limit(300);
+  if (error) return [];
+
+  const groups = new Map<string, { city: string; count: number }>();
+  for (const r of data ?? []) {
+    const city = (r.city as string | null) ?? null;
+    if (!city) continue;
+    const slug = toCitySlug(city);
+    if (!slug) continue;
+    const g = groups.get(slug);
+    if (g) g.count += 1;
+    else groups.set(slug, { city, count: 1 });
+  }
+
+  return [...groups.entries()]
+    .filter(([, g]) => g.count >= CITY_STRIP_MIN_CARDS)
+    .map(([slug, g]) => ({ city: g.city, slug, count: g.count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
 }
 
 // "alex_nomad" → "Alex Nomad". Inline to avoid a cross-module import for

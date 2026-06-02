@@ -56,6 +56,8 @@ export const en = {
 
   "home.proof": "{count} builders & nomads with a coffee card",
 
+  "home.cities.h2": "People are around right now in",
+
   // Home page signature footer
   "homeFooter.signature":
     "Made between cafés. If you're reading this from a new city, welcome — make a card so the next person doesn't feel so alone.",
@@ -522,6 +524,8 @@ export const zh: Record<DictKey, string> = {
 
   "home.proof": "已有 {count} 位 builder 和数字游民挂出了咖啡名片",
 
+  "home.cities.h2": "现在这些城市有人",
+
   "homeFooter.signature":
     "在咖啡馆之间做的。如果你在一个陌生城市看到这个——欢迎。做张名片，让下一个人不那么孤单。",
 
@@ -903,6 +907,8 @@ export const ja: Record<DictKey, string> = {
     "acoffee を作ったのは——みんな、少し孤独だと思うから。自分がフリーランスになってから気づいた——コーヒーを飲める誰か、ただ話せる誰かを見つけることが、なぜか難しいことに。acoffee がそれを少し簡単にできたらいい。一緒に solo、一緒にコーヒー、一緒におしゃべり、一緒に朝日。",
 
   "home.proof": "{count} 人の builder・ノマドがコーヒーカードを公開中",
+
+  "home.cities.h2": "いま人がいる街",
 
   "homeFooter.signature":
     "カフェの合間に作っています。新しい街でこれを読んでいるなら——ようこそ。カードを作って、次にここに来る誰かが孤独にならないようにしよう。",
