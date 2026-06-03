@@ -140,6 +140,9 @@ const BRAND_AND_GENERIC = [
   "domain",
   "domains",
   "sex",
+  // Keep the dating connotation off a coffee-chat product.
+  "date",
+  "dating",
 ];
 
 // Master set. Frozen so a hot-reload doesn't accidentally mutate it.
