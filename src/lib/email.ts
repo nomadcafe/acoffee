@@ -3,18 +3,80 @@ import { type Locale, t, tmpl } from "./i18n/dict";
 import { siteName, siteUrl } from "./site";
 import type { CoffeeChatKind } from "./types";
 
-// Email is best-effort. RESEND_API_KEY + EMAIL_FROM missing → skip; send
-// failure → log only, never throw. We don't want a flaky email provider
-// blocking the underlying DB write.
+// Two interchangeable send backends, picked by env so switching providers
+// (or falling back) is a config change, never a code change:
 //
-// EMAIL_FROM example: "acoffee <hello@acoffee.com>". Verify the domain in
-// Resend dashboard before setting; un-verified domains will 403.
-const resend = process.env.RESEND_API_KEY
-  ? new Resend(process.env.RESEND_API_KEY)
-  : null;
+//   • SMTP   — SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS. Any provider,
+//              including the one already wired into Supabase's auth emails,
+//              so the whole app can share one mailbox + one verified domain.
+//              Sent via nodemailer, loaded lazily (see getSmtpTransport) as
+//              an *optional* dependency — the Resend path never needs it.
+//   • Resend — RESEND_API_KEY. The original backend, kept as a drop-in
+//              alternative / fallback.
+//
+// EMAIL_FROM (e.g. "acoffee <hello@acoffee.com>") is required by both; the
+// sending domain must be verified with whichever provider you point it at.
+// EMAIL_PROVIDER ("smtp" | "resend") forces one; unset = auto-detect
+// (prefer SMTP when SMTP_HOST is set, else Resend).
+//
+// Email is best-effort: not configured → skip; send failure → log only,
+// never throw, so a flaky provider can't block the underlying DB write.
+
+type Backend = "smtp" | "resend";
+
+function pickBackend(): Backend | null {
+  const forced = process.env.EMAIL_PROVIDER?.toLowerCase();
+  if (forced === "smtp") return process.env.SMTP_HOST ? "smtp" : null;
+  if (forced === "resend") return process.env.RESEND_API_KEY ? "resend" : null;
+  if (process.env.SMTP_HOST) return "smtp";
+  if (process.env.RESEND_API_KEY) return "resend";
+  return null;
+}
 
 export function isEmailConfigured(): boolean {
-  return !!resend && !!process.env.EMAIL_FROM;
+  return !!process.env.EMAIL_FROM && pickBackend() !== null;
+}
+
+let resendClient: Resend | null = null;
+function getResend(): Resend {
+  if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY!);
+  return resendClient;
+}
+
+// The slice of nodemailer's transport we actually use. nodemailer is
+// imported through a non-literal specifier so neither tsc nor the bundler
+// hard-requires the package at build time — it's optional, pulled in only
+// when the SMTP backend is selected at runtime. Until `npm i nodemailer`
+// lands, the Resend backend keeps working untouched.
+type MailTransport = {
+  sendMail: (m: {
+    from: string;
+    to: string;
+    subject: string;
+    html: string;
+    text: string;
+  }) => Promise<unknown>;
+};
+
+let smtpTransport: MailTransport | null = null;
+async function getSmtpTransport(): Promise<MailTransport> {
+  if (!smtpTransport) {
+    const specifier: string = "nodemailer";
+    const nm = (await import(/* webpackIgnore: true */ specifier)) as {
+      createTransport: (opts: unknown) => MailTransport;
+    };
+    const port = Number(process.env.SMTP_PORT ?? 587);
+    smtpTransport = nm.createTransport({
+      host: process.env.SMTP_HOST,
+      port,
+      // 465 = implicit TLS; 587 / 2525 = STARTTLS (secure:false, upgraded).
+      secure: port === 465,
+      auth: process.env.SMTP_USER
+        ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+        : undefined,
+    });
+  }
+  return smtpTransport;
 }
 
 async function sendEmail(opts: {
@@ -23,7 +85,9 @@ async function sendEmail(opts: {
   html: string;
   text: string;
 }): Promise<void> {
-  if (!resend || !process.env.EMAIL_FROM) {
+  const from = process.env.EMAIL_FROM;
+  const backend = pickBackend();
+  if (!from || !backend) {
     console.warn("[email] not configured — skip", {
       to: opts.to,
       subject: opts.subject,
@@ -31,15 +95,14 @@ async function sendEmail(opts: {
     return;
   }
   try {
-    const res = await resend.emails.send({
-      from: process.env.EMAIL_FROM,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-      text: opts.text,
-    });
-    if (res.error) {
-      console.error("[email] send returned error", res.error);
+    if (backend === "smtp") {
+      const tx = await getSmtpTransport();
+      await tx.sendMail({ from, ...opts });
+    } else {
+      const res = await getResend().emails.send({ from, ...opts });
+      if (res.error) {
+        console.error("[email] send returned error", res.error);
+      }
     }
   } catch (e) {
     console.error("[email] send threw", e);
