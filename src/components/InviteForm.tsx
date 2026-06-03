@@ -18,6 +18,11 @@ export type VisitorSession = {
   handle: string;
   displayName: string;
   email: string;
+  // False when the viewer hasn't claimed a real handle yet (still the
+  // auto-generated `user_…` placeholder). The skip-confirm path still
+  // applies — their email is verified — but the UI shouldn't surface the
+  // gibberish handle, so we show handle-less copy and leave the name blank.
+  hasRealHandle: boolean;
 };
 
 // Public-facing invite form. Replaces the v0.7 client-side reveal — the
@@ -134,9 +139,11 @@ function InviteFormInner({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-muted">
             {visitorSession
-              ? tmpl(t("invite.gate.signedInAs"), {
-                  handle: visitorSession.handle,
-                })
+              ? visitorSession.hasRealHandle
+                ? tmpl(t("invite.gate.signedInAs"), {
+                    handle: visitorSession.handle,
+                  })
+                : t("invite.gate.signedInGeneric")
               : t("invite.gate.text")}
           </p>
           <button
@@ -202,9 +209,11 @@ function InviteFormInner({
         // step is skipped. Lives above the form fields so it's seen
         // before they look at the inputs.
         <div className="rounded-2xl border border-accent/40 bg-accent-soft/40 px-3 py-2.5 text-xs text-ink/85">
-          {tmpl(t("invite.form.signedIn"), {
-            handle: visitorSession.handle,
-          })}
+          {visitorSession.hasRealHandle
+            ? tmpl(t("invite.form.signedIn"), {
+                handle: visitorSession.handle,
+              })
+            : t("invite.form.signedInGeneric")}
         </div>
       )}
 

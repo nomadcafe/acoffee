@@ -460,10 +460,16 @@ export const en = {
   "invite.gate.signinLink": "Sign in to skip email confirm →",
   "invite.gate.signedInAs":
     "Sending as @{handle} · contact unlocks on accept",
+  // Handle-less variant for a signed-in viewer who hasn't claimed a real
+  // handle yet (so we don't surface the auto `user_…` placeholder).
+  "invite.gate.signedInGeneric":
+    "Sending from your account · contact unlocks on accept",
 
   // Banner inside the open form for signed-in visitors.
   "invite.form.signedIn":
     "Signed in as @{handle} — invite goes straight through, no email confirm needed.",
+  "invite.form.signedInGeneric":
+    "Signed in — your invite goes straight through, no email confirm needed.",
   "invite.form.email.locked": "Using your account email",
 
   // Confirm page — what the visitor sees after clicking the link.
@@ -845,9 +851,13 @@ export const zh: Record<DictKey, string> = {
   "invite.gate.signinLink": "登录后免邮箱确认 →",
   "invite.gate.signedInAs":
     "以 @{handle} 身份发起 · 被接受后才公开联系方式",
+  "invite.gate.signedInGeneric":
+    "以你的账号发起 · 被接受后才公开联系方式",
 
   "invite.form.signedIn":
     "以 @{handle} 身份发送 — 邀请直接送达，无需邮箱确认。",
+  "invite.form.signedInGeneric":
+    "已登录 — 邀请直接送达，无需邮箱确认。",
   "invite.form.email.locked": "使用你的账号邮箱",
 
   "confirm.success.title": "邀请正在路上",
@@ -1257,9 +1267,13 @@ export const ja: Record<DictKey, string> = {
   "invite.gate.signinLink": "サインインしてメール確認をスキップ →",
   "invite.gate.signedInAs":
     "@{handle} として送信 · 承認後に連絡先が公開されます",
+  "invite.gate.signedInGeneric":
+    "アカウントから送信 · 承認後に連絡先が公開されます",
 
   "invite.form.signedIn":
     "@{handle} として送信 — 招待は直接届きます。メール確認は不要です。",
+  "invite.form.signedInGeneric":
+    "サインイン済み — 招待は直接届きます。メール確認は不要です。",
   "invite.form.email.locked": "アカウントメールを使用",
 
   "confirm.success.title": "招待を送信しました",

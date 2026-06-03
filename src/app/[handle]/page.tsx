@@ -32,6 +32,11 @@ import { parseSocialLinks } from "@/lib/socials";
 // Mirrors the regex in profile/actions.ts checkHandleAvailable().
 const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 
+// Auto-generated handle from the handle_new_user trigger ("user_<8 hex>").
+// A viewer still carrying this hasn't onboarded, so we treat it as "no
+// real handle" when shaping the invite form (see visitorSession below).
+const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
+
 // v0.8 deliberately strips raw contact channels from the public-facing
 // fetch. Visitors no longer receive TG/WA/Email in the page payload —
 // the invite-then-email flow on accept is the only path to those values
@@ -171,12 +176,21 @@ export default async function HandlePage(
   // qualify for the streamlined invite path (skip email confirm).
   // Owners viewing their own card don't see a form at all so we don't
   // need to gate that case here.
+  // A viewer who signed in to invite but hasn't claimed a real handle yet
+  // still has the auto-generated `user_…` placeholder. Skip-confirm still
+  // applies (their email is verified), but we don't want the placeholder
+  // surfaced — so blank the pre-filled name (they type a real one) and let
+  // InviteForm switch to handle-less copy via `hasRealHandle`.
+  const viewerHasRealHandle = !!viewer && !AUTO_HANDLE.test(viewer.handle);
   const visitorSession =
     sessionUser && viewer && !isOwner
       ? {
           handle: viewer.handle,
-          displayName: deriveDisplayName(viewer.handle),
+          displayName: viewerHasRealHandle
+            ? deriveDisplayName(viewer.handle)
+            : "",
           email: sessionUser.email ?? "",
+          hasRealHandle: viewerHasRealHandle,
         }
       : null;
 
