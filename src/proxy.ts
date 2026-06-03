@@ -23,6 +23,15 @@ export async function proxy(request: NextRequest) {
     request.headers.set("x-url-locale", urlLocale);
   }
 
+  // Expose the current path (+ query) so server components can build a
+  // "come back here after sign-in" link. SiteNav's sign-in button uses
+  // this for `?next=`, so signing in from someone's card returns you to
+  // that card instead of dumping you on your own page.
+  request.headers.set(
+    "x-pathname",
+    request.nextUrl.pathname + request.nextUrl.search,
+  );
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { countMyPendingInvites } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
@@ -55,6 +56,15 @@ export async function SiteNav() {
     currentHomeHref(),
   ]);
 
+  // Carry the current page as `next` so signing in returns the visitor to
+  // where they were (e.g. the card they wanted to invite from) instead of
+  // their own page. Skip auth paths to avoid a self-referential loop.
+  const currentPath = (await headers()).get("x-pathname") ?? "";
+  const signInHref =
+    currentPath && !currentPath.startsWith("/auth")
+      ? `/auth/signin?next=${encodeURIComponent(currentPath)}`
+      : "/auth/signin";
+
   return (
     <nav className="relative z-40 border-b border-bean bg-page/80 backdrop-blur">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 sm:px-6">
@@ -106,7 +116,7 @@ export async function SiteNav() {
               />
             ) : (
               <Link
-                href="/auth/signin"
+                href={signInHref}
                 className="rounded-2xl bg-accent px-4 py-2 font-medium text-page shadow-sm hover:bg-accent-hover hover:shadow-md"
               >
                 {t(locale, "nav.signIn")}
