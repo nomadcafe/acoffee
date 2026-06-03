@@ -6,6 +6,7 @@ import { z } from "zod";
 import { emailInviteConfirm, emailNewInvite } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
+import { deriveDisplayName } from "@/lib/profile";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import {
   createSupabaseAdmin,
@@ -62,16 +63,6 @@ function trimOrUndefined(v: FormDataEntryValue | null): string | undefined {
   if (typeof v !== "string") return undefined;
   const t = v.trim();
   return t === "" ? undefined : t;
-}
-
-// "alex_nomad" → "Alex Nomad". Same derivation /[handle]/page.tsx +
-// SiteNav use — inline because cross-importing a one-liner is overkill.
-function deriveDisplayName(handle: string): string {
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
 }
 
 export async function createInvite(

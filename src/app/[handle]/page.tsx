@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,13 +14,16 @@ import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 import {
-  COFFEE_CHAT_KINDS,
-  GENDERS,
   type CoffeeChatKind,
   type Gender,
   type SocialLink,
 } from "@/lib/types";
 import { RESERVED_HANDLES } from "@/lib/reserved-handles";
+import {
+  deriveDisplayName,
+  parseChatKinds,
+  parseGender,
+} from "@/lib/profile";
 import { parseSocialLinks } from "@/lib/socials";
 
 // Same handle format the profile form + DB CHECK enforce. Used here as a
@@ -60,7 +64,12 @@ type PublicProfile = {
   updatedAt: string;
 };
 
-async function fetchPublicProfile(handle: string): Promise<PublicProfile | null> {
+// Memoised per request: generateMetadata and HandlePage both need the
+// same row, and React's cache() collapses those two identical reads into
+// a single Supabase round-trip for the duration of the request.
+const fetchPublicProfile = cache(async function fetchPublicProfile(
+  handle: string,
+): Promise<PublicProfile | null> {
   if (!isAuthConfigured()) return null;
   const supabase = await createSupabaseServer();
   const { data, error } = await supabase
@@ -94,30 +103,7 @@ async function fetchPublicProfile(handle: string): Promise<PublicProfile | null>
       (data.updated_at as string | undefined) ??
       (data.created_at as string),
   };
-}
-
-function parseGender(raw: unknown): Gender | null {
-  if (typeof raw !== "string") return null;
-  return (GENDERS as readonly string[]).includes(raw) ? (raw as Gender) : null;
-}
-
-// "alex_nomad" → "Alex Nomad". Handles aren't real names, but a Title-cased
-// derived form reads better as the H1 than the raw lowercase slug.
-function deriveDisplayName(handle: string): string {
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function parseChatKinds(raw: unknown): CoffeeChatKind[] {
-  if (!Array.isArray(raw)) return [];
-  const allowed = new Set<string>(COFFEE_CHAT_KINDS);
-  return raw.filter((v): v is CoffeeChatKind =>
-    typeof v === "string" && allowed.has(v),
-  );
-}
+});
 
 export async function generateMetadata(
   { params }: { params: Promise<{ handle: string }> },
@@ -255,6 +241,7 @@ export default async function HandlePage(
       />
 
       <CardBody
+        nameAs="h1"
         handle={profile.handle}
         displayName={profile.displayName}
         city={profile.city}

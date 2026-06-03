@@ -4,8 +4,8 @@ import type {
   Invite,
   MyProfile,
 } from "./types";
-import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
 import { CITY_INDEX_FLOOR } from "./city";
+import { deriveDisplayName, parseChatKinds, parseGender } from "./profile";
 import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
@@ -45,23 +45,6 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     // coerce defensively in case of a legacy null.
     discoverable: (data.discoverable as boolean | null) ?? true,
   };
-}
-
-// Defensive: DB column is text[] with a CHECK constraint, but a stray legacy
-// value would otherwise blow up the typed read. Filter to the v0.7 union.
-function parseChatKinds(raw: unknown): CoffeeChatKind[] {
-  if (!Array.isArray(raw)) return [];
-  const allowed = new Set<string>(COFFEE_CHAT_KINDS);
-  return raw.filter((v): v is CoffeeChatKind =>
-    typeof v === "string" && allowed.has(v),
-  );
-}
-
-// Same defensive narrowing for the gender enum. DB has CHECK but an
-// older row could carry whatever — coerce anything off-list to null.
-function parseGender(raw: unknown): Gender | null {
-  if (typeof raw !== "string") return null;
-  return (GENDERS as readonly string[]).includes(raw) ? (raw as Gender) : null;
 }
 
 // Account-section stats for /profile. v0.7 only tracks join date — the
@@ -455,16 +438,6 @@ export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
 export async function listIndexableCities(): Promise<ActiveCity[]> {
   const cities = await groupActiveCities();
   return cities.filter((c) => c.count >= CITY_INDEX_FLOOR);
-}
-
-// "alex_nomad" → "Alex Nomad". Inline to avoid a cross-module import for
-// a one-liner; mirrors the same derivation /[handle]/page.tsx + SiteNav use.
-function deriveDisplayName(handle: string): string {
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
 }
 
 function rowToInvite(r: Record<string, unknown>): Invite {

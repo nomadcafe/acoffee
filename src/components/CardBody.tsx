@@ -28,6 +28,12 @@ export const KIND_EMOJI: Record<CoffeeChatKind, string> = {
 export type CardBodyProps = {
   handle: string;
   displayName: string;
+  // The element the name renders as. Only the real `/[handle]` page is
+  // the document's primary heading, so it passes "h1"; SampleCard (on a
+  // landing page that already has its hero <h1>) and LiveCardPreview (in
+  // the profile editor, ditto) keep the default "p" to avoid emitting a
+  // second <h1>. The visual styling is identical across tags.
+  nameAs?: "h1" | "h2" | "p";
   city: string | null;
   // When set, the city in the meta line links here (the /city/[slug]
   // discovery page). Omitted by SampleCard / LiveCardPreview, where the
@@ -58,6 +64,7 @@ export type CardBodyProps = {
 export function CardBody({
   handle,
   displayName,
+  nameAs: NameTag = "p",
   city,
   cityHref,
   locator,
@@ -146,9 +153,9 @@ export function CardBody({
         />
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex flex-wrap items-baseline gap-2">
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight text-ink sm:text-[2rem]">
+            <NameTag className="text-3xl font-semibold leading-tight tracking-tight text-ink sm:text-[2rem]">
               {displayName}
-            </h1>
+            </NameTag>
             <span className="text-sm font-medium text-muted">
               @{handle}
             </span>

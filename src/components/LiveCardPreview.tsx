@@ -3,6 +3,7 @@
 import { CardBody } from "./CardBody";
 import { PresenceBanner } from "./PresenceBanner";
 import { useLocale, useT } from "./LocaleProvider";
+import { deriveDisplayName } from "@/lib/profile";
 import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 
 // Real-time card preview that lives next to ProfileForm. Same CardBody
@@ -14,15 +15,6 @@ import type { CoffeeChatKind, Gender, SocialLink } from "@/lib/types";
 // All inputs are kept as plain strings/arrays at this layer so ProfileForm
 // can hand over whatever the controlled inputs currently hold, including
 // half-typed values — no need to debounce or wait for blur.
-function deriveDisplayName(handle: string, fallback: string): string {
-  if (!handle) return fallback;
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
-}
-
 export function LiveCardPreview({
   handle,
   avatarUrl,
@@ -56,7 +48,11 @@ export function LiveCardPreview({
       />
       <CardBody
       handle={safeHandle}
-      displayName={deriveDisplayName(safeHandle, t("profile.field.handle.fallbackName"))}
+      displayName={
+        safeHandle
+          ? deriveDisplayName(safeHandle)
+          : t("profile.field.handle.fallbackName")
+      }
       city={city}
       locator={null}
       status={status}

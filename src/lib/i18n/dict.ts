@@ -130,7 +130,7 @@ export const en = {
     "Around {city} too? Make a card so the next person can find you.",
   "city.row.until": "until {date}",
   "city.empty.body":
-    "No one's set a coffee card around {city} yet — or they've moved on.",
+    "No one's listed a public coffee card around {city} right now.",
   "city.empty.cta.note": "Be the first. Make a card and start the table.",
   "city.meta.title": "Coffee in {city} · acoffee",
   "city.meta.description":
@@ -581,7 +581,7 @@ export const zh: Record<DictKey, string> = {
   "city.subhead": "此刻在这里挂着咖啡名片的人。点开名片就能约。",
   "city.footer.note": "你也在 {city}？做张名片，让下一个人能找到你。",
   "city.row.until": "到 {date}",
-  "city.empty.body": "{city} 附近还没人挂咖啡名片——或者他们已经离开了。",
+  "city.empty.body": "{city} 附近现在还没有公开的咖啡名片。",
   "city.empty.cta.note": "做第一张吧，把这桌开起来。",
   "city.meta.title": "{city} 的咖啡 · acoffee",
   "city.meta.description":
@@ -973,7 +973,7 @@ export const ja: Record<DictKey, string> = {
     "あなたも {city} 周辺に？カードを作って、次の人に見つけてもらおう。",
   "city.row.until": "{date}まで",
   "city.empty.body":
-    "{city} 周辺にはまだ誰もコーヒーカードを公開していません——もう移動したのかも。",
+    "{city} 周辺には今、公開されているコーヒーカードがありません。",
   "city.empty.cta.note": "最初の一人になろう。カードを作ってテーブルを開こう。",
   "city.meta.title": "{city} のコーヒー · acoffee",
   "city.meta.description":

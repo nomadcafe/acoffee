@@ -19,6 +19,7 @@ import {
   type HandleCheckResult,
   type ProfileState,
 } from "./actions";
+import { deriveDisplayName } from "@/lib/profile";
 
 const HANDLE_RE = /^[a-z0-9_]+$/;
 const CHECK_DEBOUNCE_MS = 350;
@@ -30,18 +31,6 @@ const INITIAL: ProfileState = { status: "idle" };
 // typing. Let placeholder guide instead, so the field starts empty and the
 // real handle gets typed in one go.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
-
-// Same derivation as the public /[handle] page + SiteNav — title-case the
-// underscored handle for the avatar's initials and the display name shown
-// alongside the chip ("alex_nomad" → "Alex Nomad").
-function deriveDisplayName(handle: string): string {
-  if (!handle) return "Your name";
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
-}
 
 const KIND_EMOJI: Record<CoffeeChatKind, string> = {
   coffee: "☕",

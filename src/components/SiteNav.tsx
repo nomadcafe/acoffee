@@ -3,18 +3,8 @@ import { countMyPendingInvites } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { deriveDisplayName } from "@/lib/profile";
 import { UserMenu } from "@/components/UserMenu";
-
-// Same derivation as /[handle]/page.tsx — "alex_nomad" → "Alex Nomad".
-// Inline because it's the only other surface that needs it and a shared
-// helper would invert effort vs payoff.
-function deriveDisplayName(handle: string): string {
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
-}
 
 async function readSessionProfile(): Promise<{
   handle: string;

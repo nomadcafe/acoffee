@@ -1,6 +1,9 @@
 import { ImageResponse } from "next/og";
+import { getLocale } from "@/lib/i18n";
+import { t } from "@/lib/i18n/dict";
+import { deriveDisplayName, parseChatKinds } from "@/lib/profile";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
-import { COFFEE_CHAT_KINDS, type CoffeeChatKind } from "@/lib/types";
+import { type CoffeeChatKind } from "@/lib/types";
 
 // Dynamic OG image for /[handle] — the artefact that lives in social share
 // previews. Each shared Card URL renders a 1200×630 PNG with the user's
@@ -27,12 +30,15 @@ const PALETTE: ReadonlyArray<readonly [string, string]> = [
   ["#9a5a30", "#fff1e2"],
 ];
 
-const KIND_META: Record<CoffeeChatKind, { emoji: string; label: string }> = {
-  coffee: { emoji: "☕", label: "Coffee" },
-  cowork: { emoji: "💻", label: "Cowork" },
-  dinner: { emoji: "🍜", label: "Dinner" },
-  hike: { emoji: "🥾", label: "Hike" },
-  work_talk: { emoji: "💼", label: "Work talk" },
+// Emoji per kind; the human label comes from the dict so the shared
+// preview reads in the same language as the live card (resolved via
+// getLocale below). Mirrors CardBody's KIND_EMOJI.
+const KIND_EMOJI: Record<CoffeeChatKind, string> = {
+  coffee: "☕",
+  cowork: "💻",
+  dinner: "🍜",
+  hike: "🥾",
+  work_talk: "💼",
 };
 
 function colourFor(handle: string): readonly [string, string] {
@@ -48,22 +54,6 @@ function initials(displayName: string): string {
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function deriveDisplayName(handle: string): string {
-  return handle
-    .split("_")
-    .filter(Boolean)
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function parseChatKinds(raw: unknown): CoffeeChatKind[] {
-  if (!Array.isArray(raw)) return [];
-  const allowed = new Set<string>(COFFEE_CHAT_KINDS);
-  return raw.filter(
-    (v): v is CoffeeChatKind => typeof v === "string" && allowed.has(v),
-  );
 }
 
 type CardForOg = {
@@ -102,7 +92,15 @@ export default async function CardOg({
 }: {
   params: { handle: string };
 }) {
-  const card = await fetchCard(params.handle);
+  const [card, locale] = await Promise.all([
+    fetchCard(params.handle),
+    // Locale is resolvable when the request carries a url-prefix header,
+    // the viewer's `locale` cookie, or an Accept-Language header (owner
+    // self-share, same-locale re-share). A cold scraper with none of
+    // those falls back to English — never worse than the old hardcoded
+    // labels, and correct whenever the locale is known.
+    getLocale(),
+  ]);
   if (!card) {
     // No profile → render the generic site OG so social previews don't
     // 404 mid-share. Same palette as the live card so the difference is
@@ -261,29 +259,26 @@ export default async function CardOg({
               marginBottom: 12,
             }}
           >
-            {card.kinds.map((k) => {
-              const m = KIND_META[k];
-              return (
-                <div
-                  key={k}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "10px 20px",
-                    background: "#efe0d4",
-                    color: "#b5563a",
-                    borderRadius: 999,
-                    fontSize: 22,
-                    fontWeight: 600,
-                    letterSpacing: 0.3,
-                  }}
-                >
-                  <span>{m.emoji}</span>
-                  {m.label}
-                </div>
-              );
-            })}
+            {card.kinds.map((k) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "10px 20px",
+                  background: "#efe0d4",
+                  color: "#b5563a",
+                  borderRadius: 999,
+                  fontSize: 22,
+                  fontWeight: 600,
+                  letterSpacing: 0.3,
+                }}
+              >
+                <span>{KIND_EMOJI[k]}</span>
+                {t(locale, `profile.kind.${k}` as const)}
+              </div>
+            ))}
           </div>
         )}
       </div>
