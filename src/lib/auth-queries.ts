@@ -5,7 +5,7 @@ import type {
   MyProfile,
 } from "./types";
 import { COFFEE_CHAT_KINDS, GENDERS } from "./types";
-import { CITY_INDEX_FLOOR, cityNameFromSlug, toCitySlug } from "./city";
+import { CITY_INDEX_FLOOR } from "./city";
 import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 
@@ -323,8 +323,7 @@ const CITY_RESIDENT_WINDOW_DAYS = 45;
 // by recency. Capped so a big city can't return an unbounded list.
 export async function listCityCards(slug: string): Promise<CityCard[]> {
   if (!isAuthConfigured()) return [];
-  const name = cityNameFromSlug(slug);
-  if (!name) return [];
+  if (!slug) return [];
   const supabase = await createSupabaseServer();
   const todayIso = new Date().toISOString().slice(0, 10); // city_until is a DATE
   const cutoffIso = new Date(
@@ -338,9 +337,8 @@ export async function listCityCards(slug: string): Promise<CityCard[]> {
     .select(
       "handle, bio, city, city_until, coffee_chat_kinds, gender, avatar_url, updated_at",
     )
-    // ilike = case-insensitive equality (no wildcards) against the
-    // Title-cased stored value.
-    .ilike("city", name)
+    // Exact match against the generated slug column (indexed).
+    .eq("city_slug", slug)
     .eq("discoverable", true)
     .not("handle", "match", AUTO_HANDLE.source)
     // Multiple .or() groups AND together: must be reachable …
@@ -417,7 +415,7 @@ async function groupActiveCities(): Promise<ActiveCity[]> {
   ).toISOString();
   const { data, error } = await supabase
     .from("profiles")
-    .select("city, updated_at")
+    .select("city, city_slug, updated_at")
     .not("city", "is", null)
     .eq("discoverable", true)
     .not("handle", "match", AUTO_HANDLE.source)
@@ -432,9 +430,8 @@ async function groupActiveCities(): Promise<ActiveCity[]> {
   const groups = new Map<string, { city: string; count: number }>();
   for (const r of data ?? []) {
     const city = (r.city as string | null) ?? null;
-    if (!city) continue;
-    const slug = toCitySlug(city);
-    if (!slug) continue;
+    const slug = (r.city_slug as string | null) ?? null;
+    if (!city || !slug) continue;
     const g = groups.get(slug);
     if (g) g.count += 1;
     else groups.set(slug, { city, count: 1 });

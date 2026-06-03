@@ -48,7 +48,9 @@ export const termsAlternates = (locale: Locale) =>
 // shape, but the slug is dynamic so they get their own builder rather
 // than joining the fixed MarketingSlug union.
 export function cityPath(slug: string, locale: Locale): string {
-  return locale === "en" ? `/city/${slug}` : `/${locale}/city/${slug}`;
+  // encode so non-latin / punctuated slugs stay URL-safe.
+  const seg = encodeURIComponent(slug);
+  return locale === "en" ? `/city/${seg}` : `/${locale}/city/${seg}`;
 }
 
 export function cityAlternates(slug: string, locale: Locale) {

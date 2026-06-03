@@ -1,14 +1,13 @@
-// Slug helpers for the city discovery pages (/city/[slug]).
+// Helpers for the city discovery pages (/city/[slug]).
 //
-// Cities are stored Title-cased (normaliseCity runs on write), so a slug
-// is just the lowercased name with spaces collapsed to hyphens, and the
-// reverse turns hyphens back into spaces for a case-insensitive (ilike)
-// DB match — we don't need to restore the Title case because the match
-// ignores case. Non-latin names (東京) keep their characters in the slug
-// and round-trip fine through ilike; the URL encodes them. Known v1
-// limitation: cities whose real name contains a hyphen (Saint-Tropez)
-// slug to "saint-tropez" and reverse to "saint tropez", which won't
-// match — revisit with a stored city_slug column if those come up.
+// The slug is a STORED, generated DB column (profiles.city_slug =
+// lower(regexp_replace(btrim(city), '\s+', '-', 'g'))). Matching and URL
+// building both use that column verbatim, so there's no JS slug function
+// that has to stay in sync with the DB — the generated expression is the
+// single source of truth. That makes lookups exact and indexable, and
+// handles names a naive reverse-mapping would miss (e.g. "Saint-Tropez").
+// cityDisplayFromSlug below is cosmetic only — the empty-state heading
+// when no row is available to read the real city off of.
 
 import { type Locale } from "./i18n/dict";
 
@@ -19,21 +18,19 @@ import { type Locale } from "./i18n/dict";
 // which city pages are crawlable.
 export const CITY_INDEX_FLOOR = 3;
 
-export function toCitySlug(city: string): string {
-  return city.trim().toLowerCase().replace(/\s+/g, "-");
+// Build a city href segment from a (DB-generated) slug. encodeURIComponent
+// keeps non-latin slugs and punctuation (apostrophes, dots) URL-safe.
+export function cityHrefSlug(slug: string): string {
+  return encodeURIComponent(slug);
 }
 
-// Inverse used to build the DB query: "chiang-mai" → "chiang mai".
-export function cityNameFromSlug(slug: string): string {
-  return decodeURIComponent(slug).replace(/-+/g, " ").trim();
-}
-
-// Title-cased display name from a slug, used for the page heading when
-// there are no matching cards (so we can't read the real city off a row).
-// Mirrors normaliseCity's casing so "chiang-mai" reads "Chiang Mai".
+// Cosmetic Title-cased name from a slug, for the page heading when there
+// are no matching cards to read the real city from. "chiang-mai" →
+// "Chiang Mai". Not used for matching, so its lossiness doesn't matter.
 export function cityDisplayFromSlug(slug: string): string {
-  const name = cityNameFromSlug(slug);
-  return name
+  return decodeURIComponent(slug)
+    .replace(/-+/g, " ")
+    .trim()
     .split(" ")
     .filter(Boolean)
     .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase())
