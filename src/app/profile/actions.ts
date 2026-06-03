@@ -330,22 +330,14 @@ export async function updateProfile(
     });
   }
 
-  // On onboarding completion (auto → real handle), resume an explicit
-  // destination if we have one — e.g. the card the user opened to send an
-  // invite, carried through /auth/callback as `after` — so they land back
-  // where they started instead of on a dead end. Guard against a stale
-  // `/${priorHandle}` value (onboarding just renamed that handle, so it'd
-  // 404). With no destination, land them on their freshly-claimed card so
-  // they see it live. Either way `welcome=1` rides along: it's the GA
-  // beacon's signal to fire `signup_completed`, and the beacon strips the
-  // query so a refresh doesn't double-count.
+  // On onboarding completion (auto → real handle), land the user on their
+  // freshly-claimed card so they see it live. (Onboarding is only forced
+  // for cold sign-ins now — anyone who arrived with a destination was sent
+  // straight there by /auth/callback, so there's nothing to resume here.)
+  // welcome=1 fires the GA `signup_completed` beacon; the beacon strips
+  // the query so a refresh doesn't double-count.
   if (isOnboardingCompletion) {
-    const resumeTo = safeAfter(formData.get("after"));
-    const dest =
-      resumeTo && resumeTo !== `/${priorHandle}`
-        ? resumeTo
-        : `/${parsed.data.handle}`;
-    redirect(`${dest}${dest.includes("?") ? "&" : "?"}welcome=1`);
+    redirect(`/${parsed.data.handle}?welcome=1`);
   }
 
   // Returning-user save: honour any explicit `after` (used by other entry

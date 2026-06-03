@@ -67,17 +67,14 @@ export async function GET(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
     userHandle = (profile?.handle as string | undefined) ?? null;
-    if (userHandle && AUTO_HANDLE.test(userHandle)) {
-      // First-time: onboard before letting them in, but carry any explicit
-      // destination (e.g. the card they opened to send an invite) so we can
-      // resume it once the real handle is claimed. Don't fall back to the
-      // auto-handle card here — onboarding renames the handle, so that path
-      // would 404; with no `next`, the profile save lands them on their
-      // freshly-claimed card instead.
-      const after = next ? `&after=${encodeURIComponent(next)}` : "";
-      return NextResponse.redirect(
-        `${origin}/profile?onboarding=1${after}`,
-      );
+    // First sign-in with nowhere specific to go → onboard before letting
+    // them in, so they leave with a real card. But if they came from a
+    // specific destination (`next` set — e.g. a card they want to invite
+    // from), honour it: forcing a profile-setup detour there loses the
+    // thing they actually came to do. They can fill their card later — the
+    // incomplete-card nudge on their own card prompts exactly that.
+    if (userHandle && AUTO_HANDLE.test(userHandle) && !next) {
+      return NextResponse.redirect(`${origin}/profile?onboarding=1`);
     }
   }
 
