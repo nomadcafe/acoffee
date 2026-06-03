@@ -68,7 +68,6 @@ export function ProfileForm({
   const [discoverable, setDiscoverable] = useState(profile.discoverable);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [telegram, setTelegram] = useState(profile.telegramHandle ?? "");
-  const [whatsapp, setWhatsapp] = useState(profile.whatsappNumber ?? "");
   const [emailContact, setEmailContact] = useState(profile.emailContact ?? "");
   // v0.9 — optional gender soft signal. Empty string submits as null
   // ("prefer not to say"); the action coerces empty back to null.
@@ -168,11 +167,7 @@ export function ProfileForm({
     return undefined;
   })();
 
-  const hasContact = !!(
-    telegram.trim() ||
-    whatsapp.trim() ||
-    emailContact.trim()
-  );
+  const hasContact = !!(telegram.trim() || emailContact.trim());
 
   return (
     <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[1.1fr_1fr] lg:items-start lg:gap-12">
@@ -380,15 +375,6 @@ export function ProfileForm({
             placeholder={t("profile.field.telegram.placeholder")}
             hint={t("profile.field.telegram.hint")}
             error={errs.telegramHandle}
-          />
-          <Field
-            label={t("profile.field.whatsapp.label")}
-            name="whatsappNumber"
-            value={whatsapp}
-            onValueChange={setWhatsapp}
-            placeholder={t("profile.field.whatsapp.placeholder")}
-            hint={t("profile.field.whatsapp.hint")}
-            error={errs.whatsappNumber}
           />
           <Field
             label={t("profile.field.email.label")}

@@ -36,7 +36,7 @@ export const en = {
   "how.step1.body.post": ". That's your card forever.",
   "how.step2.title": "Fill your card",
   "how.step2.body":
-    "Your city, a line about what you're doing, what you're up for. Add Telegram or WhatsApp so invites actually land.",
+    "Your city, a line about what you're doing, what you're up for. Add Telegram or email so invites actually land.",
   "how.step3.title": "Share & get invited",
   "how.step3.body.pre":
     "Drop your card link in a Slack, a tweet, a co-working board. Nomads in your city click ",
@@ -114,7 +114,7 @@ export const en = {
   "card.nudge.body.status":
     "Add a one-line status so visitors see what you're up to.",
   "card.nudge.body.contact":
-    "Add at least one contact channel (Telegram, WhatsApp, or email) — otherwise no one can actually invite you.",
+    "Add at least one contact channel (Telegram or email) — otherwise no one can actually invite you.",
   "card.nudge.cta": "Finish your card",
   "card.owner.footer.note": "Your card lives here. Come back to edit it anytime.",
   "card.owner.footer.cta": "Edit my card",
@@ -186,7 +186,7 @@ export const en = {
   "profile.header.welcome.eyebrow": "Welcome to acoffee",
   "profile.header.welcome.h1": "Pick how others see you.",
   "profile.header.welcome.sub":
-    "One-time setup. Pick a handle others can recognize you by, then add Telegram, WhatsApp, or email so invites actually land.",
+    "One-time setup. Pick a handle others can recognize you by, then add Telegram or email so invites actually land.",
   "profile.header.normal.eyebrow": "Your acoffee card",
   "profile.header.normal.h1": "How others see you.",
   "profile.header.normal.sub":
@@ -253,10 +253,6 @@ export const en = {
   "profile.field.telegram.placeholder": "@yourhandle",
   "profile.field.telegram.hint":
     "Recommended · username only, no phone number shared",
-  "profile.field.whatsapp.label": "WhatsApp",
-  "profile.field.whatsapp.placeholder": "+66812345678",
-  "profile.field.whatsapp.hint":
-    "Shares your phone number with accepted invites · include country code with +",
   "profile.field.email.label": "Email",
   "profile.field.email.placeholder": "you@example.com",
   "profile.field.email.hint":
@@ -508,7 +504,7 @@ export const zh: Record<DictKey, string> = {
   "how.step1.body.post": "。这就是你以后的名片。",
   "how.step2.title": "填名片",
   "how.step2.body":
-    "你所在的城市、一句话简介、想约什么。加 Telegram 或 WhatsApp，邀请才能真正到达。",
+    "你所在的城市、一句话简介、想约什么。加 Telegram 或邮箱，邀请才能真正到达。",
   "how.step3.title": "分享 & 收到邀请",
   "how.step3.body.pre":
     "把链接放进 Slack、推文、协作空间公告板。你城市的 nomads 点 ",
@@ -569,7 +565,7 @@ export const zh: Record<DictKey, string> = {
     "加一句 status，再留一个联系方式——这样名片才值得分享。",
   "card.nudge.body.status": "加一句 status，让访客知道你在忙什么。",
   "card.nudge.body.contact":
-    "至少留一个联系方式（Telegram、WhatsApp 或邮箱）——否则没人能真的约到你。",
+    "至少留一个联系方式（Telegram 或邮箱）——否则没人能真的约到你。",
   "card.nudge.cta": "把名片补完",
   "card.owner.footer.note": "你的名片就在这里，随时回来编辑。",
   "card.owner.footer.cta": "编辑我的名片",
@@ -628,7 +624,7 @@ export const zh: Record<DictKey, string> = {
   "profile.header.welcome.eyebrow": "欢迎来到 acoffee",
   "profile.header.welcome.h1": "决定别人怎么看你。",
   "profile.header.welcome.sub":
-    "一次性设置。挑一个别人能认出你的 handle,然后加 Telegram、WhatsApp 或邮箱,邀请才能真正到达。",
+    "一次性设置。挑一个别人能认出你的 handle,然后加 Telegram 或邮箱,邀请才能真正到达。",
   "profile.header.normal.eyebrow": "你的 acoffee 名片",
   "profile.header.normal.h1": "别人怎么看到你。",
   "profile.header.normal.sub":
@@ -689,10 +685,6 @@ export const zh: Record<DictKey, string> = {
   "profile.field.telegram.placeholder": "@yourhandle",
   "profile.field.telegram.hint":
     "推荐 · 只暴露用户名,不会泄露手机号",
-  "profile.field.whatsapp.label": "WhatsApp",
-  "profile.field.whatsapp.placeholder": "+66812345678",
-  "profile.field.whatsapp.hint":
-    "你 accept 的访客会看到这个手机号 · 带 + 和国家代码",
   "profile.field.email.label": "邮箱",
   "profile.field.email.placeholder": "you@example.com",
   "profile.field.email.hint": "可选 · 公开联系邮箱——可以和登录邮箱不同",
@@ -892,7 +884,7 @@ export const ja: Record<DictKey, string> = {
   "how.step1.body.post": "。これがあなたのカードになる。",
   "how.step2.title": "カードを埋める",
   "how.step2.body":
-    "今いる街、いま何をしているか、何に乗ってくるか。Telegram や WhatsApp も入れておけば招待が届く。",
+    "今いる街、いま何をしているか、何に乗ってくるか。Telegram かメールを入れておけば招待が届く。",
   "how.step3.title": "シェアして招待される",
   "how.step3.body.pre":
     "Slack、ツイート、コワーキングの掲示板にリンクを貼る。あなたの街にいるノマドが ",
@@ -958,7 +950,7 @@ export const ja: Record<DictKey, string> = {
   "card.nudge.body.status":
     "一言ステータスを加えて、訪問者にいま何をしているか伝えましょう。",
   "card.nudge.body.contact":
-    "連絡先を最低ひとつ（Telegram・WhatsApp・メール）——でないと誰も実際に誘えません。",
+    "連絡先を最低ひとつ（Telegram かメール）——でないと誰も実際に誘えません。",
   "card.nudge.cta": "カードを仕上げる",
   "card.owner.footer.note": "あなたのカードはここにあります。いつでも編集しに戻ってください。",
   "card.owner.footer.cta": "カードを編集",
@@ -1023,7 +1015,7 @@ export const ja: Record<DictKey, string> = {
   "profile.header.welcome.eyebrow": "acoffee へようこそ",
   "profile.header.welcome.h1": "他の人にどう見られたいか決めよう。",
   "profile.header.welcome.sub":
-    "一度きりの設定。他の人があなたを見つけられる handle を選んで、Telegram / WhatsApp / メールのどれかを追加してください——招待が届く先になります。",
+    "一度きりの設定。他の人があなたを見つけられる handle を選んで、Telegram かメールを追加してください——招待が届く先になります。",
   "profile.header.normal.eyebrow": "あなたの acoffee カード",
   "profile.header.normal.h1": "他の人から見たあなた。",
   "profile.header.normal.sub":
@@ -1089,10 +1081,6 @@ export const ja: Record<DictKey, string> = {
   "profile.field.telegram.placeholder": "@yourhandle",
   "profile.field.telegram.hint":
     "推奨 · ユーザー名のみで、電話番号は公開されません",
-  "profile.field.whatsapp.label": "WhatsApp",
-  "profile.field.whatsapp.placeholder": "+66812345678",
-  "profile.field.whatsapp.hint":
-    "承認した相手にこの電話番号が共有されます · + と国番号付き",
   "profile.field.email.label": "メール",
   "profile.field.email.placeholder": "you@example.com",
   "profile.field.email.hint":

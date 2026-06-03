@@ -93,11 +93,7 @@ export default async function ProfilePage({
   // handle + at least one contact channel + a bio. Anything less and
   // we'd be prompting the user to broadcast a skeleton page that
   // visitors can't even invite from.
-  const hasContact = !!(
-    profile.telegramHandle ||
-    profile.whatsappNumber ||
-    profile.emailContact
-  );
+  const hasContact = !!(profile.telegramHandle || profile.emailContact);
   const isPublishable = hasRealHandle && !!profile.bio && hasContact;
 
   return (

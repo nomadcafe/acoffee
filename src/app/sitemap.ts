@@ -102,7 +102,7 @@ async function fetchPublishedCards(): Promise<IndexableCard[]> {
     const { data, error } = await supabase
       .from("profiles")
       .select(
-        "handle, bio, city, telegram_handle, whatsapp_number, email_contact, created_at",
+        "handle, bio, city, telegram_handle, email_contact, created_at",
       )
       .order("created_at", { ascending: false })
       .limit(MAX_CARDS);
@@ -116,10 +116,7 @@ async function fetchPublishedCards(): Promise<IndexableCard[]> {
         // city, AND at least one contact channel. Pure-handle skeletons
         // get filtered out.
         const hasSubstance = !!(r.bio || r.city);
-        const hasContact =
-          !!r.telegram_handle ||
-          !!r.whatsapp_number ||
-          !!r.email_contact;
+        const hasContact = !!r.telegram_handle || !!r.email_contact;
         return hasSubstance && hasContact;
       })
       .map((r) => ({

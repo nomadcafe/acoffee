@@ -22,7 +22,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url, discoverable",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, discoverable",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -37,7 +37,6 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
     telegramHandle: (data.telegram_handle as string | null) ?? null,
-    whatsappNumber: (data.whatsapp_number as string | null) ?? null,
     emailContact: (data.email_contact as string | null) ?? null,
     socialLinks: parseSocialLinks(data.social_links),
     avatarUrl: (data.avatar_url as string | null) ?? null,
@@ -326,7 +325,7 @@ export async function listCityCards(slug: string): Promise<CityCard[]> {
     .not("handle", "match", AUTO_HANDLE.source)
     // Multiple .or() groups AND together: must be reachable …
     .or(
-      "telegram_handle.not.is.null,whatsapp_number.not.is.null,email_contact.not.is.null",
+      "telegram_handle.not.is.null,email_contact.not.is.null",
     )
     // … and present (future end-date OR recently active).
     .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`)
@@ -403,7 +402,7 @@ async function groupActiveCities(): Promise<ActiveCity[]> {
     .eq("discoverable", true)
     .not("handle", "match", AUTO_HANDLE.source)
     .or(
-      "telegram_handle.not.is.null,whatsapp_number.not.is.null,email_contact.not.is.null",
+      "telegram_handle.not.is.null,email_contact.not.is.null",
     )
     .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`)
     .order("updated_at", { ascending: false })

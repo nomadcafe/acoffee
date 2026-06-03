@@ -52,7 +52,6 @@ export type MyProfile = {
   coffeeChatKinds: CoffeeChatKind[];
   gender: Gender | null;
   telegramHandle: string | null;
-  whatsappNumber: string | null;
   emailContact: string | null;
   socialLinks: SocialLink[];
   avatarUrl: string | null;

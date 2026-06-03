@@ -284,7 +284,6 @@ export async function emailInviteAccepted(args: {
   hostHandle: string;
   hostDisplayName: string;
   telegramHandle: string | null;
-  whatsappNumber: string | null;
   emailContact: string | null;
   locale: Locale;
 }) {
@@ -297,13 +296,6 @@ export async function emailInviteAccepted(args: {
       label: "Telegram",
       href: `https://t.me/${h}`,
       display: `@${h}`,
-    });
-  }
-  if (args.whatsappNumber) {
-    channels.push({
-      label: "WhatsApp",
-      href: `https://wa.me/${args.whatsappNumber.replace(/^\+/, "")}`,
-      display: args.whatsappNumber,
     });
   }
   if (args.emailContact) {

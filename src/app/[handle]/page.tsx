@@ -75,7 +75,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, whatsapp_number, email_contact, social_links, avatar_url, created_at, updated_at",
+      "handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -92,11 +92,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
     socialLinks: parseSocialLinks(data.social_links),
-    hasContact: !!(
-      data.telegram_handle ||
-      data.whatsapp_number ||
-      data.email_contact
-    ),
+    hasContact: !!(data.telegram_handle || data.email_contact),
     avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
     updatedAt:

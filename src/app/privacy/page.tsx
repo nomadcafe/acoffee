@@ -49,7 +49,7 @@ function PrivacyEn() {
       <Section title="What you give us">
         Everything on your card is supplied by you when you fill in the
         profile form: handle, status, city, chat-kind tags, and the
-        contact channels you choose (Telegram, WhatsApp, email). Your
+        contact channels you choose (Telegram, email). Your
         sign-in email is stored separately by our auth provider so you
         can log back in.
       </Section>
@@ -68,7 +68,7 @@ function PrivacyEn() {
         track who clicked your <em>Invite for coffee</em> button, who
         viewed your card, or who you&apos;ve previously talked to —
         there&apos;s no invite log on our side. After contact reveal the
-        conversation happens entirely on Telegram / WhatsApp / your email
+        conversation happens entirely on Telegram / your email
         client, not on acoffee.
       </Section>
 
@@ -131,7 +131,7 @@ function PrivacyZh() {
 
       <Section title="你提供的">
         名片上的所有内容都是你在 profile 表单里填的:handle、status、城市、
-        chat-kind 标签、以及你选择填写的联系方式(Telegram、WhatsApp、邮箱)。
+        chat-kind 标签、以及你选择填写的联系方式(Telegram、邮箱)。
         你的登录邮箱由我们的 auth provider 单独存储,用于让你重新登录。
       </Section>
 
@@ -147,7 +147,7 @@ function PrivacyZh() {
         你的登录邮箱永远不向其他用户显示。我们不记录谁点了你的
         <em>「Invite for coffee」</em>、谁看过你的名片、你之前和谁聊过——
         我们这里没有 invite log。联系方式公开之后,对话完全发生在
-        Telegram / WhatsApp / 你的邮箱里,不在 acoffee。
+        Telegram / 你的邮箱里,不在 acoffee。
       </Section>
 
       <Section title="第三方">
@@ -208,7 +208,7 @@ function PrivacyJa() {
       <Section title="あなたが提供するもの">
         カードに表示される内容はすべて、プロフィールフォームで入力した
         ものです:handle、ステータス、都市、chat-kind タグ、連絡先(Telegram、
-        WhatsApp、メール)。サインインに使うメールアドレスは認証プロバイダー
+        メール)。サインインに使うメールアドレスは認証プロバイダー
         が別途保存し、ログインに使われます。
       </Section>
 
@@ -225,7 +225,7 @@ function PrivacyJa() {
         サインインのメールアドレスは他のユーザーには表示されません。
         誰が <em>「Invite for coffee」</em> ボタンを押したか、誰があなた
         のカードを見たか、過去に誰と話したか —— こちらに招待ログはあり
-        ません。連絡先が共有された後の会話は、すべて Telegram / WhatsApp /
+        ません。連絡先が共有された後の会話は、すべて Telegram /
         メールクライアントで行われ、acoffee 上では行われません。
       </Section>
 

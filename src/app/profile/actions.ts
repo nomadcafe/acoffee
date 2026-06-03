@@ -53,8 +53,10 @@ function safeAfter(raw: FormDataEntryValue | null): string | undefined {
 //  - city: free-form, ≤ 60 chars
 //  - coffee_chat_kinds: subset of COFFEE_CHAT_KINDS
 //  - telegram_handle: stored without leading @
-//  - whatsapp_number: stored E.164 (+ + 7-15 digits, leading non-zero)
 //  - email_contact: standard email, ≤ 120 chars
+// WhatsApp is intentionally not collected: revealing a phone number on a
+// one-click accept (before the two have ever met) is too much, too soon.
+// If they want to swap numbers they do it themselves once they're talking.
 const ProfileSchema = z.object({
   handle: z
     .string()
@@ -91,13 +93,6 @@ const ProfileSchema = z.object({
     .regex(
       /^@?[a-zA-Z0-9_]{5,32}$/,
       "Telegram username only — 5–32 letters/digits/_, no spaces. The @ is optional.",
-    )
-    .optional(),
-  whatsappNumber: z
-    .string()
-    .regex(
-      /^\+[1-9]\d{6,14}$/,
-      "Phone needs the + and country code, e.g. +66812345678 (Thailand) or +14155551212 (US).",
     )
     .optional(),
   emailContact: z
@@ -179,7 +174,6 @@ export async function updateProfile(
     cityUntil: trimOrUndefined(formData.get("cityUntil")),
     coffeeChatKinds: rawKinds,
     telegramHandle: trimOrUndefined(formData.get("telegramHandle")),
-    whatsappNumber: trimOrUndefined(formData.get("whatsappNumber")),
     emailContact: trimOrUndefined(formData.get("emailContact")),
     gender: trimOrUndefined(formData.get("gender")),
   });
@@ -302,7 +296,6 @@ export async function updateProfile(
       city_until: cityUntil,
       coffee_chat_kinds: parsed.data.coffeeChatKinds ?? [],
       telegram_handle: telegram,
-      whatsapp_number: parsed.data.whatsappNumber ?? null,
       email_contact: parsed.data.emailContact ?? null,
       gender: parsed.data.gender ?? null,
       social_links: normalisedSocials,
@@ -638,9 +631,7 @@ async function decideInvite(
   if (next === "accepted") {
     const { data: profile } = await supabase
       .from("profiles")
-      .select(
-        "handle, telegram_handle, whatsapp_number, email_contact",
-      )
+      .select("handle, telegram_handle, email_contact")
       .eq("id", user.id)
       .maybeSingle();
     if (profile) {
@@ -656,7 +647,6 @@ async function decideInvite(
         hostHandle: handle,
         hostDisplayName: displayName,
         telegramHandle: (profile.telegram_handle as string | null) ?? null,
-        whatsappNumber: (profile.whatsapp_number as string | null) ?? null,
         emailContact: (profile.email_contact as string | null) ?? null,
         locale: requesterLocale,
       });
