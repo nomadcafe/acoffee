@@ -61,8 +61,12 @@ type MailTransport = {
 let smtpTransport: MailTransport | null = null;
 async function getSmtpTransport(): Promise<MailTransport> {
   if (!smtpTransport) {
-    const specifier: string = "nodemailer";
-    const nm = (await import(/* webpackIgnore: true */ specifier)) as {
+    // Literal specifier (not a variable) so Next's output-file-tracing
+    // bundles nodemailer into the serverless function. It's still a lazy
+    // import — only the SMTP backend pulls it in — and `nodemailer` is in
+    // serverExternalPackages so Next keeps it external instead of trying
+    // to bundle its Node-built-in internals.
+    const nm = (await import("nodemailer")) as {
       createTransport: (opts: unknown) => MailTransport;
     };
     const port = Number(process.env.SMTP_PORT ?? 587);

@@ -32,6 +32,12 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  // nodemailer (the optional SMTP email backend) uses Node built-ins and
+  // dynamic internal requires that shouldn't be bundled. Keeping it
+  // external means Next loads it from node_modules at runtime and traces
+  // its files into the serverless function — fixing the
+  // ERR_MODULE_NOT_FOUND that came from it not being bundled.
+  serverExternalPackages: ["nodemailer"],
   async headers() {
     return [
       {
