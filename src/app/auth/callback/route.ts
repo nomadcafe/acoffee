@@ -68,11 +68,15 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
     userHandle = (profile?.handle as string | undefined) ?? null;
     if (userHandle && AUTO_HANDLE.test(userHandle)) {
-      // First-time: send to onboarding, remembering where they were
-      // trying to go (their card page by default).
-      const after = encodeURIComponent(next ?? `/${userHandle}`);
+      // First-time: onboard before letting them in, but carry any explicit
+      // destination (e.g. the card they opened to send an invite) so we can
+      // resume it once the real handle is claimed. Don't fall back to the
+      // auto-handle card here — onboarding renames the handle, so that path
+      // would 404; with no `next`, the profile save lands them on their
+      // freshly-claimed card instead.
+      const after = next ? `&after=${encodeURIComponent(next)}` : "";
       return NextResponse.redirect(
-        `${origin}/profile?onboarding=1&after=${after}`,
+        `${origin}/profile?onboarding=1${after}`,
       );
     }
   }
