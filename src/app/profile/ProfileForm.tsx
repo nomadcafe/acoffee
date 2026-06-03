@@ -89,61 +89,63 @@ export function ProfileForm({
     profile.avatarUrl,
   );
 
-  // Real-time handle availability: debounced server check so the user
-  // sees "Available ✓" / "Taken" / "Reserved" before they hit Save.
-  // null = idle (not enough input yet); "checking" while a request is
-  // in flight; otherwise the typed server result.
-  const [handleCheck, setHandleCheck] = useState<
-    HandleCheckResult | "checking" | null
-  >(null);
-  useEffect(() => {
-    const trimmed = handle.trim().toLowerCase();
-    if (trimmed === "") {
-      setHandleCheck(null);
-      return;
-    }
-    // Don't burn a request on the user's own handle — the server would
-    // return "yours" anyway, just say so locally.
-    if (!isAutoHandle && trimmed === profile.handle.toLowerCase()) {
-      setHandleCheck({ status: "yours" });
-      return;
-    }
-    // Cheap format guard — same regex the server enforces. Stops the
-    // debounced request when input is obviously wrong.
-    if (trimmed.length < 3) {
-      setHandleCheck({
-        status: "invalid",
-        reason: "Needs at least 3 characters.",
-      });
-      return;
-    }
-    if (!HANDLE_RE.test(trimmed)) {
-      setHandleCheck({
-        status: "invalid",
-        reason: "Lowercase letters, digits, and _ only.",
-      });
-      return;
-    }
-    setHandleCheck("checking");
-    const t = setTimeout(async () => {
-      const result = await checkHandleAvailable(trimmed);
-      setHandleCheck(result);
-    }, CHECK_DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [handle, profile.handle, isAutoHandle]);
+  // Real-time handle availability: the user sees "Available ✓" / "Taken"
+  // / "Reserved" before they hit Save. The synchronous validity (empty /
+  // your own handle / too short / bad format) is *derived during render* —
+  // no effect needed. Only the debounced server lookup lives in an effect,
+  // and it sets state from inside the async callback, so there's no
+  // synchronous setState-in-effect (which would cascade renders).
+  const trimmedHandle = handle.trim().toLowerCase();
+  const localCheck: HandleCheckResult | "candidate" | null =
+    trimmedHandle === ""
+      ? null
+      : // Don't burn a request on the user's own handle — the server would
+        // return "yours" anyway, just say so locally.
+        !isAutoHandle && trimmedHandle === profile.handle.toLowerCase()
+        ? { status: "yours" }
+        : // Cheap format guards — same regex the server enforces — so an
+          // obviously-wrong handle never reaches the network.
+          trimmedHandle.length < 3
+          ? { status: "invalid", reason: "Needs at least 3 characters." }
+          : !HANDLE_RE.test(trimmedHandle)
+            ? {
+                status: "invalid",
+                reason: "Lowercase letters, digits, and _ only.",
+              }
+            : "candidate";
+  const isCandidate = localCheck === "candidate";
 
-  // Narrow the "checking" sentinel out so the .status access below is
-  // type-safe. `result` is either null (idle, format problem) or one of
-  // the four HandleCheckResult variants.
-  const result =
-    handleCheck === "checking" || handleCheck === null ? null : handleCheck;
+  // The async server answer, tagged with the handle it was fetched for so
+  // a stale result never shows against newer input.
+  const [serverResult, setServerResult] = useState<{
+    handle: string;
+    result: HandleCheckResult;
+  } | null>(null);
+  useEffect(() => {
+    if (!isCandidate) return;
+    const tmo = setTimeout(async () => {
+      const r = await checkHandleAvailable(trimmedHandle);
+      setServerResult({ handle: trimmedHandle, result: r });
+    }, CHECK_DEBOUNCE_MS);
+    return () => clearTimeout(tmo);
+  }, [trimmedHandle, isCandidate]);
+
+  // A candidate shows its server answer once that answer matches the
+  // current input; until then it's still "checking". Non-candidates show
+  // their render-derived local state directly.
+  const checking = isCandidate && serverResult?.handle !== trimmedHandle;
+  const result: HandleCheckResult | null = isCandidate
+    ? serverResult?.handle === trimmedHandle
+      ? serverResult.result
+      : null
+    : localCheck;
 
   // Map the check state to Field's hint/error slots. Field flips its
   // border red when `error` is set — we want that for taken/reserved/
   // format issues. `available` and `yours` are positive states; they
   // ride the hint slot with a checkmark.
   const handleHint = (() => {
-    if (handleCheck === "checking") return t("profile.field.handle.checking");
+    if (checking) return t("profile.field.handle.checking");
     if (result?.status === "available")
       return tmpl(t("profile.field.handle.available"), {
         handle: handle.trim().toLowerCase(),
