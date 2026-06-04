@@ -27,7 +27,7 @@ export type VisitorSession = {
 
 // Public-facing invite form. Replaces the v0.7 client-side reveal — the
 // host's contact channels are no longer shipped to the browser; visitors
-// submit name + email + topic + mode + optional time, and only get the
+// submit name + email + topic + requested kind + optional time, and only get the
 // channels via email after the host accepts. Form lives inline on the
 // /[handle] card (expands below the Invite button on click) so there's
 // no page navigation between "I want to invite" and "I've inviting".
