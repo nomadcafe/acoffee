@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatSlot } from "@/lib/datetime";
+import {
+  formatSlot,
+  isValidTimeZone,
+  nowWallInZone,
+  zonedWallToInstant,
+} from "@/lib/datetime";
 
 // A fixed instant: 2026-06-12 08:00 UTC == 15:00 in Asia/Bangkok (UTC+7).
 const ISO = "2026-06-12T08:00:00.000Z";
@@ -30,5 +35,68 @@ describe("formatSlot", () => {
 
   it("returns empty string for an invalid date", () => {
     expect(formatSlot("not-a-date", "UTC", "en")).toBe("");
+  });
+});
+
+describe("zonedWallToInstant", () => {
+  it("anchors the wall-clock to the given zone (UTC+7)", () => {
+    // 15:00 in Bangkok (UTC+7, no DST) == 08:00 UTC.
+    const out = zonedWallToInstant("2026-06-12T15:00", "Asia/Bangkok");
+    expect(out?.toISOString()).toBe("2026-06-12T08:00:00.000Z");
+  });
+
+  it("treats the wall-clock as literal in UTC", () => {
+    const out = zonedWallToInstant("2026-06-12T15:00", "UTC");
+    expect(out?.toISOString()).toBe("2026-06-12T15:00:00.000Z");
+  });
+
+  it("honours DST for the instant (New York in June = EDT, UTC-4)", () => {
+    const out = zonedWallToInstant("2026-06-12T15:00", "America/New_York");
+    expect(out?.toISOString()).toBe("2026-06-12T19:00:00.000Z");
+  });
+
+  it("honours standard time for the instant (New York in Jan = EST, UTC-5)", () => {
+    const out = zonedWallToInstant("2026-01-12T15:00", "America/New_York");
+    expect(out?.toISOString()).toBe("2026-01-12T20:00:00.000Z");
+  });
+
+  it("round-trips through formatSlot in the same zone", () => {
+    const inst = zonedWallToInstant("2026-06-12T15:00", "Asia/Bangkok");
+    const shown = formatSlot(inst!.toISOString(), "Asia/Bangkok", "en");
+    expect(shown).toMatch(/3:00/);
+    expect(shown).toContain("Asia/Bangkok");
+  });
+
+  it("returns null on an unparseable wall string", () => {
+    expect(zonedWallToInstant("not-a-time", "UTC")).toBeNull();
+  });
+
+  it("returns null on an invalid zone", () => {
+    expect(zonedWallToInstant("2026-06-12T15:00", "Not/AZone")).toBeNull();
+  });
+});
+
+describe("isValidTimeZone", () => {
+  it("accepts real IANA names", () => {
+    expect(isValidTimeZone("Asia/Bangkok")).toBe(true);
+    expect(isValidTimeZone("UTC")).toBe(true);
+  });
+
+  it("rejects junk, empty, and over-long input", () => {
+    expect(isValidTimeZone("Not/AZone")).toBe(false);
+    expect(isValidTimeZone("")).toBe(false);
+    expect(isValidTimeZone("x".repeat(65))).toBe(false);
+  });
+});
+
+describe("nowWallInZone", () => {
+  it("formats as YYYY-MM-DDTHH:mm", () => {
+    expect(nowWallInZone("Asia/Bangkok")).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
+    );
+  });
+
+  it("does not throw on an invalid zone", () => {
+    expect(() => nowWallInZone("Not/AZone")).not.toThrow();
   });
 });

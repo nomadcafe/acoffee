@@ -261,6 +261,8 @@ export const en = {
   "profile.scheduling.hint":
     "Offer specific times. Visitors book one when they invite you, instead of a free-form “when works”.",
   "profile.scheduling.toggle": "Let visitors book a specific time",
+  "profile.scheduling.tzLabel": "Timezone",
+  "profile.scheduling.tzDetected": "Detected {tz} — use it",
   "profile.scheduling.add": "Add time",
   "profile.scheduling.tzNote":
     "Times shown in {tz} — visitors see them in this zone too.",
@@ -753,6 +755,8 @@ export const zh: Record<DictKey, string> = {
   "profile.scheduling.hint":
     "提供具体时间,访客邀请你时可直接预约,而不用自由填写时间。",
   "profile.scheduling.toggle": "让访客预约具体时间",
+  "profile.scheduling.tzLabel": "时区",
+  "profile.scheduling.tzDetected": "检测到 {tz}——使用它",
   "profile.scheduling.add": "添加时间",
   "profile.scheduling.tzNote": "时间按 {tz} 显示,访客也以该时区查看。",
   "profile.scheduling.empty": "还没有时间——在上方添加一个。",
@@ -1197,6 +1201,8 @@ export const ja: Record<DictKey, string> = {
   "profile.scheduling.hint":
     "具体的な時間を提示できます。訪問者は招待時にその時間を予約できます(自由記入の代わりに)。",
   "profile.scheduling.toggle": "訪問者が具体的な時間を予約できるようにする",
+  "profile.scheduling.tzLabel": "タイムゾーン",
+  "profile.scheduling.tzDetected": "{tz} を検出 — 使用する",
   "profile.scheduling.add": "時間を追加",
   "profile.scheduling.tzNote": "時間は {tz} で表示されます。訪問者も同じタイムゾーンで見ます。",
   "profile.scheduling.empty": "まだ時間がありません。上から追加してください。",

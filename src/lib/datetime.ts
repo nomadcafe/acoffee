@@ -42,3 +42,105 @@ export function formatSlot(
     });
   }
 }
+
+// Offset in ms between `timeZone` and UTC at a given instant — positive
+// east of UTC, DST-correct for that instant. Reads the zone's wall-clock
+// via formatToParts and diffs it against the instant's UTC epoch. Throws
+// (RangeError) for an invalid zone; callers that can't guarantee a good
+// zone should guard with isValidTimeZone first.
+function zoneOffsetMs(timeZone: string, instant: Date): number {
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = dtf.formatToParts(instant);
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value);
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  return asUtc - instant.getTime();
+}
+
+// Interpret a naive wall-clock string ("YYYY-MM-DDTHH:mm", exactly what a
+// native <input type="datetime-local"> yields) as a local time *in*
+// `timeZone`, and return the matching absolute instant. This is the piece
+// that lets a host schedule in a zone other than their browser's: the
+// picker gives wall-clock components with no zone, and we anchor them to
+// the zone the host actually chose, so "3:00 PM · Asia/Bangkok" stays 3 PM
+// Bangkok even when entered from a laptop in Lisbon.
+//
+// Two passes settle DST transitions: the first offset guess can land on
+// the wrong side of a clock change, so we re-evaluate the offset at the
+// guessed instant. Returns null for an unparseable string or bad zone.
+export function zonedWallToInstant(
+  wall: string,
+  timeZone: string,
+): Date | null {
+  // Parse the components as if UTC to get a baseline epoch, then correct
+  // by the zone's offset. `${wall}:00.000Z` matches the minute-precision
+  // value a datetime-local emits; the looser fallback covers a value that
+  // already carries seconds.
+  let naive = Date.parse(`${wall}:00.000Z`);
+  if (Number.isNaN(naive)) naive = Date.parse(`${wall}Z`);
+  if (Number.isNaN(naive)) return null;
+  try {
+    let ts = naive - zoneOffsetMs(timeZone, new Date(naive));
+    ts = naive - zoneOffsetMs(timeZone, new Date(ts));
+    return new Date(ts);
+  } catch {
+    return null;
+  }
+}
+
+// Current wall-clock time in `timeZone`, formatted as the value a native
+// <input type="datetime-local"> expects ("YYYY-MM-DDTHH:mm"). Used as the
+// picker's `min` so past times are unselectable relative to the zone the
+// host is scheduling in (not their browser's). Falls back to the runtime
+// zone's components if the timezone is invalid.
+export function nowWallInZone(timeZone: string): string {
+  const now = new Date();
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).formatToParts(now);
+    const get = (type: string) =>
+      parts.find((p) => p.type === type)?.value ?? "";
+    return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+  } catch {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  }
+}
+
+// Validate an IANA timezone name. The host's chosen zone arrives from a
+// client <select>, but the server action must not trust it — a hand-rolled
+// POST could carry junk that would later make formatSlot fall back to the
+// runtime zone for everyone. `Intl.DateTimeFormat` throws RangeError on an
+// unknown zone, which is the standard validity probe.
+export function isValidTimeZone(tz: string): boolean {
+  if (typeof tz !== "string" || tz.length === 0 || tz.length > 64) return false;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -23,7 +23,7 @@ import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
-import { formatSlot } from "@/lib/datetime";
+import { formatSlot, isValidTimeZone } from "@/lib/datetime";
 
 // Rate-limit helper for signed-in server actions. Keys on user.id when
 // available (otherwise falls back to IP) so a single signed-in account
@@ -322,6 +322,19 @@ export async function updateProfile(
   // default off, so anything but an explicit "true" leaves it disabled.
   const schedulingEnabled = formData.get("schedulingEnabled") === "true";
 
+  // v16 — host's display timezone for scheduling slots. The editor submits
+  // an IANA name (only rendered when scheduling is on), but the action must
+  // not trust it: validate before persisting so a hand-rolled POST can't
+  // store junk that would make formatSlot silently fall back to the server
+  // zone for everyone. Field absent (scheduling off) → leave it untouched
+  // rather than null it out, which would drop a previously-set zone.
+  const rawTimezone = trimOrUndefined(formData.get("timezone"));
+  if (rawTimezone !== undefined && !isValidTimeZone(rawTimezone)) {
+    return { status: "error", message: "That timezone isn't valid." };
+  }
+  const timezonePatch =
+    rawTimezone !== undefined ? { timezone: rawTimezone } : {};
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -337,6 +350,7 @@ export async function updateProfile(
       interests,
       discoverable,
       scheduling_enabled: schedulingEnabled,
+      ...timezonePatch,
       locale,
     })
     .eq("id", user.id);
@@ -855,10 +869,12 @@ export type SlotActionResult =
   | { status: "error"; message: string };
 
 // Add one availability slot. The client sends an absolute instant (it
-// converts the datetime-local value in the browser's own tz) plus that
-// tz name for display. We validate it's a real, near-future instant and
-// store it; the host's timezone is stamped on the profile the first time
-// so every slot renders consistently. RLS scopes the insert to the host.
+// anchors the datetime-local value to the host's *chosen* display tz) plus
+// that tz name. We validate it's a real, near-future instant and store it;
+// the timezone is stamped on the profile the first time as a bootstrap so
+// slots render consistently even before the host saves the profile form
+// (which is the authoritative path for changing it). RLS scopes the insert
+// to the host.
 export async function addSlot(
   startsAtIso: string,
   timezone: string,

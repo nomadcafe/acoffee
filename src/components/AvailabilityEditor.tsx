@@ -1,21 +1,39 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { addSlot, removeSlot } from "@/app/profile/actions";
 import { useLocale, useT } from "@/components/LocaleProvider";
-import { formatSlot } from "@/lib/datetime";
+import { formatSlot, nowWallInZone, zonedWallToInstant } from "@/lib/datetime";
 import type { AvailabilitySlot } from "@/lib/types";
 
 // Opt-in coffee scheduling editor (v16). Rendered inside ProfileForm's
-// <form>, but the slot list is managed by its own server actions
-// (addSlot / removeSlot) + router.refresh(), same pattern as the invite
-// inbox — only the on/off toggle rides the profile form submit (via the
-// hidden `schedulingEnabled` input here).
+// <form>, so the on/off toggle (hidden `schedulingEnabled`) and the
+// timezone <select> (`timezone`) both ride the profile form submit; the
+// slot list itself is managed by its own server actions (addSlot /
+// removeSlot) + router.refresh(), same pattern as the invite inbox.
 //
-// Times are entered with a native <input type="datetime-local"> (the
-// browser's own tz) and converted to an absolute instant before sending;
-// the browser's IANA tz travels along so slots render consistently later.
+// Times are entered with a native <input type="datetime-local"> (bare
+// wall-clock, no zone) and anchored to the host's *chosen* timezone — not
+// the browser's — before being stored as an absolute instant. That's what
+// lets a nomad who set up slots in Bangkok and later edits from Lisbon
+// keep one consistent display zone instead of silently re-labelling every
+// time they cross a border.
+
+// Browsers since ~2022 expose the full IANA list via Intl.supportedValuesOf;
+// fall back to just the zones we already know about if it's missing.
+function supportedTimeZones(): string[] {
+  const intl = Intl as { supportedValuesOf?: (key: string) => string[] };
+  if (typeof intl.supportedValuesOf === "function") {
+    try {
+      return intl.supportedValuesOf("timeZone");
+    } catch {
+      // fall through to the empty list
+    }
+  }
+  return [];
+}
+
 export function AvailabilityEditor({
   enabled,
   onEnabledChange,
@@ -34,27 +52,42 @@ export function AvailabilityEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  // Browser timezone — captured at add time so the host's slots display in
-  // the zone they actually set them in.
+  // The browser's detected zone — the default for a host who hasn't picked
+  // one yet, and the target of the "use detected" nudge after a relocation.
   const browserTz =
     typeof Intl !== "undefined"
       ? Intl.DateTimeFormat().resolvedOptions().timeZone
       : "UTC";
-  // Prefer the stored host tz for display once set; until then the browser's.
-  const displayTz = timezone ?? browserTz;
+
+  // The chosen display zone. Controlled locally so the slot list + picker
+  // preview update live as the host changes it; persisted on form save via
+  // the hidden-in-plain-sight <select name="timezone">. Defaults to the
+  // stored value, else the browser's.
+  const [tz, setTz] = useState(timezone ?? browserTz);
+
+  // Option list for the <select>, with the current + detected zones folded
+  // in so neither can ever be missing (e.g. a stored zone the browser's
+  // build doesn't enumerate).
+  const zoneOptions = useMemo(() => {
+    const set = new Set<string>(supportedTimeZones());
+    set.add(browserTz);
+    if (timezone) set.add(timezone);
+    set.add(tz);
+    return Array.from(set).sort();
+  }, [browserTz, timezone, tz]);
 
   function add() {
     if (!draft) return;
-    // datetime-local has no tz; new Date(local) interprets in the browser
-    // zone, and toISOString() yields the matching UTC instant.
-    const instant = new Date(draft);
-    if (Number.isNaN(instant.getTime())) {
+    // Anchor the bare wall-clock to the chosen zone, not the browser's, so
+    // what the host typed matches what the card will show.
+    const instant = zonedWallToInstant(draft, tz);
+    if (!instant) {
       setError(t("profile.scheduling.invalid"));
       return;
     }
     setError(null);
     startTransition(async () => {
-      const res = await addSlot(instant.toISOString(), browserTz);
+      const res = await addSlot(instant.toISOString(), tz);
       if (res.status === "ok") {
         setDraft("");
         router.refresh();
@@ -73,9 +106,9 @@ export function AvailabilityEditor({
     });
   }
 
-  // Min for the picker = now (local), so past times can't be entered. Format
-  // as YYYY-MM-DDTHH:mm in local time.
-  const minLocal = localInputValue(new Date());
+  // Min for the picker = now in the chosen zone, so past times can't be
+  // entered relative to where the host is actually scheduling.
+  const minLocal = nowWallInZone(tz);
 
   return (
     <fieldset className="flex flex-col gap-3 border-none p-0">
@@ -104,6 +137,36 @@ export function AvailabilityEditor({
 
       {enabled && (
         <div className="flex flex-col gap-3 rounded-2xl border border-bean bg-surface/60 p-3">
+          {/* Timezone picker — rides the form submit. */}
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-ink/85">
+              {t("profile.scheduling.tzLabel")}
+            </span>
+            <select
+              name="timezone"
+              value={tz}
+              onChange={(e) => setTz(e.target.value)}
+              className="h-10 rounded-xl border border-bean bg-surface px-3 text-base text-ink outline-none sm:text-sm focus:border-accent focus:ring-2 focus:ring-accent/20"
+            >
+              {zoneOptions.map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+            {/* Nudge a relocated host: their browser says a different zone
+                than the one selected. One tap to adopt it. */}
+            {tz !== browserTz && (
+              <button
+                type="button"
+                onClick={() => setTz(browserTz)}
+                className="self-start text-xs font-medium text-accent underline-offset-2 hover:underline"
+              >
+                {tmplTz(t("profile.scheduling.tzDetected"), browserTz)}
+              </button>
+            )}
+          </label>
+
           <div className="flex flex-wrap items-end gap-2">
             <input
               type="datetime-local"
@@ -124,7 +187,7 @@ export function AvailabilityEditor({
           </div>
 
           <p className="text-xs text-muted">
-            {tmplTz(t("profile.scheduling.tzNote"), displayTz)}
+            {tmplTz(t("profile.scheduling.tzNote"), tz)}
           </p>
 
           {error && (
@@ -143,7 +206,7 @@ export function AvailabilityEditor({
                   className="flex items-center justify-between gap-3 rounded-xl border border-bean bg-surface px-3 py-2"
                 >
                   <span className="text-sm text-ink/85">
-                    {formatSlot(s.startsAt, timezone, locale)}
+                    {formatSlot(s.startsAt, tz, locale)}
                   </span>
                   <span className="flex items-center gap-2">
                     {s.taken && (
@@ -181,15 +244,7 @@ export function AvailabilityEditor({
   );
 }
 
-// Format a Date as the value a <input type="datetime-local"> expects
-// (local YYYY-MM-DDTHH:mm), used as the picker's `min` so past times are
-// unselectable. Local components — matches what the user sees in the field.
-function localInputValue(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-// Tiny {tz} interpolation for the timezone note — avoids importing tmpl
+// Tiny {tz} interpolation for the timezone strings — avoids importing tmpl
 // just for one substitution.
 function tmplTz(template: string, tz: string): string {
   return template.replace("{tz}", tz);
