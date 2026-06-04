@@ -101,7 +101,7 @@ export async function getMyPendingInvites(): Promise<Invite[]> {
   const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at, contact_emailed_at, last_email_error",
     )
     .eq("host_id", user.id)
     .eq("status", "pending")
@@ -127,7 +127,7 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
   const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at, contact_emailed_at, last_email_error",
     )
     .eq("host_id", user.id)
     .or(
@@ -574,5 +574,7 @@ function rowToInvite(r: Record<string, unknown>): Invite {
     createdAt: r.created_at as string,
     expiresAt: r.expires_at as string,
     decidedAt: (r.decided_at as string | null) ?? null,
+    contactEmailedAt: (r.contact_emailed_at as string | null) ?? null,
+    lastEmailError: (r.last_email_error as string | null) ?? null,
   };
 }

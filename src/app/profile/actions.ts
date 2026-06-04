@@ -8,7 +8,9 @@ import {
   emailInviteAccepted,
   emailInviteDeclined,
   emailWelcome,
+  type SendResult,
 } from "@/lib/email";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createSupabaseAdmin,
   createSupabaseServer,
@@ -546,7 +548,10 @@ export async function deleteAccount(): Promise<DeleteAccountResult> {
 // which email the visitor receives. Returns a structured result so the
 // inbox UI can show inline errors without throwing past the action call.
 export type InviteDecisionResult =
-  | { status: "ok" }
+  // emailDelivered is set only on the accept path: false means the invite
+  // is accepted but the contact-delivery email to the visitor failed, so
+  // the UI can prompt a resend. Undefined on decline (no such email).
+  | { status: "ok"; emailDelivered?: boolean }
   | { status: "error"; message: string };
 
 export async function approveInvite(
@@ -601,7 +606,7 @@ async function decideInvite(
   const { data: invite, error: readErr } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, mode, preferred_time, status, expires_at, requester_locale",
+      "id, host_id, requester_name, requester_email, requester_topic, preferred_time, status, expires_at, requester_locale",
     )
     .eq("id", inviteId)
     .maybeSingle();
@@ -662,7 +667,7 @@ async function decideInvite(
         .filter(Boolean)
         .map((p) => p[0].toUpperCase() + p.slice(1))
         .join(" ");
-      await emailInviteAccepted({
+      const send = await emailInviteAccepted({
         to: invite.requester_email as string,
         requesterName: invite.requester_name as string,
         hostHandle: handle,
@@ -671,6 +676,11 @@ async function decideInvite(
         emailContact: (profile.email_contact as string | null) ?? null,
         locale: requesterLocale,
       });
+      // Persist the hand-off outcome so the inbox can flag a failed
+      // delivery + offer a resend even after the host navigates away.
+      await recordContactEmail(supabase, inviteId, send);
+      revalidatePath("/profile");
+      return { status: "ok", emailDelivered: send.ok };
     }
   } else {
     const { data: profile } = await supabase
@@ -694,4 +704,120 @@ async function decideInvite(
 
   revalidatePath("/profile");
   return { status: "ok" };
+}
+
+// Persist the outcome of an accept-email send onto the invite row. On
+// success: stamp contact_emailed_at + clear any prior error. On failure:
+// record a (truncated) reason and leave contact_emailed_at null so the
+// inbox flags it for resend. RLS scopes the update to the host's own row.
+// Fire-and-forget shape — a write failure here is logged, never thrown,
+// so it can't undo an already-committed accept.
+async function recordContactEmail(
+  supabase: SupabaseClient,
+  inviteId: string,
+  send: SendResult,
+): Promise<void> {
+  const patch = send.ok
+    ? { contact_emailed_at: new Date().toISOString(), last_email_error: null }
+    : { contact_emailed_at: null, last_email_error: send.error.slice(0, 300) };
+  const { error } = await supabase
+    .from("invites")
+    .update(patch)
+    .eq("id", inviteId);
+  if (error) {
+    console.warn("[recordContactEmail] update failed (non-fatal)", error);
+  }
+}
+
+// Re-send the contact-hand-off email for an already-accepted invite whose
+// first send failed (or the host just wants to resend). Re-reads the
+// host's current contacts so an updated Telegram/email goes out, and
+// re-records the outcome. RLS-scoped: an id for someone else's invite
+// reads back null and bails.
+export async function resendAcceptedContact(
+  inviteId: string,
+): Promise<InviteDecisionResult> {
+  if (!isAuthConfigured()) {
+    return { status: "error", message: "Sign-in isn't configured." };
+  }
+  if (typeof inviteId !== "string" || !inviteId) {
+    return { status: "error", message: "Missing invite id." };
+  }
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", message: "Sign in to manage invites." };
+  }
+
+  // Same envelope as decideInvite — resends fire visitor emails, so cap
+  // them well above legitimate use.
+  const rlLimit = checkRateLimit(await rlKey("resendContact", user.id), [
+    { max: 10, windowMs: 60_000 },
+    { max: 60, windowMs: 60 * 60_000 },
+  ]);
+  if (!rlLimit.allowed) {
+    return {
+      status: "error",
+      message: `Slow down — try again in ${rlLimit.retryAfterSec}s.`,
+    };
+  }
+
+  const { data: invite, error: readErr } = await supabase
+    .from("invites")
+    .select(
+      "id, host_id, requester_name, requester_email, status, requester_locale",
+    )
+    .eq("id", inviteId)
+    .maybeSingle();
+  if (readErr) return { status: "error", message: readErr.message };
+  if (!invite || invite.host_id !== user.id) {
+    return { status: "error", message: "Invite not found." };
+  }
+  if (invite.status !== "accepted") {
+    return {
+      status: "error",
+      message: "Only accepted invites can be resent.",
+    };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("handle, telegram_handle, email_contact")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!profile) {
+    return { status: "error", message: "Your profile is missing." };
+  }
+  const handle = profile.handle as string;
+  const displayName = handle
+    .split("_")
+    .filter(Boolean)
+    .map((p) => p[0].toUpperCase() + p.slice(1))
+    .join(" ");
+  const requesterLocale = isInviteLocale(invite.requester_locale)
+    ? invite.requester_locale
+    : "en";
+
+  const send = await emailInviteAccepted({
+    to: invite.requester_email as string,
+    requesterName: invite.requester_name as string,
+    hostHandle: handle,
+    hostDisplayName: displayName,
+    telegramHandle: (profile.telegram_handle as string | null) ?? null,
+    emailContact: (profile.email_contact as string | null) ?? null,
+    locale: requesterLocale,
+  });
+  await recordContactEmail(supabase, inviteId, send);
+
+  revalidatePath("/profile");
+  if (!send.ok) {
+    return {
+      status: "error",
+      message: "Still couldn't send — check the email address and retry.",
+    };
+  }
+  return { status: "ok", emailDelivered: true };
 }

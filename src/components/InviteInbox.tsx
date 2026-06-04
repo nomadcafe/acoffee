@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { approveInvite, rejectInvite } from "@/app/profile/actions";
+import {
+  approveInvite,
+  rejectInvite,
+  resendAcceptedContact,
+} from "@/app/profile/actions";
 import { KIND_EMOJI } from "@/components/CardBody";
 import { useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
@@ -169,6 +173,9 @@ function PendingRow({ invite }: { invite: Invite }) {
   const [decided, setDecided] = useState<"accepted" | "declined" | null>(
     null,
   );
+  // On accept, false means the contact-delivery email failed — we keep the
+  // row in place (don't refresh it away) and offer an inline resend.
+  const [emailFailed, setEmailFailed] = useState(false);
 
   function decide(next: "accepted" | "declined") {
     setError(null);
@@ -182,8 +189,12 @@ function PendingRow({ invite }: { invite: Invite }) {
           next === "accepted" ? "invite_accepted" : "invite_declined",
           { kind: invite.requestedKind ?? "unknown" },
         );
+        const failed = next === "accepted" && result.emailDelivered === false;
+        setEmailFailed(failed);
         setDecided(next);
-        router.refresh();
+        // Only refresh away the row when the hand-off succeeded; a failed
+        // accept stays put so the host can resend without hunting History.
+        if (!failed) router.refresh();
       } else {
         setError(result.message);
       }
@@ -191,6 +202,18 @@ function PendingRow({ invite }: { invite: Invite }) {
   }
 
   if (decided) {
+    if (decided === "accepted" && emailFailed) {
+      return (
+        <div className="flex flex-col gap-2 rounded-2xl border border-amber-400/60 bg-amber-50 px-4 py-3 dark:bg-amber-950/30">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            {tmpl(t("inbox.delivery.acceptedWarn"), {
+              name: invite.requesterName,
+            })}
+          </p>
+          <ResendContact invite={invite} />
+        </div>
+      );
+    }
     return (
       <div className="rounded-2xl border border-bean bg-surface px-4 py-3 text-sm text-muted">
         {tmpl(
@@ -306,7 +329,67 @@ function HistoryRow({ invite }: { invite: Invite }) {
           : ""}
         {formatDate(decidedDate)}
       </p>
+      {/* A recorded send error on an accepted invite means the visitor
+          never got the contact hand-off — surface it with a resend. Rows
+          accepted before v14 have no error recorded, so they don't flag. */}
+      {invite.status === "accepted" && invite.lastEmailError && (
+        <div className="mt-1 flex flex-col gap-2 rounded-xl border border-amber-400/60 bg-amber-50 px-3 py-2 dark:bg-amber-950/30">
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            {tmpl(t("inbox.delivery.failed"), { name: invite.requesterName })}
+          </p>
+          <ResendContact invite={invite} />
+        </div>
+      )}
     </article>
+  );
+}
+
+// Shared resend control for an accepted invite whose contact email failed.
+// Used both in the just-accepted warning (PendingRow) and the History row.
+// On success it shows a confirmation; router.refresh() then re-reads the
+// row, which now has contact_emailed_at set and clears the warning.
+function ResendContact({ invite }: { invite: Invite }) {
+  const t = useT();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [resent, setResent] = useState(false);
+
+  function resend() {
+    setError(null);
+    startTransition(async () => {
+      const result = await resendAcceptedContact(invite.id);
+      if (result.status === "ok") {
+        setResent(true);
+        router.refresh();
+      } else {
+        setError(result.message);
+      }
+    });
+  }
+
+  if (resent) {
+    return (
+      <p className="text-xs font-medium text-accent">
+        {t("inbox.delivery.resent")}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        onClick={resend}
+        disabled={pending}
+        className="inline-flex w-fit items-center gap-1.5 rounded-xl bg-accent px-3 py-1.5 text-xs font-medium text-page shadow-sm hover:bg-accent-hover disabled:opacity-60"
+      >
+        {pending ? t("inbox.delivery.resending") : t("inbox.delivery.resend")}
+      </button>
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+      )}
+    </div>
   );
 }
 

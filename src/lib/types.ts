@@ -92,4 +92,10 @@ export type Invite = {
   createdAt: string;
   expiresAt: string;
   decidedAt: string | null;
+  // v14 — outcome of the accept-email that carries the host's contact to
+  // the visitor. contactEmailedAt set = delivered; lastEmailError set with
+  // contactEmailedAt null = the hand-off failed and needs a resend. Both
+  // null on pending / declined / expired rows (no accept-email attempted).
+  contactEmailedAt: string | null;
+  lastEmailError: string | null;
 };

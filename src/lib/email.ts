@@ -19,10 +19,19 @@ import type { CoffeeChatKind } from "./types";
 // EMAIL_PROVIDER ("smtp" | "resend") forces one; unset = auto-detect
 // (prefer SMTP when SMTP_HOST is set, else Resend).
 //
-// Email is best-effort: not configured → skip; send failure → log only,
-// never throw, so a flaky provider can't block the underlying DB write.
+// Email is best-effort: not configured → skip; send failure → log + return
+// a structured result, never throw, so a flaky provider can't block the
+// underlying DB write. When both backends are configured, a primary
+// failure automatically retries on the other one before giving up — so a
+// single provider hiccup doesn't drop the message.
 
 type Backend = "smtp" | "resend";
+
+// Outcome of a send attempt. `ok:false` carries a short reason for logs /
+// persistence — never shown verbatim to a visitor. Callers that don't care
+// (welcome, notifications) can ignore it; the invite-accept path records it
+// so a failed contact hand-off surfaces in the host's inbox.
+export type SendResult = { ok: true } | { ok: false; error: string };
 
 function pickBackend(): Backend | null {
   const forced = process.env.EMAIL_PROVIDER?.toLowerCase();
@@ -83,12 +92,45 @@ async function getSmtpTransport(): Promise<MailTransport> {
   return smtpTransport;
 }
 
-async function sendEmail(opts: {
+type EmailPayload = {
   to: string;
   subject: string;
   html: string;
   text: string;
-}): Promise<void> {
+};
+
+// Single attempt on one backend. Normalises both failure shapes (a thrown
+// transport error and Resend's non-throwing `res.error`) into a SendResult
+// so the caller can decide whether to fall back.
+async function sendVia(
+  backend: Backend,
+  from: string,
+  opts: EmailPayload,
+): Promise<SendResult> {
+  try {
+    if (backend === "smtp") {
+      const tx = await getSmtpTransport();
+      await tx.sendMail({ from, ...opts });
+      return { ok: true };
+    }
+    const res = await getResend().emails.send({ from, ...opts });
+    if (res.error) {
+      return { ok: false, error: res.error.message ?? String(res.error) };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// The other backend, but only if it's independently configured (has its
+// own credentials) — never "fall back" to a provider that isn't set up.
+function altBackend(primary: Backend): Backend | null {
+  if (primary === "smtp") return process.env.RESEND_API_KEY ? "resend" : null;
+  return process.env.SMTP_HOST ? "smtp" : null;
+}
+
+async function sendEmail(opts: EmailPayload): Promise<SendResult> {
   const from = process.env.EMAIL_FROM;
   const backend = pickBackend();
   if (!from || !backend) {
@@ -96,21 +138,27 @@ async function sendEmail(opts: {
       to: opts.to,
       subject: opts.subject,
     });
-    return;
+    return { ok: false, error: "email not configured" };
   }
-  try {
-    if (backend === "smtp") {
-      const tx = await getSmtpTransport();
-      await tx.sendMail({ from, ...opts });
-    } else {
-      const res = await getResend().emails.send({ from, ...opts });
-      if (res.error) {
-        console.error("[email] send returned error", res.error);
-      }
-    }
-  } catch (e) {
-    console.error("[email] send threw", e);
+
+  const primary = await sendVia(backend, from, opts);
+  if (primary.ok) return primary;
+  console.error(`[email] ${backend} send failed`, primary.error);
+
+  // Retry on the alternate provider if one is configured — turns a single
+  // provider outage into a recoverable blip instead of a dropped message.
+  const alt = altBackend(backend);
+  if (!alt) return primary;
+  const fallback = await sendVia(alt, from, opts);
+  if (fallback.ok) {
+    console.warn(`[email] recovered via ${alt} after ${backend} failure`);
+    return fallback;
   }
+  console.error(`[email] ${alt} fallback also failed`, fallback.error);
+  return {
+    ok: false,
+    error: `${backend}: ${primary.error}; ${alt}: ${fallback.error}`,
+  };
 }
 
 // First email after a user finishes onboarding (picks a real handle). Fires
@@ -290,7 +338,7 @@ export async function emailInviteAccepted(args: {
   telegramHandle: string | null;
   emailContact: string | null;
   locale: Locale;
-}) {
+}): Promise<SendResult> {
   const cardUrl = `${siteUrl}/${args.hostHandle}`;
   const v = { name: args.requesterName, host: args.hostDisplayName };
   const channels: { label: string; href: string; display: string }[] = [];
@@ -320,7 +368,7 @@ export async function emailInviteAccepted(args: {
     )
     .join("");
 
-  await sendEmail({
+  return sendEmail({
     to: args.to,
     subject: tmpl(t(args.locale, "email.accepted.subject"), v),
     text:

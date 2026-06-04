@@ -371,6 +371,13 @@ export const en = {
   "inbox.status.accepted": "Accepted ✓",
   "inbox.status.declined": "Declined",
   "inbox.status.expired": "Expired",
+  "inbox.delivery.failed":
+    "Couldn't email your contact to {name}. They haven't received it — resend?",
+  "inbox.delivery.acceptedWarn":
+    "Accepted — but the email to {name} didn't go through. Resend it below.",
+  "inbox.delivery.resend": "Resend contact",
+  "inbox.delivery.resending": "Sending…",
+  "inbox.delivery.resent": "Sent ✓",
 
   // Relative-time helpers
   "time.justNow": "just now",
@@ -819,6 +826,13 @@ export const zh: Record<DictKey, string> = {
   "inbox.status.accepted": "已接受 ✓",
   "inbox.status.declined": "已拒绝",
   "inbox.status.expired": "已过期",
+  "inbox.delivery.failed":
+    "没能把联系方式邮件发给 {name},对方还没收到——要重发吗?",
+  "inbox.delivery.acceptedWarn":
+    "已接受——但发给 {name} 的邮件没成功。在下面重发一下。",
+  "inbox.delivery.resend": "重发联系方式",
+  "inbox.delivery.resending": "发送中…",
+  "inbox.delivery.resent": "已发送 ✓",
 
   "time.justNow": "刚刚",
   "time.minutesAgo": "{n} 分钟前",
@@ -1253,6 +1267,13 @@ export const ja: Record<DictKey, string> = {
   "inbox.status.accepted": "承認 ✓",
   "inbox.status.declined": "辞退",
   "inbox.status.expired": "期限切れ",
+  "inbox.delivery.failed":
+    "{name} さんへ連絡先メールを送れませんでした。まだ届いていません — 再送しますか?",
+  "inbox.delivery.acceptedWarn":
+    "承認しました — ただし {name} さんへのメールが送れませんでした。下から再送してください。",
+  "inbox.delivery.resend": "連絡先を再送",
+  "inbox.delivery.resending": "送信中…",
+  "inbox.delivery.resent": "送信済み ✓",
 
   "time.justNow": "たった今",
   "time.minutesAgo": "{n} 分前",
