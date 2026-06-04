@@ -1,3 +1,14 @@
+# pnpm v11 reads project settings from this file (not a workspace — there's
+# no `packages:` list, this repo is a single app).
+#
+# verifyDepsBeforeRun: skip the implicit `pnpm install` that pnpm otherwise
+# runs before every `pnpm <script>`. On this machine that pre-step exits 1
+# on the intentionally-unbuilt native deps below, which blocked `pnpm test`.
+# It only gates the script runner — real `pnpm install` / deploy is unchanged.
+verifyDepsBeforeRun: false
+
+# Acknowledge these native post-install build scripts as intentionally not
+# run, so they don't surface an approve-builds prompt.
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
