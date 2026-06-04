@@ -141,7 +141,12 @@ export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
 
 // Defensive parser for the jsonb column on read. Filters out anything
 // the app doesn't recognise (typos, stale platform names, malformed
-// rows) so the typed payload downstream never carries surprises.
+// rows) so the typed payload downstream never carries surprises. Values
+// are re-checked against the platform `pattern` — the same gate the form
+// runs on write — because `website`/`mastodon` feed their stored value
+// straight into the card's <a href> (urlFor: v => v). Without this a row
+// that bypassed the form (direct DB write, legacy/pre-validation data)
+// could smuggle a `javascript:` URL onto a public card.
 export function parseSocialLinks(raw: unknown): SocialLink[] {
   if (!Array.isArray(raw)) return [];
   const out: SocialLink[] = [];
@@ -154,6 +159,7 @@ export function parseSocialLinks(raw: unknown): SocialLink[] {
     if (typeof value !== "string") continue;
     const trimmed = value.trim();
     if (!trimmed) continue;
+    if (!PLATFORMS[platform as SocialPlatform].pattern.test(trimmed)) continue;
     out.push({ platform: platform as SocialPlatform, value: trimmed });
   }
   return out;

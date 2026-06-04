@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 // Placeholder avatar for v0.7. No real upload UI yet — the storage bucket
 // + RLS + image-resize chain is Phase 2 work. For now we render a circular
 // chip with one or two initials derived from the display name, in a colour
@@ -49,7 +53,15 @@ export function Avatar({
   const px = size === "lg" ? 80 : size === "sm" ? 28 : 56;
   const fontPx = size === "lg" ? 32 : size === "sm" ? 12 : 22;
 
-  if (src) {
+  // Track load failures so a dead photo URL (deleted object, hotlink
+  // block, image host down) falls back to the initials chip instead of
+  // leaving the browser's broken-image glyph on a public card. We store
+  // the failed URL (not a bare boolean) so swapping `src` to a new value
+  // — e.g. while editing the photo in LiveCardPreview — retries cleanly
+  // instead of staying stuck on the fallback.
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  if (src && failedSrc !== src) {
     // eslint-disable-next-line @next/next/no-img-element
     return (
       <img
@@ -57,6 +69,7 @@ export function Avatar({
         alt={`${displayName}'s avatar`}
         width={px}
         height={px}
+        onError={() => setFailedSrc(src)}
         className="shrink-0 select-none rounded-full object-cover"
         style={{ width: px, height: px, backgroundColor: bg }}
       />
@@ -64,8 +77,13 @@ export function Avatar({
   }
 
   return (
+    // role="img" + aria-label so the initials chip reads as the person's
+    // avatar to a screen reader, matching the alt text on the photo path.
+    // The visible initials stay aria-hidden — they're decorative once the
+    // label carries the name.
     <div
-      aria-hidden
+      role="img"
+      aria-label={`${displayName}'s avatar`}
       className="inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold tracking-tight"
       style={{
         width: px,
@@ -76,7 +94,7 @@ export function Avatar({
         lineHeight: 1,
       }}
     >
-      {initials(displayName)}
+      <span aria-hidden>{initials(displayName)}</span>
     </div>
   );
 }
