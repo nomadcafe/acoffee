@@ -22,8 +22,10 @@ import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 // getSession). React's cache() collapses every call within a single
 // request/render pass to one validation, and is cleared between requests.
 // Returns null when auth isn't configured or no one is signed in — callers
-// fold both into their own empty result.
-const getRequestUser = cache(async () => {
+// fold both into their own empty result. Exported so SiteNav (rendered in
+// the layout on every route) shares the same validation as the page body
+// instead of issuing its own.
+export const getRequestUser = cache(async () => {
   if (!isAuthConfigured()) return null;
   const supabase = await createSupabaseServer();
   const {

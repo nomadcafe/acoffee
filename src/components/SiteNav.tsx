@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { countMyPendingInvites } from "@/lib/auth-queries";
+import { countMyPendingInvites, getRequestUser } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
 import { createSupabaseServer } from "@/lib/supabase/server";
@@ -12,18 +12,14 @@ async function readSessionProfile(): Promise<{
   avatarUrl: string | null;
   email: string | null;
 } | null> {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return null;
-  }
+  // Share the request-cached auth lookup with countMyPendingInvites (run
+  // alongside this) and the page body — without it the nav alone fires a
+  // second getUser() network validation on every navigation. Returns null
+  // when auth isn't configured or no one's signed in.
+  const user = await getRequestUser();
+  if (!user) return null;
   try {
     const supabase = await createSupabaseServer();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
     const { data: profile } = await supabase
       .from("profiles")
       .select("handle, avatar_url")

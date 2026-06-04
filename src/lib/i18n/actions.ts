@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 import { isLocale } from "./dict";
@@ -25,23 +26,25 @@ export async function setLocale(locale: string): Promise<void> {
   });
 
   if (isAuthConfigured()) {
-    try {
-      const supabase = await createSupabaseServer();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        // RLS profiles_write_own allows this. Failure is non-fatal — the
-        // cookie still persists, host emails just fall back to 'en' until
-        // the next sync.
-        await supabase
-          .from("profiles")
-          .update({ locale })
-          .eq("id", user.id);
+    // Mirror the choice into profiles.locale for host-facing emails, but
+    // keep it OFF the critical path: it's a getUser() round-trip + a DB
+    // write the user would otherwise wait on before the switch even starts
+    // re-rendering. after() runs it once the response is flushed. Failure
+    // is non-fatal — the cookie still persists, host emails just fall back
+    // to 'en' until the next sync.
+    after(async () => {
+      try {
+        const supabase = await createSupabaseServer();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.from("profiles").update({ locale }).eq("id", user.id);
+        }
+      } catch (e) {
+        console.warn("[setLocale] profile sync failed (non-fatal)", e);
       }
-    } catch (e) {
-      console.warn("[setLocale] profile sync failed (non-fatal)", e);
-    }
+    });
   }
 
   // Refresh the layout tree so server components re-render with the
