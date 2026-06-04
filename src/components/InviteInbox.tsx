@@ -8,8 +8,9 @@ import {
   resendAcceptedContact,
 } from "@/app/profile/actions";
 import { KIND_EMOJI } from "@/components/CardBody";
-import { useT } from "@/components/LocaleProvider";
+import { useLocale, useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
+import { formatSlot } from "@/lib/datetime";
 import { tmpl } from "@/lib/i18n/dict";
 import type { Invite } from "@/lib/types";
 
@@ -45,9 +46,12 @@ const STATUS_TONE: Record<
 export function InviteInbox({
   pending,
   history,
+  timezone,
 }: {
   pending: Invite[];
   history: Invite[];
+  // v16 — host's own tz, used to render booked slot times in the row.
+  timezone: string | null;
 }) {
   const t = useT();
   const defaultTab: "pending" | "history" =
@@ -90,9 +94,9 @@ export function InviteInbox({
       </div>
 
       {tab === "pending" ? (
-        <PendingList invites={pending} />
+        <PendingList invites={pending} timezone={timezone} />
       ) : (
-        <HistoryList invites={history} />
+        <HistoryList invites={history} timezone={timezone} />
       )}
     </section>
   );
@@ -133,7 +137,13 @@ function TabButton({
   );
 }
 
-function PendingList({ invites }: { invites: Invite[] }) {
+function PendingList({
+  invites,
+  timezone,
+}: {
+  invites: Invite[];
+  timezone: string | null;
+}) {
   const t = useT();
   if (invites.length === 0) {
     return <p className="text-sm text-muted">{t("inbox.empty.pending")}</p>;
@@ -142,14 +152,20 @@ function PendingList({ invites }: { invites: Invite[] }) {
     <ul className="flex flex-col gap-3">
       {invites.map((inv) => (
         <li key={inv.id}>
-          <PendingRow invite={inv} />
+          <PendingRow invite={inv} timezone={timezone} />
         </li>
       ))}
     </ul>
   );
 }
 
-function HistoryList({ invites }: { invites: Invite[] }) {
+function HistoryList({
+  invites,
+  timezone,
+}: {
+  invites: Invite[];
+  timezone: string | null;
+}) {
   const t = useT();
   if (invites.length === 0) {
     return <p className="text-sm text-muted">{t("inbox.empty.history")}</p>;
@@ -158,15 +174,22 @@ function HistoryList({ invites }: { invites: Invite[] }) {
     <ul className="flex flex-col gap-3">
       {invites.map((inv) => (
         <li key={inv.id}>
-          <HistoryRow invite={inv} />
+          <HistoryRow invite={inv} timezone={timezone} />
         </li>
       ))}
     </ul>
   );
 }
 
-function PendingRow({ invite }: { invite: Invite }) {
+function PendingRow({
+  invite,
+  timezone,
+}: {
+  invite: Invite;
+  timezone: string | null;
+}) {
   const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -258,12 +281,19 @@ function PendingRow({ invite }: { invite: Invite }) {
             </a>
           </dd>
         </div>
-        {invite.preferredTime && (
+        {invite.slotStartsAt ? (
+          <div className="flex gap-1.5">
+            <dt className="text-muted">{t("inbox.row.when")}</dt>
+            <dd className="text-ink/80">
+              {formatSlot(invite.slotStartsAt, timezone, locale)}
+            </dd>
+          </div>
+        ) : invite.preferredTime ? (
           <div className="flex gap-1.5">
             <dt className="text-muted">{t("inbox.row.when")}</dt>
             <dd className="text-ink/80">{invite.preferredTime}</dd>
           </div>
-        )}
+        ) : null}
       </dl>
 
       {error && (
@@ -292,8 +322,15 @@ function PendingRow({ invite }: { invite: Invite }) {
   );
 }
 
-function HistoryRow({ invite }: { invite: Invite }) {
+function HistoryRow({
+  invite,
+  timezone,
+}: {
+  invite: Invite;
+  timezone: string | null;
+}) {
   const t = useT();
+  const locale = useLocale();
   // Pending here means past-expiry (the query only surfaces those into
   // history); unconfirmed shouldn't reach this row but treat it as
   // expired defensively so we never index status keys we don't ship.
@@ -329,6 +366,12 @@ function HistoryRow({ invite }: { invite: Invite }) {
           : ""}
         {formatDate(decidedDate)}
       </p>
+      {invite.slotStartsAt && (
+        <p className="text-xs text-muted">
+          {t("inbox.row.when")}{" "}
+          {formatSlot(invite.slotStartsAt, timezone, locale)}
+        </p>
+      )}
       {/* A recorded send error on an accepted invite means the visitor
           never got the contact hand-off — surface it with a resend. Rows
           accepted before v14 have no error recorded, so they don't flag. */}

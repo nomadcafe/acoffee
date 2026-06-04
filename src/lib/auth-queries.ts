@@ -1,4 +1,5 @@
 import type {
+  AvailabilitySlot,
   CoffeeChatKind,
   Gender,
   Invite,
@@ -23,7 +24,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, discoverable",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, discoverable, scheduling_enabled, timezone",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -45,6 +46,8 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     // NOT NULL default true in the DB, so this is always a real boolean;
     // coerce defensively in case of a legacy null.
     discoverable: (data.discoverable as boolean | null) ?? true,
+    schedulingEnabled: (data.scheduling_enabled as boolean | null) ?? false,
+    timezone: (data.timezone as string | null) ?? null,
   };
 }
 
@@ -86,6 +89,78 @@ export async function getSessionUser(): Promise<{
   return { id: user.id, email: user.email ?? null };
 }
 
+// Status set in which an invite "holds" its slot (mirrors the partial
+// unique index invites_slot_active_idx). A slot referenced by an invite in
+// any of these is unavailable; decline/expiry frees it.
+const SLOT_ACTIVE_STATUSES = ["unconfirmed", "pending", "accepted"] as const;
+
+// The signed-in host's own future slots, each flagged `taken` when an
+// active invite holds it — drives the availability editor. Two reads
+// (slots, then the active invites' slot_ids) subtracted in JS, same shape
+// as groupActiveCities; fine at this scale.
+export async function listMySlots(): Promise<AvailabilitySlot[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const nowIso = new Date().toISOString();
+  const { data: slots, error } = await supabase
+    .from("availability_slots")
+    .select("id, starts_at")
+    .eq("host_id", user.id)
+    .gte("starts_at", nowIso)
+    .order("starts_at", { ascending: true });
+  if (error) return [];
+
+  const { data: held } = await supabase
+    .from("invites")
+    .select("slot_id")
+    .eq("host_id", user.id)
+    .not("slot_id", "is", null)
+    .in("status", SLOT_ACTIVE_STATUSES as unknown as string[]);
+  const takenIds = new Set((held ?? []).map((r) => r.slot_id as string));
+
+  return (slots ?? []).map((s) => ({
+    id: s.id as string,
+    startsAt: s.starts_at as string,
+    taken: takenIds.has(s.id as string),
+  }));
+}
+
+// A host's bookable slots for the public invite form: future slots NOT
+// already held by an active invite. Anonymous-readable via the public
+// availability_slots RLS. hostId is the profile id (the [handle] page
+// resolves it before calling).
+export async function listAvailableSlots(
+  hostId: string,
+): Promise<AvailabilitySlot[]> {
+  if (!isAuthConfigured() || !hostId) return [];
+  const supabase = await createSupabaseServer();
+  const nowIso = new Date().toISOString();
+  const { data: slots, error } = await supabase
+    .from("availability_slots")
+    .select("id, starts_at")
+    .eq("host_id", hostId)
+    .gte("starts_at", nowIso)
+    .order("starts_at", { ascending: true });
+  if (error) return [];
+
+  const { data: held } = await supabase
+    .from("invites")
+    .select("slot_id")
+    .eq("host_id", hostId)
+    .not("slot_id", "is", null)
+    .in("status", SLOT_ACTIVE_STATUSES as unknown as string[]);
+  const takenIds = new Set((held ?? []).map((r) => r.slot_id as string));
+
+  return (slots ?? [])
+    .filter((s) => !takenIds.has(s.id as string))
+    .map((s) => ({ id: s.id as string, startsAt: s.starts_at as string }));
+}
+
 // Inbox for the signed-in host: pending invites only, newest first. Auto-
 // filters server-side past expires_at so a stale 8-day-old "pending" row
 // doesn't sit in the UI looking actionable.
@@ -101,7 +176,7 @@ export async function getMyPendingInvites(): Promise<Invite[]> {
   const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at, contact_emailed_at, last_email_error",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at, contact_emailed_at, last_email_error, availability_slots(starts_at)",
     )
     .eq("host_id", user.id)
     .eq("status", "pending")
@@ -127,7 +202,7 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
   const { data, error } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at, contact_emailed_at, last_email_error",
+      "id, host_id, requester_name, requester_email, requester_topic, requested_kind, preferred_time, status, created_at, expires_at, decided_at, contact_emailed_at, last_email_error, availability_slots(starts_at)",
     )
     .eq("host_id", user.id)
     .or(
@@ -576,5 +651,11 @@ function rowToInvite(r: Record<string, unknown>): Invite {
     decidedAt: (r.decided_at as string | null) ?? null,
     contactEmailedAt: (r.contact_emailed_at as string | null) ?? null,
     lastEmailError: (r.last_email_error as string | null) ?? null,
+    // PostgREST embeds the linked slot as `availability_slots`
+    // (object, or null when slot_id is null). Pull just its instant.
+    slotStartsAt:
+      ((r.availability_slots as { starts_at?: string } | null)?.starts_at as
+        | string
+        | undefined) ?? null,
   };
 }

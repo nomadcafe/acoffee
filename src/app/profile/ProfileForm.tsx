@@ -9,11 +9,13 @@ import { InterestsEditor } from "@/components/InterestsEditor";
 import {
   COFFEE_CHAT_KINDS,
   GENDERS,
+  type AvailabilitySlot,
   type CoffeeChatKind,
   type Gender,
   type MyProfile,
   type SocialLink,
 } from "@/lib/types";
+import { AvailabilityEditor } from "@/components/AvailabilityEditor";
 import {
   checkHandleAvailable,
   updateProfile,
@@ -43,9 +45,11 @@ const KIND_EMOJI: Record<CoffeeChatKind, string> = {
 
 export function ProfileForm({
   profile,
+  slots,
   after,
 }: {
   profile: MyProfile;
+  slots: AvailabilitySlot[];
   after?: string;
 }) {
   const t = useT();
@@ -67,6 +71,12 @@ export function ProfileForm({
   // a hidden input always submits the value so the server sees it even
   // when the visible toggle is hidden (no city set).
   const [discoverable, setDiscoverable] = useState(profile.discoverable);
+  // v16 — opt-in coffee scheduling toggle. Rides the form submit via the
+  // hidden input the AvailabilityEditor renders; slots themselves are
+  // managed by their own actions inside that editor.
+  const [schedulingEnabled, setSchedulingEnabled] = useState(
+    profile.schedulingEnabled,
+  );
   const [bio, setBio] = useState(profile.bio ?? "");
   const [telegram, setTelegram] = useState(profile.telegramHandle ?? "");
   const [emailContact, setEmailContact] = useState(profile.emailContact ?? "");
@@ -376,6 +386,13 @@ export function ProfileForm({
             {errs.interests}
           </p>
         )}
+
+        <AvailabilityEditor
+          enabled={schedulingEnabled}
+          onEnabledChange={setSchedulingEnabled}
+          slots={slots}
+          timezone={profile.timezone}
+        />
 
         <fieldset className="flex flex-col gap-5 border-none p-0">
           <legend className="text-xs font-medium uppercase tracking-wide text-accent">

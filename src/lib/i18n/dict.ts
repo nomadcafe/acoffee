@@ -188,6 +188,13 @@ export const en = {
     "Tue / Thu afternoons · or any morning next week",
   "invite.form.time.hint":
     "Free-form — both sides nail down the exact slot after accept.",
+  // v16 — slot picker shown instead of the free-form time when the host
+  // has scheduling on and has open slots.
+  "invite.form.slot.legend": "Pick a time",
+  "invite.form.slot.hint":
+    "Times in {tz}. {name} confirms when they accept.",
+  "invite.form.slot.none":
+    "No open times right now — suggest one below instead.",
   "invite.form.submit": "Send invite",
   "invite.form.submit.pending": "Sending…",
   "invite.form.note": "No account needed — your email is just for the reply.",
@@ -248,6 +255,19 @@ export const en = {
   "profile.kind.dinner": "Dinner",
   "profile.kind.hike": "Hike",
   "profile.kind.work_talk": "Work talk",
+
+  // v16 — opt-in coffee scheduling editor (AvailabilityEditor)
+  "profile.scheduling.legend": "Coffee scheduling",
+  "profile.scheduling.hint":
+    "Offer specific times. Visitors book one when they invite you, instead of a free-form “when works”.",
+  "profile.scheduling.toggle": "Let visitors book a specific time",
+  "profile.scheduling.add": "Add time",
+  "profile.scheduling.tzNote":
+    "Times shown in {tz} — visitors see them in this zone too.",
+  "profile.scheduling.empty": "No times yet — add one above.",
+  "profile.scheduling.booked": "Booked",
+  "profile.scheduling.remove": "Remove time",
+  "profile.scheduling.invalid": "Pick a valid date and time.",
 
   // ProfileForm fields
   "profile.field.handle.label": "Handle",
@@ -409,6 +429,9 @@ export const en = {
   "email.accepted.intro":
     "{host} accepted your coffee invite on acoffee. Pick a channel and say hi:",
   "email.accepted.viewCard": "See their card",
+  // v16 — the booked slot, already formatted in the host's tz + visitor's
+  // locale. Only present when the visitor picked a scheduling slot.
+  "email.accepted.time": "Your time: {time}",
   "email.accepted.disclaimer":
     "acoffee hands you off here. We don't read your conversation; the rest is between the two of you.",
 
@@ -667,6 +690,9 @@ export const zh: Record<DictKey, string> = {
   "invite.form.time.label": "偏好时间(可选)",
   "invite.form.time.placeholder": "周二/周四下午,或下周早上任何时间",
   "invite.form.time.hint": "随便写——接受后双方再敲具体时间。",
+  "invite.form.slot.legend": "选择时间",
+  "invite.form.slot.hint": "时间按 {tz} 显示。{name} 接受后会确认。",
+  "invite.form.slot.none": "暂时没有可约时间——可在下方填写建议时间。",
   "invite.form.submit": "发送邀请",
   "invite.form.submit.pending": "发送中…",
   "invite.form.note": "不需要账号——邮箱只是用来收回复。",
@@ -722,6 +748,17 @@ export const zh: Record<DictKey, string> = {
   "profile.kind.dinner": "吃饭",
   "profile.kind.hike": "徒步",
   "profile.kind.work_talk": "工作聊",
+
+  "profile.scheduling.legend": "咖啡时间安排",
+  "profile.scheduling.hint":
+    "提供具体时间,访客邀请你时可直接预约,而不用自由填写时间。",
+  "profile.scheduling.toggle": "让访客预约具体时间",
+  "profile.scheduling.add": "添加时间",
+  "profile.scheduling.tzNote": "时间按 {tz} 显示,访客也以该时区查看。",
+  "profile.scheduling.empty": "还没有时间——在上方添加一个。",
+  "profile.scheduling.booked": "已预约",
+  "profile.scheduling.remove": "删除时间",
+  "profile.scheduling.invalid": "请选择有效的日期和时间。",
 
   "profile.field.handle.label": "Handle",
   "profile.field.handle.placeholder": "挑一个 · 例如 alex_nomad",
@@ -855,6 +892,7 @@ export const zh: Record<DictKey, string> = {
   "email.accepted.intro":
     "{host} 在 acoffee 上接受了你的咖啡邀请。挑一个渠道打个招呼吧:",
   "email.accepted.viewCard": "看看他们的名片",
+  "email.accepted.time": "你的时间:{time}",
   "email.accepted.disclaimer":
     "acoffee 在这里完成对接。我们不读你们的对话,接下来就是你们两位的事了。",
 
@@ -1095,6 +1133,9 @@ export const ja: Record<DictKey, string> = {
     "火/木の午後、または来週の朝ならいつでも",
   "invite.form.time.hint":
     "自由記述で OK ——承認後に双方で具体的な時間を決めます。",
+  "invite.form.slot.legend": "時間を選ぶ",
+  "invite.form.slot.hint": "時間は {tz} で表示。承認時に {name} さんが確定します。",
+  "invite.form.slot.none": "現在空き時間がありません。下に希望を記入してください。",
   "invite.form.submit": "招待を送る",
   "invite.form.submit.pending": "送信中…",
   "invite.form.note": "アカウント不要——メールは返信用にだけ使います。",
@@ -1151,6 +1192,17 @@ export const ja: Record<DictKey, string> = {
   "profile.kind.dinner": "夕食",
   "profile.kind.hike": "ハイク",
   "profile.kind.work_talk": "仕事の話",
+
+  "profile.scheduling.legend": "コーヒーの予約",
+  "profile.scheduling.hint":
+    "具体的な時間を提示できます。訪問者は招待時にその時間を予約できます(自由記入の代わりに)。",
+  "profile.scheduling.toggle": "訪問者が具体的な時間を予約できるようにする",
+  "profile.scheduling.add": "時間を追加",
+  "profile.scheduling.tzNote": "時間は {tz} で表示されます。訪問者も同じタイムゾーンで見ます。",
+  "profile.scheduling.empty": "まだ時間がありません。上から追加してください。",
+  "profile.scheduling.booked": "予約済み",
+  "profile.scheduling.remove": "時間を削除",
+  "profile.scheduling.invalid": "有効な日時を選んでください。",
 
   "profile.field.handle.label": "Handle",
   "profile.field.handle.placeholder": "選んでください · 例: alex_nomad",
@@ -1300,6 +1352,7 @@ export const ja: Record<DictKey, string> = {
   "email.accepted.intro":
     "{host} さんが acoffee での招待を承認しました。チャンネルを選んで挨拶してみてください:",
   "email.accepted.viewCard": "カードを見る",
+  "email.accepted.time": "あなたの時間:{time}",
   "email.accepted.disclaimer":
     "acoffee の役割はここまでです。会話には立ち入りません——あとはお二人の間で。",
 

@@ -9,6 +9,7 @@ import {
   getMyProfile,
   getMyProfileStats,
   getSessionUser,
+  listMySlots,
 } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
@@ -61,12 +62,14 @@ export default async function ProfilePage({
     );
   }
 
-  const [profile, stats, pendingInvites, inviteHistory] = await Promise.all([
-    getMyProfile(),
-    getMyProfileStats(),
-    getMyPendingInvites(),
-    getMyInviteHistory(),
-  ]);
+  const [profile, stats, pendingInvites, inviteHistory, slots] =
+    await Promise.all([
+      getMyProfile(),
+      getMyProfileStats(),
+      getMyPendingInvites(),
+      getMyInviteHistory(),
+      listMySlots(),
+    ]);
   if (!profile) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-14">
@@ -121,10 +124,18 @@ export default async function ProfilePage({
       )}
 
       {hasRealHandle && !isOnboarding && (
-        <InviteInbox pending={pendingInvites} history={inviteHistory} />
+        <InviteInbox
+          pending={pendingInvites}
+          history={inviteHistory}
+          timezone={profile.timezone}
+        />
       )}
 
-      <ProfileForm profile={profile} after={isOnboarding ? afterPath : undefined} />
+      <ProfileForm
+        profile={profile}
+        slots={slots}
+        after={isOnboarding ? afterPath : undefined}
+      />
 
       {!isOnboarding && (
         <>

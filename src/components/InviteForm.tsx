@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useActionState, useEffect, useState } from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
 import { KIND_EMOJI } from "@/components/CardBody";
-import { useT } from "@/components/LocaleProvider";
+import { useLocale, useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
+import { formatSlot } from "@/lib/datetime";
 import { tmpl } from "@/lib/i18n/dict";
-import { type CoffeeChatKind } from "@/lib/types";
+import { type AvailabilitySlot, type CoffeeChatKind } from "@/lib/types";
 
 // What /[handle]/page.tsx passes when the viewer is a signed-in
 // acoffee user who isn't the card owner. The presence of this object
@@ -52,6 +53,12 @@ export function InviteForm(props: {
   hostDisplayName: string;
   hostKinds: CoffeeChatKind[];
   visitorSession: VisitorSession | null;
+  // v16 — when the host has scheduling on, `slots` carries their open
+  // bookable times (host tz in `hostTimezone`) and the form shows a slot
+  // picker instead of the free-form time field.
+  schedulingEnabled: boolean;
+  slots: AvailabilitySlot[];
+  hostTimezone: string | null;
 }) {
   const [resetCount, setResetCount] = useState(0);
   return (
@@ -68,19 +75,33 @@ function InviteFormInner({
   hostDisplayName,
   hostKinds,
   visitorSession,
+  schedulingEnabled,
+  slots,
+  hostTimezone,
   onSendAnother,
 }: {
   hostHandle: string;
   hostDisplayName: string;
   hostKinds: CoffeeChatKind[];
   visitorSession: VisitorSession | null;
+  schedulingEnabled: boolean;
+  slots: AvailabilitySlot[];
+  hostTimezone: string | null;
   onSendAnother: () => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [state, action, pending] = useActionState(createInvite, INITIAL);
   const kinds = effectiveKinds(hostKinds);
   const [kind, setKind] = useState<CoffeeChatKind>(kinds[0]);
+  // v16 — which scheduling slot the visitor picked (empty = none). Only
+  // meaningful when the picker is shown (scheduling on + slots available).
+  const [slotId, setSlotId] = useState("");
+  // Show the slot picker only when the host opted in AND has open times;
+  // scheduling-on-but-no-slots falls back to the free-form time field with
+  // a small note so the visitor can still suggest a time.
+  const showSlotPicker = schedulingEnabled && slots.length > 0;
   // Track the email the visitor just submitted, so the success state can
   // tell them "check this inbox" without us re-deriving it from FormData
   // (it's already wiped by the time we render the result).
@@ -281,13 +302,63 @@ function InviteFormInner({
         </div>
       </fieldset>
 
-      <Field
-        label={t("invite.form.time.label")}
-        name="preferredTime"
-        placeholder={t("invite.form.time.placeholder")}
-        hint={t("invite.form.time.hint")}
-        error={errs.preferredTime}
-      />
+      {showSlotPicker ? (
+        <fieldset className="flex flex-col gap-2 border-none p-0">
+          <legend className="text-sm font-medium text-ink/85">
+            {t("invite.form.slot.legend")}
+          </legend>
+          <input type="hidden" name="slotId" value={slotId} />
+          <div className="flex flex-wrap gap-2">
+            {slots.map((s) => {
+              const active = slotId === s.id;
+              return (
+                <label
+                  key={s.id}
+                  className={`inline-flex cursor-pointer items-center rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "border-accent bg-accent text-page shadow-sm"
+                      : "border-bean bg-surface text-ink/80 hover:border-accent/60 hover:text-accent"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="slotPick"
+                    value={s.id}
+                    checked={active}
+                    onChange={() => setSlotId(s.id)}
+                    className="sr-only"
+                  />
+                  {formatSlot(s.startsAt, hostTimezone, locale)}
+                </label>
+              );
+            })}
+          </div>
+          {errs.slotId ? (
+            <span className="text-sm text-red-600 dark:text-red-400">
+              {errs.slotId}
+            </span>
+          ) : (
+            <span className="text-sm text-muted">
+              {tmpl(t("invite.form.slot.hint"), {
+                tz: hostTimezone ?? "",
+                name: hostDisplayName,
+              })}
+            </span>
+          )}
+        </fieldset>
+      ) : (
+        <Field
+          label={t("invite.form.time.label")}
+          name="preferredTime"
+          placeholder={t("invite.form.time.placeholder")}
+          hint={
+            schedulingEnabled
+              ? t("invite.form.slot.none")
+              : t("invite.form.time.hint")
+          }
+          error={errs.preferredTime}
+        />
+      )}
 
       {state.status === "error" && !state.fieldErrors && (
         <p className="text-sm text-red-600 dark:text-red-400">

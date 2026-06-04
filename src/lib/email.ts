@@ -337,10 +337,16 @@ export async function emailInviteAccepted(args: {
   hostDisplayName: string;
   telegramHandle: string | null;
   emailContact: string | null;
+  // v16 — already-formatted meeting time (host tz, visitor locale) when the
+  // visitor booked a scheduling slot. null = no slot (free-form path).
+  meetingTime?: string | null;
   locale: Locale;
 }): Promise<SendResult> {
   const cardUrl = `${siteUrl}/${args.hostHandle}`;
   const v = { name: args.requesterName, host: args.hostDisplayName };
+  const timeLine = args.meetingTime
+    ? tmpl(t(args.locale, "email.accepted.time"), { time: args.meetingTime })
+    : null;
   const channels: { label: string; href: string; display: string }[] = [];
   if (args.telegramHandle) {
     const h = args.telegramHandle.replace(/^@/, "");
@@ -374,12 +380,14 @@ export async function emailInviteAccepted(args: {
     text:
       `${tmpl(t(args.locale, "email.accepted.greeting"), v)}\n\n` +
       `${tmpl(t(args.locale, "email.accepted.intro"), v)}\n${textChannels}\n\n` +
+      `${timeLine ? `${timeLine}\n\n` : ""}` +
       `${cardUrl}\n\n— ${siteName}`,
     html: `<!doctype html>
 <html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
 <p style="font-size:16px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.accepted.greeting"), v))}</p>
 <p style="font-size:15px;margin:0 0 18px">${escapeHtml(tmpl(t(args.locale, "email.accepted.intro"), v))}</p>
-<ul style="font-size:14px;padding-left:20px;margin:0 0 24px">${htmlChannels}</ul>
+<ul style="font-size:14px;padding-left:20px;margin:0 0 ${timeLine ? "14px" : "24px"}">${htmlChannels}</ul>
+${timeLine ? `<p style="font-size:15px;margin:0 0 24px">${escapeHtml(timeLine)}</p>` : ""}
 <p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">${escapeHtml(t(args.locale, "email.accepted.viewCard"))} &rarr;</a></p>
 <p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${escapeHtml(t(args.locale, "email.accepted.disclaimer"))}</p>
 </body></html>`,

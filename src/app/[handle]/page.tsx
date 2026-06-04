@@ -7,7 +7,11 @@ import { CardSharePanel } from "@/components/CardSharePanel";
 import { InviteForm } from "@/components/InviteForm";
 import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
-import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
+import {
+  getMyProfile,
+  getSessionUser,
+  listAvailableSlots,
+} from "@/lib/auth-queries";
 import { cityHrefSlug } from "@/lib/city";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
@@ -44,6 +48,7 @@ const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 // now. A single `hasContact` boolean is enough for the UI to choose
 // between the invite form and the "no contact yet" empty state.
 type PublicProfile = {
+  id: string;
   handle: string;
   displayName: string;
   bio: string | null;
@@ -66,6 +71,10 @@ type PublicProfile = {
   hasContact: boolean;
   avatarUrl: string | null;
   joinedAt: string;
+  // v16 — when scheduling is on, the invite form offers the host's slots.
+  // timezone labels them (host's zone). Slots are fetched separately.
+  schedulingEnabled: boolean;
+  timezone: string | null;
   // BEFORE UPDATE trigger on profiles bumps this on every row change.
   // Used as a `?v=` cache-bust on the OG image URL so social previews
   // refetch when the card content changes.
@@ -83,7 +92,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, created_at, updated_at",
+      "id, handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, scheduling_enabled, timezone, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -91,6 +100,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
   if (!data) return null;
 
   return {
+    id: data.id as string,
     handle: data.handle as string,
     displayName: deriveDisplayName(data.handle as string),
     bio: (data.bio as string | null) ?? null,
@@ -104,6 +114,8 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
     hasContact: !!(data.telegram_handle || data.email_contact),
     avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
+    schedulingEnabled: !!data.scheduling_enabled,
+    timezone: (data.timezone as string | null) ?? null,
     updatedAt:
       (data.updated_at as string | undefined) ??
       (data.created_at as string),
@@ -168,11 +180,15 @@ export default async function HandlePage(
   // Owner detection: if the signed-in viewer's handle matches the page,
   // they get edit affordances instead of the "make your own" CTA, and
   // an "almost there" nudge when the card has no status or contact yet.
-  const [viewer, sessionUser, locale, homeHref] = await Promise.all([
+  const [viewer, sessionUser, locale, homeHref, slots] = await Promise.all([
     getMyProfile(),
     getSessionUser(),
     getLocale(),
     currentHomeHref(),
+    // v16 — only fetch bookable slots when the host turned scheduling on.
+    profile.schedulingEnabled
+      ? listAvailableSlots(profile.id)
+      : Promise.resolve([]),
   ]);
   const isOwner = viewer?.handle === profile.handle;
   const isIncomplete = !profile.bio || !profile.hasContact;
@@ -285,6 +301,9 @@ export default async function HandlePage(
               hostDisplayName={profile.displayName}
               hostKinds={profile.coffeeChatKinds}
               visitorSession={visitorSession}
+              schedulingEnabled={profile.schedulingEnabled}
+              slots={slots}
+              hostTimezone={profile.timezone}
             />
           ) : (
             <p className="text-sm text-muted">

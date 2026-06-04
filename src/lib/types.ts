@@ -62,6 +62,22 @@ export type MyProfile = {
   // v12 — whether the card is listed on city discovery pages. Default
   // true; the owner can opt out (still shareable by direct link).
   discoverable: boolean;
+  // v16 — opt-in coffee scheduling. When on, the invite form offers the
+  // host's `availability_slots` instead of a free-form time. `timezone`
+  // (IANA) is the tz those slots are displayed in; null until the host
+  // first adds a slot. Default off → today's free-form behaviour.
+  schedulingEnabled: boolean;
+  timezone: string | null;
+};
+
+// v16 — one concrete time a host offers. `startsAt` is an absolute ISO
+// instant; render it in the host's `timezone` via formatSlot. `taken` is
+// only populated for the host's own editor view (an active invite holds
+// the slot); the public picker simply omits taken slots.
+export type AvailabilitySlot = {
+  id: string;
+  startsAt: string;
+  taken?: boolean;
 };
 
 // v12 — the invite's `requested_kind` is one of the host's advertised
@@ -98,4 +114,7 @@ export type Invite = {
   // null on pending / declined / expired rows (no accept-email attempted).
   contactEmailedAt: string | null;
   lastEmailError: string | null;
+  // v16 — the absolute ISO instant of the slot the visitor booked, or null
+  // when the host didn't have scheduling on (free-form preferredTime path).
+  slotStartsAt: string | null;
 };

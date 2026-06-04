@@ -44,6 +44,10 @@ const InviteSchema = z.object({
     .string()
     .max(80, "Time hint is at most 80 characters.")
     .optional(),
+  // v16 — when the host has scheduling on, the visitor picks one of their
+  // slots instead of typing a time. Optional: hosts without scheduling
+  // still submit the free-form preferredTime above.
+  slotId: z.string().uuid().optional(),
 });
 
 export type CreateInviteState =
@@ -83,6 +87,7 @@ export async function createInvite(
     requesterTopic: trimOrUndefined(formData.get("requesterTopic")),
     requestedKind: trimOrUndefined(formData.get("requestedKind")),
     preferredTime: trimOrUndefined(formData.get("preferredTime")),
+    slotId: trimOrUndefined(formData.get("slotId")),
   });
   if (!parsed.success) {
     const fieldErrors: NonNullable<
@@ -172,6 +177,26 @@ export async function createInvite(
   // the visitor. crypto.randomUUID is unguessable enough; the unique
   // index on confirm_token doubles as the lookup path. For the
   // skip-confirm path: null + status='pending' goes straight through.
+  // v16 — if the visitor picked a scheduling slot, confirm it belongs to
+  // this host and is still in the future before we write. The DB's partial
+  // unique index is the real double-booking guard (the 23505 catch below);
+  // this just rejects a stale or foreign slot id with a clear message.
+  if (parsed.data.slotId) {
+    const { data: slot } = await admin
+      .from("availability_slots")
+      .select("id, starts_at")
+      .eq("id", parsed.data.slotId)
+      .eq("host_id", hostId)
+      .maybeSingle();
+    if (!slot || new Date(slot.starts_at as string) <= new Date()) {
+      return {
+        status: "error",
+        message: "That time isn't available anymore — pick another.",
+        fieldErrors: { slotId: "Pick an available time." },
+      };
+    }
+  }
+
   const confirmToken = skipConfirm ? null : crypto.randomUUID();
   const { error: insertErr } = await admin.from("invites").insert({
     host_id: hostId,
@@ -180,12 +205,22 @@ export async function createInvite(
     requester_topic: parsed.data.requesterTopic,
     requested_kind: parsed.data.requestedKind,
     preferred_time: parsed.data.preferredTime ?? null,
+    slot_id: parsed.data.slotId ?? null,
     requester_locale: locale,
     status: skipConfirm ? "pending" : "unconfirmed",
     confirm_token: confirmToken,
     confirmed_at: skipConfirm ? new Date().toISOString() : null,
   });
   if (insertErr) {
+    // 23505 = the partial unique index fired: another active invite already
+    // holds this slot. Surface it as "just taken" so the visitor re-picks.
+    if (insertErr.code === "23505") {
+      return {
+        status: "error",
+        message: "That time was just taken — pick another.",
+        fieldErrors: { slotId: "Just taken — pick another." },
+      };
+    }
     return {
       status: "error",
       message: `Couldn't save the invite: ${insertErr.message}`,

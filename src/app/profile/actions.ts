@@ -23,6 +23,7 @@ import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
+import { formatSlot } from "@/lib/datetime";
 
 // Rate-limit helper for signed-in server actions. Keys on user.id when
 // available (otherwise falls back to IP) so a single signed-in account
@@ -317,6 +318,10 @@ export async function updateProfile(
   // default), so a missing value can never silently hide a card.
   const discoverable = formData.get("discoverable") !== "false";
 
+  // v16 — opt-in coffee scheduling. Hidden input submits "true"/"false";
+  // default off, so anything but an explicit "true" leaves it disabled.
+  const schedulingEnabled = formData.get("schedulingEnabled") === "true";
+
   const { error } = await supabase
     .from("profiles")
     .update({
@@ -331,6 +336,7 @@ export async function updateProfile(
       social_links: normalisedSocials,
       interests,
       discoverable,
+      scheduling_enabled: schedulingEnabled,
       locale,
     })
     .eq("id", user.id);
@@ -606,7 +612,7 @@ async function decideInvite(
   const { data: invite, error: readErr } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, requester_topic, preferred_time, status, expires_at, requester_locale",
+      "id, host_id, requester_name, requester_email, requester_topic, preferred_time, status, expires_at, requester_locale, availability_slots(starts_at)",
     )
     .eq("id", inviteId)
     .maybeSingle();
@@ -657,7 +663,7 @@ async function decideInvite(
   if (next === "accepted") {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("handle, telegram_handle, email_contact")
+      .select("handle, telegram_handle, email_contact, timezone")
       .eq("id", user.id)
       .maybeSingle();
     if (profile) {
@@ -667,6 +673,18 @@ async function decideInvite(
         .filter(Boolean)
         .map((p) => p[0].toUpperCase() + p.slice(1))
         .join(" ");
+      // If the visitor booked a slot, name the time (host tz, visitor
+      // locale) in the accept email.
+      const slotIso =
+        (invite.availability_slots as { starts_at?: string } | null)
+          ?.starts_at ?? null;
+      const meetingTime = slotIso
+        ? formatSlot(
+            slotIso,
+            (profile.timezone as string | null) ?? null,
+            requesterLocale,
+          )
+        : null;
       const send = await emailInviteAccepted({
         to: invite.requester_email as string,
         requesterName: invite.requester_name as string,
@@ -674,6 +692,7 @@ async function decideInvite(
         hostDisplayName: displayName,
         telegramHandle: (profile.telegram_handle as string | null) ?? null,
         emailContact: (profile.email_contact as string | null) ?? null,
+        meetingTime,
         locale: requesterLocale,
       });
       // Persist the hand-off outcome so the inbox can flag a failed
@@ -768,7 +787,7 @@ export async function resendAcceptedContact(
   const { data: invite, error: readErr } = await supabase
     .from("invites")
     .select(
-      "id, host_id, requester_name, requester_email, status, requester_locale",
+      "id, host_id, requester_name, requester_email, status, requester_locale, availability_slots(starts_at)",
     )
     .eq("id", inviteId)
     .maybeSingle();
@@ -785,7 +804,7 @@ export async function resendAcceptedContact(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("handle, telegram_handle, email_contact")
+    .select("handle, telegram_handle, email_contact, timezone")
     .eq("id", user.id)
     .maybeSingle();
   if (!profile) {
@@ -800,6 +819,12 @@ export async function resendAcceptedContact(
   const requesterLocale = isInviteLocale(invite.requester_locale)
     ? invite.requester_locale
     : "en";
+  const slotIso =
+    (invite.availability_slots as { starts_at?: string } | null)?.starts_at ??
+    null;
+  const meetingTime = slotIso
+    ? formatSlot(slotIso, (profile.timezone as string | null) ?? null, requesterLocale)
+    : null;
 
   const send = await emailInviteAccepted({
     to: invite.requester_email as string,
@@ -808,6 +833,7 @@ export async function resendAcceptedContact(
     hostDisplayName: displayName,
     telegramHandle: (profile.telegram_handle as string | null) ?? null,
     emailContact: (profile.email_contact as string | null) ?? null,
+    meetingTime,
     locale: requesterLocale,
   });
   await recordContactEmail(supabase, inviteId, send);
@@ -820,4 +846,120 @@ export async function resendAcceptedContact(
     };
   }
   return { status: "ok", emailDelivered: true };
+}
+
+// ───────────────────────── scheduling (v16) ─────────────────────────
+
+export type SlotActionResult =
+  | { status: "ok" }
+  | { status: "error"; message: string };
+
+// Add one availability slot. The client sends an absolute instant (it
+// converts the datetime-local value in the browser's own tz) plus that
+// tz name for display. We validate it's a real, near-future instant and
+// store it; the host's timezone is stamped on the profile the first time
+// so every slot renders consistently. RLS scopes the insert to the host.
+export async function addSlot(
+  startsAtIso: string,
+  timezone: string,
+): Promise<SlotActionResult> {
+  if (!isAuthConfigured()) {
+    return { status: "error", message: "Sign-in isn't configured." };
+  }
+  const when = new Date(startsAtIso);
+  if (Number.isNaN(when.getTime())) {
+    return { status: "error", message: "That isn't a valid time." };
+  }
+  if (when.getTime() <= Date.now()) {
+    return { status: "error", message: "Pick a time in the future." };
+  }
+  // Two-year ceiling — a slot further out than that is almost certainly a
+  // typo (wrong year on the picker).
+  if (when.getTime() > Date.now() + 2 * 365 * 24 * 60 * 60 * 1000) {
+    return { status: "error", message: "That's too far in the future." };
+  }
+  const tz =
+    typeof timezone === "string" && timezone.trim().length > 0
+      ? timezone.trim().slice(0, 64)
+      : null;
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in to add times." };
+
+  const addLimit = checkRateLimit(await rlKey("addSlot", user.id), [
+    { max: 20, windowMs: 60_000 },
+    { max: 100, windowMs: 60 * 60_000 },
+  ]);
+  if (!addLimit.allowed) {
+    return {
+      status: "error",
+      message: `Slow down — try again in ${addLimit.retryAfterSec}s.`,
+    };
+  }
+
+  const { error } = await supabase.from("availability_slots").insert({
+    host_id: user.id,
+    starts_at: when.toISOString(),
+  });
+  if (error) return { status: "error", message: error.message };
+
+  // Stamp the host's tz on first use so slots render in one consistent
+  // zone. Only when not already set — don't clobber a deliberate value.
+  if (tz) {
+    await supabase
+      .from("profiles")
+      .update({ timezone: tz })
+      .eq("id", user.id)
+      .is("timezone", null);
+  }
+
+  revalidatePath("/profile");
+  return { status: "ok" };
+}
+
+// Remove a slot the host owns — unless an active invite is holding it
+// (a visitor has booked/requested that time). RLS already scopes the
+// delete to the owner; the active-invite guard prevents pulling a slot
+// out from under a pending request.
+export async function removeSlot(slotId: string): Promise<SlotActionResult> {
+  if (!isAuthConfigured()) {
+    return { status: "error", message: "Sign-in isn't configured." };
+  }
+  if (typeof slotId !== "string" || !slotId) {
+    return { status: "error", message: "Missing slot id." };
+  }
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in to manage times." };
+
+  // Refuse if an active invite holds this slot — same status set as the
+  // availability filter. The host should decline that invite first.
+  const { data: held } = await supabase
+    .from("invites")
+    .select("id")
+    .eq("slot_id", slotId)
+    .in("status", ["unconfirmed", "pending", "accepted"])
+    .limit(1);
+  if (held && held.length > 0) {
+    return {
+      status: "error",
+      message: "Someone's requested this time — decline that invite first.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("availability_slots")
+    .delete()
+    .eq("id", slotId)
+    .eq("host_id", user.id);
+  if (error) return { status: "error", message: error.message };
+
+  revalidatePath("/profile");
+  return { status: "ok" };
 }
