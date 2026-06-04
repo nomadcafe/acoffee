@@ -52,7 +52,7 @@ export const en = {
   // reason instead of just a feature pitch.
   "home.why.eyebrow": "Why",
   "home.why.body":
-    "I made acoffee because we're all a bit lonely — and ever since I went solo, finding someone to grab a coffee with, just to talk to, somehow got harder. I'm hoping acoffee makes that easier. Solo together. A coffee. A conversation. Maybe a sunrise.",
+    "With acoffee, you might meet a few new people. You can also share when you're free and let others book a coffee with you.",
 
   "home.proof": "{count} builders & nomads with a coffee card",
 
@@ -581,7 +581,7 @@ export const zh: Record<DictKey, string> = {
 
   "home.why.eyebrow": "为什么",
   "home.why.body":
-    "做 acoffee 是因为——我觉得我们都有点孤独。自从开始自由职业之后才发现，连找个人喝杯咖啡、随便聊聊，都变得不那么容易了。希望 acoffee 能让这件事简单一点。一起 solo，一起喝咖啡，一起聊聊天，一起看日出。",
+    "通过 acoffee，或许能认识一些新朋友。你也可以把自己有空的时间分享出来，让别人来约你喝杯咖啡。",
 
   "home.proof": "已有 {count} 位 builder 和数字游民挂出了咖啡名片",
 
@@ -1014,7 +1014,7 @@ export const ja: Record<DictKey, string> = {
 
   "home.why.eyebrow": "なぜ",
   "home.why.body":
-    "acoffee を作ったのは——みんな、少し孤独だと思うから。自分がフリーランスになってから気づいた——コーヒーを飲める誰か、ただ話せる誰かを見つけることが、なぜか難しいことに。acoffee がそれを少し簡単にできたらいい。一緒に solo、一緒にコーヒー、一緒におしゃべり、一緒に朝日。",
+    "acoffee なら、新しい人と知り合えるかもしれない。空いている時間をシェアして、誰かにコーヒーを予約してもらうこともできる。",
 
   "home.proof": "{count} 人の builder・ノマドがコーヒーカードを公開中",
 
