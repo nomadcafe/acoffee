@@ -5,6 +5,7 @@ import type {
   MyProfile,
 } from "./types";
 import { CITY_INDEX_FLOOR } from "./city";
+import { parseInterests } from "./interests";
 import { deriveDisplayName, parseChatKinds, parseGender } from "./profile";
 import { parseSocialLinks } from "./socials";
 import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
@@ -22,7 +23,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, discoverable",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, discoverable",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -40,6 +41,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     emailContact: (data.email_contact as string | null) ?? null,
     socialLinks: parseSocialLinks(data.social_links),
     avatarUrl: (data.avatar_url as string | null) ?? null,
+    interests: parseInterests(data.interests),
     // NOT NULL default true in the DB, so this is always a real boolean;
     // coerce defensively in case of a legacy null.
     discoverable: (data.discoverable as boolean | null) ?? true,
@@ -288,6 +290,8 @@ export type CityCard = {
   avatarUrl: string | null;
   coffeeChatKinds: CoffeeChatKind[];
   gender: Gender | null;
+  // v13 — interest tags, rendered as small `#tag` chips on the row.
+  interests: string[];
 };
 
 // A resident with no end-date counts as "around" only while their card
@@ -295,6 +299,56 @@ export type CityCard = {
 // on its own, so the list stays a snapshot of who's here now rather than
 // a permanent roster. Tune to taste.
 const CITY_RESIDENT_WINDOW_DAYS = 45;
+
+// Internal: a CityCard plus the raw updated_at used only for sorting. The
+// city + browse lists share the same row-shape, presence sort, and final
+// strip, so those live as helpers rather than being duplicated per query.
+type SortableCityCard = CityCard & { _updatedAt: string };
+
+function toCityCard(
+  r: Record<string, unknown>,
+  todayIso: string,
+): SortableCityCard {
+  const rawUntil = (r.city_until as string | null) ?? null;
+  // Keep the date only if it's genuinely ahead of today; a past date
+  // means "this person lives here now", so it shouldn't badge.
+  const activeUntil = rawUntil && rawUntil >= todayIso ? rawUntil : null;
+  return {
+    handle: r.handle as string,
+    displayName: deriveDisplayName(r.handle as string),
+    city: (r.city as string | null) ?? null,
+    cityUntil: activeUntil,
+    status: (r.bio as string | null) ?? null,
+    avatarUrl: (r.avatar_url as string | null) ?? null,
+    coffeeChatKinds: parseChatKinds(r.coffee_chat_kinds),
+    gender: parseGender(r.gender),
+    interests: parseInterests(r.interests),
+    _updatedAt: (r.updated_at as string | undefined) ?? "",
+  };
+}
+
+// Presence-first: people leaving soon sort above residents (invite them
+// before they go); among residents, most recently active first.
+function byPresence(a: SortableCityCard, b: SortableCityCard): number {
+  if (a.cityUntil && !b.cityUntil) return -1;
+  if (!a.cityUntil && b.cityUntil) return 1;
+  if (a.cityUntil && b.cityUntil) return a.cityUntil < b.cityUntil ? -1 : 1;
+  return a._updatedAt < b._updatedAt ? 1 : -1;
+}
+
+function stripSort(c: SortableCityCard): CityCard {
+  return {
+    handle: c.handle,
+    displayName: c.displayName,
+    city: c.city,
+    cityUntil: c.cityUntil,
+    status: c.status,
+    avatarUrl: c.avatarUrl,
+    coffeeChatKinds: c.coffeeChatKinds,
+    gender: c.gender,
+    interests: c.interests,
+  };
+}
 
 // Cards shown on /city/[slug]: people who are in `city` AND reachable
 // (have a contact channel, so invites actually work) AND "present" —
@@ -317,7 +371,7 @@ export async function listCityCards(slug: string): Promise<CityCard[]> {
     // — the list never needs the values, so they stay server-side in
     // Postgres and never reach this process.
     .select(
-      "handle, bio, city, city_until, coffee_chat_kinds, gender, avatar_url, updated_at",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, avatar_url, interests, updated_at",
     )
     // Exact match against the generated slug column (indexed).
     .eq("city_slug", slug)
@@ -332,45 +386,72 @@ export async function listCityCards(slug: string): Promise<CityCard[]> {
     .limit(50);
   if (error) return [];
 
-  const cards = (data ?? []).map((r) => {
-    const rawUntil = (r.city_until as string | null) ?? null;
-    // Keep the date only if it's genuinely ahead of today; a past date
-    // means "this person lives here now", so it shouldn't badge.
-    const activeUntil = rawUntil && rawUntil >= todayIso ? rawUntil : null;
-    return {
-      handle: r.handle as string,
-      displayName: deriveDisplayName(r.handle as string),
-      city: (r.city as string | null) ?? null,
-      cityUntil: activeUntil,
-      status: (r.bio as string | null) ?? null,
-      avatarUrl: (r.avatar_url as string | null) ?? null,
-      coffeeChatKinds: parseChatKinds(r.coffee_chat_kinds),
-      gender: parseGender(r.gender),
-      _updatedAt: (r.updated_at as string | undefined) ?? "",
-    };
-  });
+  const cards = (data ?? []).map((r) => toCityCard(r, todayIso));
+  cards.sort(byPresence);
+  return cards.slice(0, 30).map(stripSort);
+}
 
-  cards.sort((a, b) => {
-    // Presence-active (has a future city_until) sorts above residents.
-    if (a.cityUntil && !b.cityUntil) return -1;
-    if (!a.cityUntil && b.cityUntil) return 1;
-    // Both leaving: soonest-to-leave first (more urgent to invite).
-    if (a.cityUntil && b.cityUntil) return a.cityUntil < b.cityUntil ? -1 : 1;
-    // Both residents: most recently active first.
-    return a._updatedAt < b._updatedAt ? 1 : -1;
-  });
+// Filters for the /browse discovery page. All optional — an empty opts
+// lists everyone present + reachable across all cities.
+export type BrowseFilters = {
+  city?: string; // city_slug exact match
+  kind?: CoffeeChatKind;
+  interest?: string; // normalised tag, exact array containment
+  q?: string; // free-text over city / handle / status
+};
 
-  // Drop the sort-only field before returning.
-  return cards.slice(0, 30).map((c) => ({
-    handle: c.handle,
-    displayName: c.displayName,
-    city: c.city,
-    cityUntil: c.cityUntil,
-    status: c.status,
-    avatarUrl: c.avatarUrl,
-    coffeeChatKinds: c.coffeeChatKinds,
-    gender: c.gender,
-  }));
+// Cards for /browse: same present + reachable + discoverable gating as
+// listCityCards but without the single-city constraint, plus the optional
+// filters above. Presence-first sort, capped higher than a single city
+// page since it spans all of them.
+export async function listBrowseCards(
+  filters: BrowseFilters = {},
+): Promise<CityCard[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const cutoffIso = new Date(
+    Date.now() - CITY_RESIDENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  let query = supabase
+    .from("profiles")
+    .select(
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, avatar_url, interests, updated_at",
+    )
+    .eq("discoverable", true)
+    .not("handle", "match", AUTO_HANDLE.source)
+    // reachable …
+    .or("telegram_handle.not.is.null,email_contact.not.is.null")
+    // … and present (future end-date OR recently active).
+    .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`);
+
+  if (filters.city) query = query.eq("city_slug", filters.city);
+  if (filters.kind) {
+    query = query.contains("coffee_chat_kinds", [filters.kind]);
+  }
+  if (filters.interest) {
+    query = query.contains("interests", [filters.interest]);
+  }
+  if (filters.q) {
+    // Strip PostgREST filter metacharacters before interpolating into the
+    // ilike pattern so a stray comma/paren can't break out of the value.
+    const safe = filters.q.replace(/[%,()*]/g, " ").trim();
+    if (safe) {
+      query = query.or(
+        `city.ilike.%${safe}%,handle.ilike.%${safe}%,bio.ilike.%${safe}%`,
+      );
+    }
+  }
+
+  const { data, error } = await query
+    .order("updated_at", { ascending: false })
+    .limit(120);
+  if (error) return [];
+
+  const cards = (data ?? []).map((r) => toCityCard(r, todayIso));
+  cards.sort(byPresence);
+  return cards.slice(0, 60).map(stripSort);
 }
 
 // A city with enough present cards to be worth surfacing on the home
@@ -437,6 +518,47 @@ export async function listActiveCities(limit = 8): Promise<ActiveCity[]> {
 export async function listIndexableCities(): Promise<ActiveCity[]> {
   const cities = await groupActiveCities();
   return cities.filter((c) => c.count >= CITY_INDEX_FLOOR);
+}
+
+// An interest tag with enough present cards to be worth offering as a
+// /browse filter chip.
+export type ActiveInterest = { interest: string; count: number };
+
+// Tally interests across the present, reachable, discoverable set (same
+// gating as groupActiveCities) so the browse page can offer the busiest
+// tags as filter chips. Counts come from the most-recently-active 500
+// present cards — enough at this scale; revisit with a SQL aggregate /
+// unnest if the active set outgrows that.
+export async function listActiveInterests(
+  limit = 24,
+): Promise<ActiveInterest[]> {
+  if (!isAuthConfigured()) return [];
+  const supabase = await createSupabaseServer();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const cutoffIso = new Date(
+    Date.now() - CITY_RESIDENT_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("interests")
+    .eq("discoverable", true)
+    .not("handle", "match", AUTO_HANDLE.source)
+    .or("telegram_handle.not.is.null,email_contact.not.is.null")
+    .or(`city_until.gte.${todayIso},updated_at.gte.${cutoffIso}`)
+    .order("updated_at", { ascending: false })
+    .limit(500);
+  if (error) return [];
+
+  const counts = new Map<string, number>();
+  for (const r of data ?? []) {
+    for (const tag of parseInterests(r.interests)) {
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([interest, count]) => ({ interest, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
 }
 
 function rowToInvite(r: Record<string, unknown>): Invite {

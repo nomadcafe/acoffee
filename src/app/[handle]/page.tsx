@@ -25,6 +25,7 @@ import {
   parseGender,
 } from "@/lib/profile";
 import { parseSocialLinks } from "@/lib/socials";
+import { parseInterests } from "@/lib/interests";
 
 // Same handle format the profile form + DB CHECK enforce. Used here as a
 // cheap pre-filter so bot probes (`xmlrpc.php`, `wp-login.php`, `.env`,
@@ -60,6 +61,8 @@ type PublicProfile = {
   // they live on the card without invite-accept. The gated contact
   // channels stay separate behind `hasContact`.
   socialLinks: SocialLink[];
+  // v13 — interest tags, public discovery signal alongside the socials.
+  interests: string[];
   hasContact: boolean;
   avatarUrl: string | null;
   joinedAt: string;
@@ -80,7 +83,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, created_at, updated_at",
+      "handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -97,6 +100,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
     socialLinks: parseSocialLinks(data.social_links),
+    interests: parseInterests(data.interests),
     hasContact: !!(data.telegram_handle || data.email_contact),
     avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
@@ -261,6 +265,7 @@ export default async function HandlePage(
         kinds={profile.coffeeChatKinds}
         gender={profile.gender}
         socialLinks={profile.socialLinks}
+        interests={profile.interests}
         avatarUrl={profile.avatarUrl}
         locale={locale}
         footer={

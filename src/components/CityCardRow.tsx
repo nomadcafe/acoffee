@@ -62,6 +62,20 @@ export function CityCardRow({
             ))}
           </div>
         )}
+        {card.interests.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {/* Cap the row so a tag-maxed card doesn't dominate the list;
+                the full set lives on the card itself. */}
+            {card.interests.slice(0, 4).map((tag) => (
+              <span
+                key={tag}
+                className="inline-flex items-center rounded-full border border-bean bg-page px-2 py-0.5 text-xs font-medium text-ink/60"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     </Link>
   );

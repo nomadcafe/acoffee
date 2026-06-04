@@ -20,6 +20,7 @@ import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
+import { validateInterests } from "@/lib/interests";
 
 // Rate-limit helper for signed-in server actions. Keys on user.id when
 // available (otherwise falls back to IP) so a single signed-in account
@@ -112,7 +113,7 @@ const ProfileSchema = z.object({
 // `socialLinks` lives outside the Zod schema (per-row validation is
 // platform-dependent) but still needs a field-error slot so the form
 // can surface "Instagram: username only — …" inline.
-type ExtraFields = "socialLinks";
+type ExtraFields = "socialLinks" | "interests";
 export type ProfileEventName = "signup_completed" | "card_published";
 export type ProfileState = {
   status: "idle" | "saved" | "error";
@@ -213,6 +214,33 @@ export async function updateProfile(
     socialLinks = result.links;
   }
 
+  // interests: JSON-encoded by the InterestsEditor (same hidden-input
+  // pattern as socials). Normalisation + caps live in lib/interests.ts so
+  // the messaging stays in one place. Empty / missing payload = "no tags".
+  let interests: string[] = [];
+  const rawInterests = formData.get("interests");
+  if (typeof rawInterests === "string" && rawInterests.trim().length > 0) {
+    let candidate: unknown;
+    try {
+      candidate = JSON.parse(rawInterests);
+    } catch {
+      return {
+        status: "error",
+        message: "Interests payload was malformed.",
+        fieldErrors: { interests: "Couldn't read the interests list." },
+      };
+    }
+    const result = validateInterests(candidate);
+    if (!result.ok) {
+      return {
+        status: "error",
+        message: "Please fix the highlighted fields.",
+        fieldErrors: { interests: result.message },
+      };
+    }
+    interests = result.interests;
+  }
+
   if (RESERVED_HANDLES.has(parsed.data.handle)) {
     return {
       status: "error",
@@ -299,6 +327,7 @@ export async function updateProfile(
       email_contact: parsed.data.emailContact ?? null,
       gender: parsed.data.gender ?? null,
       social_links: normalisedSocials,
+      interests,
       discoverable,
       locale,
     })

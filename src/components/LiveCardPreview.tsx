@@ -24,6 +24,7 @@ export function LiveCardPreview({
   kinds,
   gender,
   socialLinks,
+  interests,
   hasContact,
 }: {
   handle: string;
@@ -34,6 +35,7 @@ export function LiveCardPreview({
   kinds: CoffeeChatKind[];
   gender?: Gender | null;
   socialLinks?: SocialLink[];
+  interests?: string[];
   hasContact: boolean;
 }) {
   const t = useT();
@@ -59,6 +61,7 @@ export function LiveCardPreview({
       kinds={kinds}
       gender={gender}
       socialLinks={socialLinks}
+      interests={interests}
       avatarUrl={avatarUrl}
       locale={locale}
       badge={

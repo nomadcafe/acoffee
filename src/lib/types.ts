@@ -55,6 +55,10 @@ export type MyProfile = {
   emailContact: string | null;
   socialLinks: SocialLink[];
   avatarUrl: string | null;
+  // v13 — small set of normalised interest tags (`ai`, `web3`, …). Give
+  // a card a hook beyond city + coffee_chat_kinds and back the /browse
+  // interest filter. Normalisation + caps live in lib/interests.ts.
+  interests: string[];
   // v12 — whether the card is listed on city discovery pages. Default
   // true; the owner can opt out (still shareable by direct link).
   discoverable: boolean;

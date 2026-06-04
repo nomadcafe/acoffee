@@ -122,6 +122,23 @@ export const en = {
     "Like this card? Make your own — share what you're working on, get invited for coffee in your next city.",
 
   // /city/[slug] discovery page
+  "browse.nav": "Browse",
+  "browse.breadcrumb": "Browse",
+  "browse.meta.title": "Browse coffee cards · acoffee",
+  "browse.meta.description":
+    "Find people up for a coffee — filter by city, what they're up for, and interests.",
+  "browse.h1": "Find someone for coffee",
+  "browse.subhead":
+    "People with a coffee card, around right now. Filter by city, what they're up for, or a shared interest.",
+  "browse.filter.city": "City",
+  "browse.filter.kind": "Up for",
+  "browse.filter.interests": "Interests",
+  "browse.search.placeholder": "Search name, city, or status",
+  "browse.search.submit": "Search",
+  "browse.clear": "Clear filters",
+  "browse.count": "{n} card{plural}",
+  "browse.empty":
+    "No cards match those filters yet. Try clearing a filter — or make your own card and be findable here.",
   "city.breadcrumb": "Around town",
   "city.h1": "Folks around {city}",
   "city.subhead":
@@ -214,6 +231,16 @@ export const en = {
   "profile.socials.remove": "Remove this link",
   "profile.socials.platformLabel": "Platform",
   "profile.socials.max": "Max links reached.",
+  "profile.interests.legend": "Interests · public on your card",
+  "profile.interests.hint":
+    "A few tags for what you're into — gives someone a reason to say hi, and helps people find you on Browse.",
+  "profile.interests.placeholder": "Add an interest (e.g. design, ai)",
+  "profile.interests.add": "Add",
+  "profile.interests.empty":
+    "No tags yet — add a few so people know what you're into.",
+  "profile.interests.max": "Max tags reached.",
+  "profile.interests.suggested": "Suggestions",
+  "profile.interests.remove": "Remove",
 
   "profile.contact.legend": "Contact · revealed only after invite",
   "profile.kind.coffee": "Coffee",
@@ -578,6 +605,22 @@ export const zh: Record<DictKey, string> = {
   "card.visitor.footer.note":
     "喜欢这张名片？也做一张你自己的——分享你在做的事，在下一座城市被约咖啡。",
 
+  "browse.nav": "浏览",
+  "browse.breadcrumb": "浏览",
+  "browse.meta.title": "浏览咖啡名片 · acoffee",
+  "browse.meta.description": "找想喝咖啡的人——按城市、想做的事、兴趣筛选。",
+  "browse.h1": "找个人喝咖啡",
+  "browse.subhead":
+    "此刻在线的咖啡名片。按城市、想做的事,或共同兴趣筛选。",
+  "browse.filter.city": "城市",
+  "browse.filter.kind": "想做",
+  "browse.filter.interests": "兴趣",
+  "browse.search.placeholder": "搜名字、城市或状态",
+  "browse.search.submit": "搜索",
+  "browse.clear": "清除筛选",
+  "browse.count": "{n} 张名片",
+  "browse.empty":
+    "还没有符合的名片。试试清除一个筛选——或者做张自己的名片,让别人在这里找到你。",
   "city.breadcrumb": "这座城市",
   "city.h1": "{city} 附近的人",
   "city.subhead": "此刻在这里挂着咖啡名片的人。点开名片就能约。",
@@ -656,6 +699,15 @@ export const zh: Record<DictKey, string> = {
   "profile.socials.remove": "删掉这个链接",
   "profile.socials.platformLabel": "平台",
   "profile.socials.max": "已达上限。",
+  "profile.interests.legend": "兴趣标签 · 在名片上公开显示",
+  "profile.interests.hint":
+    "几个标签,说说你在做什么、喜欢什么——给人搭话的理由,也方便别人在「浏览」里找到你。",
+  "profile.interests.placeholder": "添加兴趣(如 design、ai)",
+  "profile.interests.add": "添加",
+  "profile.interests.empty": "还没标签——加几个,让别人知道你的兴趣。",
+  "profile.interests.max": "已达上限。",
+  "profile.interests.suggested": "推荐",
+  "profile.interests.remove": "删除",
 
   "profile.contact.legend": "联系方式 · 仅在邀请被接受后公开",
   "profile.kind.coffee": "咖啡",
@@ -967,6 +1019,23 @@ export const ja: Record<DictKey, string> = {
   "card.visitor.footer.note":
     "このカードが気に入った？自分のも作ろう——取り組んでいることを共有して、次の街でコーヒーに誘われよう。",
 
+  "browse.nav": "ブラウズ",
+  "browse.breadcrumb": "ブラウズ",
+  "browse.meta.title": "コーヒーカードを探す · acoffee",
+  "browse.meta.description":
+    "コーヒーしたい人を見つけよう — 街・やりたいこと・興味で絞り込み。",
+  "browse.h1": "コーヒー相手を見つけよう",
+  "browse.subhead":
+    "今いる人のコーヒーカード。街・やりたいこと・共通の興味で絞り込めます。",
+  "browse.filter.city": "街",
+  "browse.filter.kind": "やりたいこと",
+  "browse.filter.interests": "興味",
+  "browse.search.placeholder": "名前・街・ステータスで検索",
+  "browse.search.submit": "検索",
+  "browse.clear": "フィルターをクリア",
+  "browse.count": "{n} 枚のカード",
+  "browse.empty":
+    "条件に合うカードはまだありません。フィルターを外すか、自分のカードを作ってここで見つけてもらいましょう。",
   "city.breadcrumb": "この街",
   "city.h1": "{city} 周辺の人たち",
   "city.subhead":
@@ -1052,6 +1121,15 @@ export const ja: Record<DictKey, string> = {
   "profile.socials.remove": "このリンクを削除",
   "profile.socials.platformLabel": "プラットフォーム",
   "profile.socials.max": "上限に達しました。",
+  "profile.interests.legend": "興味タグ · カードで公開表示",
+  "profile.interests.hint":
+    "興味や活動を表すタグをいくつか — 話しかけるきっかけになり、「ブラウズ」で見つけてもらいやすくなります。",
+  "profile.interests.placeholder": "興味を追加(例: design、ai)",
+  "profile.interests.add": "追加",
+  "profile.interests.empty": "まだタグなし — いくつか追加してみましょう。",
+  "profile.interests.max": "上限に達しました。",
+  "profile.interests.suggested": "おすすめ",
+  "profile.interests.remove": "削除",
 
   "profile.contact.legend": "連絡先 · 招待が承認された場合のみ公開",
   "profile.kind.coffee": "コーヒー",

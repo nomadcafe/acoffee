@@ -51,6 +51,9 @@ export type CardBodyProps = {
   // v0.10 — dynamic socials, bio.link style. Empty array hides the
   // row entirely; otherwise renders one icon-anchor per entry.
   socialLinks?: SocialLink[];
+  // v13 — interest tags, rendered as `#tag` chips below the chat kinds.
+  // Empty / omitted hides the row. Not localised — a tag is its own slug.
+  interests?: string[];
   avatarUrl?: string | null;
   badge?: React.ReactNode;
   footer: React.ReactNode;
@@ -72,6 +75,7 @@ export function CardBody({
   kinds,
   gender,
   socialLinks,
+  interests,
   avatarUrl,
   badge,
   footer,
@@ -194,6 +198,19 @@ export function CardBody({
             >
               <span aria-hidden>{KIND_EMOJI[k]}</span>
               {t(locale, `profile.kind.${k}` as const)}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {interests && interests.length > 0 && (
+        <div className="relative flex flex-wrap gap-1.5">
+          {interests.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center rounded-full border border-bean bg-surface px-2.5 py-0.5 text-xs font-medium text-ink/70"
+            >
+              #{tag}
             </span>
           ))}
         </div>

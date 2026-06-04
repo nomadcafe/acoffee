@@ -87,6 +87,13 @@ export async function SiteNav() {
           <span className="font-semibold">offee</span>
         </Link>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+          {/* Discovery entry point — locale-aware so /zh stays in /zh. */}
+          <Link
+            href={homeHref === "/" ? "/browse" : `${homeHref}/browse`}
+            className="rounded-2xl px-3 py-2 font-medium text-ink/80 hover:text-accent"
+          >
+            {t(locale, "browse.nav")}
+          </Link>
           {supabaseConfigured && session && pendingCount > 0 && (
             <Link
               href="/profile"

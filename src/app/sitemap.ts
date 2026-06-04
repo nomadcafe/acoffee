@@ -36,6 +36,13 @@ const MARKETING_PATHS: ReadonlyArray<{
     changeFrequency: "weekly",
   },
   {
+    // Discovery page — content turns over as cards come and go, so it's
+    // the highest-priority surface after the home.
+    paths: ["/browse", "/zh/browse", "/ja/browse"],
+    priority: 0.8,
+    changeFrequency: "weekly",
+  },
+  {
     paths: ["/privacy", "/zh/privacy", "/ja/privacy"],
     priority: 0.3,
     changeFrequency: "yearly",

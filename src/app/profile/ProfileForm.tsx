@@ -5,6 +5,7 @@ import { LiveCardPreview } from "@/components/LiveCardPreview";
 import { useT } from "@/components/LocaleProvider";
 import { tmpl } from "@/lib/i18n/dict";
 import { SocialsEditor } from "@/components/SocialsEditor";
+import { InterestsEditor } from "@/components/InterestsEditor";
 import {
   COFFEE_CHAT_KINDS,
   GENDERS,
@@ -78,6 +79,9 @@ export function ProfileForm({
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>(
     profile.socialLinks,
   );
+  // v13 — interest tags. The InterestsEditor serialises into a hidden
+  // input; the array lives here so the LiveCardPreview mirrors it.
+  const [interests, setInterests] = useState<string[]>(profile.interests);
   const [selectedKinds, setSelectedKinds] = useState<Set<CoffeeChatKind>>(
     () => new Set(profile.coffeeChatKinds),
   );
@@ -188,6 +192,7 @@ export function ProfileForm({
           kinds={Array.from(selectedKinds)}
           gender={gender === "" ? null : gender}
           socialLinks={socialLinks.filter((l) => l.value.trim().length > 0)}
+          interests={interests}
           hasContact={hasContact}
         />
         <p className="text-xs text-muted">
@@ -362,6 +367,13 @@ export function ProfileForm({
         {errs.socialLinks && (
           <p className="text-sm text-red-600 dark:text-red-400">
             {errs.socialLinks}
+          </p>
+        )}
+
+        <InterestsEditor interests={interests} onChange={setInterests} />
+        {errs.interests && (
+          <p className="text-sm text-red-600 dark:text-red-400">
+            {errs.interests}
           </p>
         )}
 
