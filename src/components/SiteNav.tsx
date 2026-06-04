@@ -1,41 +1,10 @@
 import { headers } from "next/headers";
 import Link from "next/link";
-import { countMyPendingInvites, getRequestUser } from "@/lib/auth-queries";
+import { countMyPendingInvites, getSessionNavProfile } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl } from "@/lib/i18n/dict";
-import { createSupabaseServer } from "@/lib/supabase/server";
 import { deriveDisplayName } from "@/lib/profile";
 import { UserMenu } from "@/components/UserMenu";
-
-async function readSessionProfile(): Promise<{
-  handle: string;
-  avatarUrl: string | null;
-  email: string | null;
-} | null> {
-  // Share the request-cached auth lookup with countMyPendingInvites (run
-  // alongside this) and the page body — without it the nav alone fires a
-  // second getUser() network validation on every navigation. Returns null
-  // when auth isn't configured or no one's signed in.
-  const user = await getRequestUser();
-  if (!user) return null;
-  try {
-    const supabase = await createSupabaseServer();
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("handle, avatar_url")
-      .eq("id", user.id)
-      .maybeSingle();
-    const handle =
-      (profile?.handle as string | undefined) ?? user.email ?? "you";
-    return {
-      handle,
-      avatarUrl: (profile?.avatar_url as string | null) ?? null,
-      email: user.email ?? null,
-    };
-  } catch {
-    return null;
-  }
-}
 
 export async function SiteNav() {
   const supabaseConfigured =
@@ -43,10 +12,15 @@ export async function SiteNav() {
     !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   // Run the session lookup + the inbox-count read in parallel — the second
   // call is the cheap exact-count head query, so the round-trip cost
-  // overlaps with the profile fetch instead of stacking on top of it.
+  // overlaps with the profile fetch instead of stacking on top of it. The
+  // session read is cache()'d and shared with OnboardingBanner + the page
+  // body, so this doesn't add its own getUser/profiles round-trips.
   const [session, pendingCount] = supabaseConfigured
-    ? await Promise.all([readSessionProfile(), countMyPendingInvites()])
+    ? await Promise.all([getSessionNavProfile(), countMyPendingInvites()])
     : [null, 0];
+  // Display handle for the user menu: real handle, else email, else a
+  // neutral placeholder (a signed-in user with no profile row).
+  const menuHandle = session?.handle ?? session?.email ?? "you";
   const [locale, homeHref] = await Promise.all([
     getLocale(),
     currentHomeHref(),
@@ -116,8 +90,8 @@ export async function SiteNav() {
           {supabaseConfigured &&
             (session ? (
               <UserMenu
-                handle={session.handle}
-                displayName={deriveDisplayName(session.handle)}
+                handle={menuHandle}
+                displayName={deriveDisplayName(menuHandle)}
                 avatarUrl={session.avatarUrl}
                 sessionEmail={session.email}
               />

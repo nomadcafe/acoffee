@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { after } from "next/server";
 import Link from "next/link";
 import { ConfirmEventBeacon } from "@/components/ConfirmEventBeacon";
 import { emailNewInvite } from "@/lib/email";
@@ -98,23 +99,32 @@ async function processConfirm(token: string): Promise<Outcome> {
     return { kind: "alreadyDone", hostHandle, hostDisplayName };
   }
 
-  // Now the host gets the heads-up. Pull their auth email via the admin
-  // API — profiles.email_contact is the *public* contact, not the
-  // notification inbox.
-  const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
-  const hostNotifyEmail = hostAuth.user?.email ?? null;
-  if (hostNotifyEmail) {
-    await emailNewInvite({
-      to: hostNotifyEmail,
-      hostHandle,
-      requesterName: invite.requester_name as string,
-      requesterEmail: invite.requester_email as string,
-      requesterTopic: invite.requester_topic as string,
-      kind: invite.requested_kind as CoffeeChatKind,
-      preferredTime: (invite.preferred_time as string | null) ?? null,
-      locale: hostLocale,
-    });
-  }
+  // Host gets the heads-up — but it's fire-and-forget: the visitor's
+  // "confirmed" outcome doesn't depend on it, so schedule the admin email
+  // lookup + send after the response flushes rather than making them wait
+  // on it. The won-guard above already fired, so this still runs exactly
+  // once per confirmation. (profiles.email_contact is the *public* contact,
+  // not the notification inbox, so we pull the auth email via the admin API.)
+  after(async () => {
+    try {
+      const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
+      const hostNotifyEmail = hostAuth.user?.email ?? null;
+      if (hostNotifyEmail) {
+        await emailNewInvite({
+          to: hostNotifyEmail,
+          hostHandle,
+          requesterName: invite.requester_name as string,
+          requesterEmail: invite.requester_email as string,
+          requesterTopic: invite.requester_topic as string,
+          kind: invite.requested_kind as CoffeeChatKind,
+          preferredTime: (invite.preferred_time as string | null) ?? null,
+          locale: hostLocale,
+        });
+      }
+    } catch (e) {
+      console.warn("[confirm] host notification failed (non-fatal)", e);
+    }
+  });
 
   return { kind: "success", hostHandle, hostDisplayName };
 }

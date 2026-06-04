@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { getSessionNavProfile } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t } from "@/lib/i18n/dict";
-import { createSupabaseServer } from "@/lib/supabase/server";
 
 // Auto handles are written by the handle_new_user trigger on signup:
 // "user_<8 hex>". Matching one means the user never finished onboarding —
@@ -16,30 +16,11 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
 export async function OnboardingBanner() {
-  if (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  ) {
-    return null;
-  }
-
-  let handle: string | null = null;
-  try {
-    const supabase = await createSupabaseServer();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return null;
-    const { data } = await supabase
-      .from("profiles")
-      .select("handle")
-      .eq("id", user.id)
-      .maybeSingle();
-    handle = (data?.handle as string | undefined) ?? null;
-  } catch {
-    return null;
-  }
-
+  // Shares the cache()'d session read with SiteNav (both render in the
+  // layout on every route) so the banner doesn't add its own getUser +
+  // profiles round-trip. Null = not configured / signed out.
+  const session = await getSessionNavProfile();
+  const handle = session?.handle ?? null;
   if (!handle || !AUTO_HANDLE.test(handle)) return null;
 
   const locale = await getLocale();

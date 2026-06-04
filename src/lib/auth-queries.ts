@@ -82,6 +82,39 @@ export async function getSessionUser(): Promise<{
   return { id: user.id, email: user.email ?? null };
 }
 
+// The minimal profile the layout chrome needs: the nav avatar/handle and
+// the onboarding banner's auto-handle check. Both render on every route,
+// so this is cache()'d — they share one getUser + one profiles read per
+// request instead of each issuing its own (the banner alone was a second
+// auth round-trip on every navigation). `handle` is null when the profile
+// row is missing; callers fall back as they see fit. Returns null when
+// auth isn't configured or no one is signed in.
+export const getSessionNavProfile = cache(
+  async (): Promise<{
+    handle: string | null;
+    avatarUrl: string | null;
+    email: string | null;
+  } | null> => {
+    const user = await getRequestUser();
+    if (!user) return null;
+    try {
+      const supabase = await createSupabaseServer();
+      const { data } = await supabase
+        .from("profiles")
+        .select("handle, avatar_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      return {
+        handle: (data?.handle as string | undefined) ?? null,
+        avatarUrl: (data?.avatar_url as string | null) ?? null,
+        email: user.email ?? null,
+      };
+    } catch {
+      return null;
+    }
+  },
+);
+
 // Status set in which an invite "holds" its slot (mirrors the partial
 // unique index invites_slot_active_idx). A slot referenced by an invite in
 // any of these is unavailable; decline/expiry frees it.
