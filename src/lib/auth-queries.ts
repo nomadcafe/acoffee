@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type {
   AvailabilitySlot,
   CoffeeChatKind,
@@ -14,17 +15,31 @@ import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
 // Auth-scoped reads. RLS scopes results to the signed-in user automatically.
 // Use these from Server Components / Actions that need user-specific state.
 
-export async function getMyProfile(): Promise<MyProfile | null> {
+// Request-memoised auth lookup. Every auth-scoped query below needs the
+// signed-in user, and /profile alone fans out to several of them — without
+// memoisation that's one network round-trip to the Supabase Auth API per
+// query (getUser validates the JWT server-side, unlike the cookie-only
+// getSession). React's cache() collapses every call within a single
+// request/render pass to one validation, and is cleared between requests.
+// Returns null when auth isn't configured or no one is signed in — callers
+// fold both into their own empty result.
+const getRequestUser = cache(async () => {
   if (!isAuthConfigured()) return null;
   const supabase = await createSupabaseServer();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return user;
+});
+
+export async function getMyProfile(): Promise<MyProfile | null> {
+  const user = await getRequestUser();
   if (!user) return null;
+  const supabase = await createSupabaseServer();
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, discoverable, scheduling_enabled, timezone",
+      "handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, discoverable, scheduling_enabled, timezone, created_at",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -33,6 +48,7 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   return {
     id: user.id,
     handle: data.handle as string,
+    joinedAt: data.created_at as string,
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
     cityUntil: (data.city_until as string | null) ?? null,
@@ -51,40 +67,15 @@ export async function getMyProfile(): Promise<MyProfile | null> {
   };
 }
 
-// Account-section stats for /profile. v0.7 only tracks join date — the
-// pre-Card intent/match/checkin counts went away with the v0.5 surface.
-export type ProfileStats = {
-  joinedAt: string;
-};
-
-export async function getMyProfileStats(): Promise<ProfileStats | null> {
-  if (!isAuthConfigured()) return null;
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("created_at")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-
-  return { joinedAt: data.created_at as string };
-}
+// The join date (profiles.created_at) now rides getMyProfile.joinedAt —
+// the /profile account section reads it from there rather than issuing a
+// second query for the same row.
 
 export async function getSessionUser(): Promise<{
   id: string;
   email: string | null;
 } | null> {
-  if (!isAuthConfigured()) return null;
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return null;
   return { id: user.id, email: user.email ?? null };
 }
@@ -99,12 +90,9 @@ const SLOT_ACTIVE_STATUSES = ["unconfirmed", "pending", "accepted"] as const;
 // (slots, then the active invites' slot_ids) subtracted in JS, same shape
 // as groupActiveCities; fine at this scale.
 export async function listMySlots(): Promise<AvailabilitySlot[]> {
-  if (!isAuthConfigured()) return [];
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return [];
+  const supabase = await createSupabaseServer();
 
   const nowIso = new Date().toISOString();
   const { data: slots, error } = await supabase
@@ -165,12 +153,9 @@ export async function listAvailableSlots(
 // filters server-side past expires_at so a stale 8-day-old "pending" row
 // doesn't sit in the UI looking actionable.
 export async function getMyPendingInvites(): Promise<Invite[]> {
-  if (!isAuthConfigured()) return [];
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return [];
+  const supabase = await createSupabaseServer();
 
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
@@ -191,12 +176,9 @@ export async function getMyPendingInvites(): Promise<Invite[]> {
 // Pending-but-past-expiry rows surface as `expired` so the host sees
 // "you missed this" instead of the row silently vanishing.
 export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
-  if (!isAuthConfigured()) return [];
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return [];
+  const supabase = await createSupabaseServer();
 
   const nowIso = new Date().toISOString();
   const { data, error } = await supabase
@@ -259,12 +241,9 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
 // is the cheap path — Supabase returns just the number, no rows. Called on
 // every nav render for signed-in users, so kept fast.
 export async function countMyPendingInvites(): Promise<number> {
-  if (!isAuthConfigured()) return 0;
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) return 0;
+  const supabase = await createSupabaseServer();
 
   const nowIso = new Date().toISOString();
   const { count, error } = await supabase

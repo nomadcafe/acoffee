@@ -7,7 +7,6 @@ import {
   getMyInviteHistory,
   getMyPendingInvites,
   getMyProfile,
-  getMyProfileStats,
   getSessionUser,
   listMySlots,
 } from "@/lib/auth-queries";
@@ -62,14 +61,12 @@ export default async function ProfilePage({
     );
   }
 
-  const [profile, stats, pendingInvites, inviteHistory, slots] =
-    await Promise.all([
-      getMyProfile(),
-      getMyProfileStats(),
-      getMyPendingInvites(),
-      getMyInviteHistory(),
-      listMySlots(),
-    ]);
+  const [profile, pendingInvites, inviteHistory, slots] = await Promise.all([
+    getMyProfile(),
+    getMyPendingInvites(),
+    getMyInviteHistory(),
+    listMySlots(),
+  ]);
   if (!profile) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-col gap-4 px-4 py-14">
@@ -143,24 +140,22 @@ export default async function ProfilePage({
             <p className="text-xs font-medium uppercase tracking-wide text-accent">
               {t(locale, "account.eyebrow")}
             </p>
-            {stats && (
-              <div className="flex flex-col gap-2 text-sm text-muted">
-                <p>
-                  {t(locale, "account.yourCard")}{" "}
-                  <Link
-                    href={`/${profile.handle}`}
-                    className="font-medium text-accent hover:underline"
-                  >
-                    acoffee.com/{profile.handle}
-                  </Link>
-                </p>
-                <p>
-                  {tmpl(t(locale, "account.joined"), {
-                    date: formatJoined(stats.joinedAt, locale),
-                  })}
-                </p>
-              </div>
-            )}
+            <div className="flex flex-col gap-2 text-sm text-muted">
+              <p>
+                {t(locale, "account.yourCard")}{" "}
+                <Link
+                  href={`/${profile.handle}`}
+                  className="font-medium text-accent hover:underline"
+                >
+                  acoffee.com/{profile.handle}
+                </Link>
+              </p>
+              <p>
+                {tmpl(t(locale, "account.joined"), {
+                  date: formatJoined(profile.joinedAt, locale),
+                })}
+              </p>
+            </div>
             <p className="text-sm text-muted">
               {t(locale, "account.signedInAs")}
               <span className="font-medium text-ink">

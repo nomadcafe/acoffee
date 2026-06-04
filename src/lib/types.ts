@@ -42,6 +42,10 @@ export const MAX_SOCIAL_LINKS = 10;
 export type MyProfile = {
   id: string;
   handle: string;
+  // profiles.created_at — the account's join date, shown in the /profile
+  // account section as "Joined May 2026". Lives on the profile row, so it
+  // rides getMyProfile rather than a second query for the same row.
+  joinedAt: string;
   bio: string | null;
   city: string | null;
   // v0.11 — nomad-aware presence hint. ISO date (YYYY-MM-DD) the user
