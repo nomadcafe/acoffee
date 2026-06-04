@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { CardBody } from "./CardBody";
 import { t, type Locale } from "@/lib/i18n/dict";
-import type { CoffeeChatKind } from "@/lib/types";
+import type { CoffeeChatKind, SocialLink } from "@/lib/types";
 
 // Magazine-style preview of an acoffee card, used in the home hero so a
 // visitor sees "what they're about to make" without clicking signup. Backed
 // by <CardBody> so the layout stays in sync with the real `/[handle]` page.
+// Deliberately a *full* card — chat kinds, interest tags, and social links
+// all populated — so the hero shows the card's real depth rather than a
+// stripped-down skeleton.
 //
 // Hard-coded persona for now. When card discovery (rotating featured cards)
 // lands, this becomes a server component that fetches one curated row.
@@ -16,6 +19,10 @@ export type SampleCardData = {
   landed: string;
   status: string;
   kinds: CoffeeChatKind[];
+  // v13 interest tags + v0.10 socials — populated so the preview mirrors a
+  // filled-in card, not the bare minimum.
+  interests: string[];
+  socialLinks: SocialLink[];
 };
 
 const DEFAULT_SAMPLE: SampleCardData = {
@@ -26,6 +33,11 @@ const DEFAULT_SAMPLE: SampleCardData = {
   status:
     "Designing a stationery brand from a Nimman café. Up for coffee chats this week — especially with other indie makers.",
   kinds: ["coffee", "cowork", "hike"],
+  interests: ["design", "stationery", "indie-hacking"],
+  socialLinks: [
+    { platform: "instagram", value: "mia.makes" },
+    { platform: "website", value: "https://miastudio.co" },
+  ],
 };
 
 export function SampleCard({
@@ -80,6 +92,8 @@ export function SampleCard({
           locator={data.landed}
           status={data.status}
           kinds={data.kinds}
+          interests={data.interests}
+          socialLinks={data.socialLinks}
           badge={
             <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[10px] font-medium text-accent">
               {t(locale, "sample.badge")}
