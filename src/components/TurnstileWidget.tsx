@@ -18,21 +18,34 @@ declare global {
   }
 }
 
+// How long to wait for the Turnstile script before treating it as
+// unreachable (ad-blocker, flaky network, region-blocked
+// challenges.cloudflare.com). Generous so a slow-but-working load doesn't
+// false-positive; the parent uses the signal to guide the user rather than
+// leave submit silently disabled.
+const LOAD_TIMEOUT_MS = 10000;
+
 export function TurnstileWidget({
   siteKey,
   onToken,
+  onError,
 }: {
   siteKey: string;
   onToken: (token: string) => void;
+  // Fired when the challenge errors or the script never loads. The token
+  // is also cleared via onToken("") so the caller's submit stays gated.
+  onError?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  // Hold the latest onToken in a ref so the render effect doesn't re-run
-  // (and re-render the widget) when the parent passes a new closure.
+  // Hold the latest callbacks in refs so the render effect doesn't re-run
+  // (and re-render the widget) when the parent passes new closures.
   const onTokenRef = useRef(onToken);
+  const onErrorRef = useRef(onError);
   useEffect(() => {
     onTokenRef.current = onToken;
-  }, [onToken]);
+    onErrorRef.current = onError;
+  }, [onToken, onError]);
   // If a previous mount already loaded the script, next/script's onLoad
   // won't fire again — seed `ready` from the existing global so we don't
   // depend on a second onLoad that never comes.
@@ -40,13 +53,25 @@ export function TurnstileWidget({
     () => typeof window !== "undefined" && !!window.turnstile,
   );
 
+  // Surface a load failure if the script hasn't arrived within the timeout.
+  useEffect(() => {
+    if (ready) return;
+    const timer = setTimeout(() => {
+      if (!window.turnstile) onErrorRef.current?.();
+    }, LOAD_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [ready]);
+
   useEffect(() => {
     if (!ready || !containerRef.current || !window.turnstile) return;
     const id = window.turnstile.render(containerRef.current, {
       sitekey: siteKey,
       callback: (token: string) => onTokenRef.current(token),
       "expired-callback": () => onTokenRef.current(""),
-      "error-callback": () => onTokenRef.current(""),
+      "error-callback": () => {
+        onTokenRef.current("");
+        onErrorRef.current?.();
+      },
     });
     widgetIdRef.current = id;
     return () => {

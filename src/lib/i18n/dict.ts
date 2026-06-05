@@ -75,6 +75,8 @@ export const en = {
   "signin.google": "Continue with Google",
   "signin.google.pending": "Redirecting…",
   "signin.or": "or",
+  "signin.captcha.failed":
+    "Couldn't load the verification widget. Disable any ad/script blocker and retry, or use Google sign-in above.",
   "signin.email.label": "Email",
   "signin.button": "Send sign-in link",
   "signin.button.pending": "Sending…",
@@ -640,6 +642,8 @@ export const zh: Record<DictKey, string> = {
   "signin.google": "用 Google 登录",
   "signin.google.pending": "跳转中…",
   "signin.or": "或",
+  "signin.captcha.failed":
+    "验证组件加载失败。请关闭广告/脚本拦截插件后重试,或使用上方的 Google 登录。",
   "signin.email.label": "邮箱",
   "signin.button": "发送登录链接",
   "signin.button.pending": "发送中…",
@@ -1110,6 +1114,8 @@ export const ja: Record<DictKey, string> = {
   "signin.google": "Google で続ける",
   "signin.google.pending": "リダイレクト中…",
   "signin.or": "または",
+  "signin.captcha.failed":
+    "認証ウィジェットを読み込めませんでした。広告/スクリプトブロッカーを無効にして再試行するか、上の Google サインインをご利用ください。",
   "signin.email.label": "メール",
   "signin.button": "サインインリンクを送る",
   "signin.button.pending": "送信中…",

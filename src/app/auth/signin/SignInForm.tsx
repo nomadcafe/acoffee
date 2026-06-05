@@ -23,6 +23,9 @@ export function SignInForm({
   const [resetting, setResetting] = useState(false);
   const needsCaptcha = !!turnstileSiteKey;
   const [captchaToken, setCaptchaToken] = useState("");
+  // True when the widget errored or its script never loaded — used to show
+  // the user why submit is stuck instead of leaving it silently disabled.
+  const [captchaFailed, setCaptchaFailed] = useState(false);
   // Bumped to remount the widget after a failed submit — the spent token
   // can't be reused, so a retry needs a fresh one.
   const [captchaKey, setCaptchaKey] = useState(0);
@@ -35,6 +38,7 @@ export function SignInForm({
     setSeenState(state);
     if (state.status === "error" && needsCaptcha) {
       setCaptchaToken("");
+      setCaptchaFailed(false);
       setCaptchaKey((k) => k + 1);
     }
   }
@@ -87,8 +91,19 @@ export function SignInForm({
           <TurnstileWidget
             key={captchaKey}
             siteKey={turnstileSiteKey}
-            onToken={setCaptchaToken}
+            onToken={(token) => {
+              setCaptchaToken(token);
+              // A real token means the widget recovered — clear any
+              // earlier load/error notice.
+              if (token) setCaptchaFailed(false);
+            }}
+            onError={() => setCaptchaFailed(true)}
           />
+        )}
+        {needsCaptcha && captchaFailed && (
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            {t("signin.captcha.failed")}
+          </p>
         )}
         <button
           type="submit"
