@@ -1,15 +1,43 @@
 "use client";
 import { useActionState, useState } from "react";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useT } from "@/components/LocaleProvider";
 import { sendMagicLink, type SignInState } from "../actions";
 
 const INITIAL: SignInState = { status: "idle" };
 
-export function SignInForm({ next }: { next?: string }) {
+export function SignInForm({
+  next,
+  turnstileSiteKey,
+}: {
+  next?: string;
+  // Public Turnstile site key, passed from the server page. When unset
+  // (e.g. local dev with no CAPTCHA) the widget is skipped and sign-in
+  // behaves as before — must stay in sync with the Supabase dashboard's
+  // CAPTCHA toggle, which is what actually enforces it server-side.
+  turnstileSiteKey?: string;
+}) {
   const t = useT();
   const [state, action, pending] = useActionState(sendMagicLink, INITIAL);
   const [resetting, setResetting] = useState(false);
+  const needsCaptcha = !!turnstileSiteKey;
+  const [captchaToken, setCaptchaToken] = useState("");
+  // Bumped to remount the widget after a failed submit — the spent token
+  // can't be reused, so a retry needs a fresh one.
+  const [captchaKey, setCaptchaKey] = useState(0);
+  // Reset the CAPTCHA the moment a new (failed) result lands. Adjusting
+  // state during render against the previous value is React's recommended
+  // alternative to an effect here. On success the form is replaced by the
+  // "sent" view, so only the error path needs a fresh token.
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "error" && needsCaptcha) {
+      setCaptchaToken("");
+      setCaptchaKey((k) => k + 1);
+    }
+  }
 
   if (state.status === "sent" && !resetting) {
     return (
@@ -39,6 +67,9 @@ export function SignInForm({ next }: { next?: string }) {
       </div>
       <form action={action} className="flex flex-col gap-4">
         {next && <input type="hidden" name="next" value={next} />}
+        {needsCaptcha && (
+          <input type="hidden" name="captchaToken" value={captchaToken} />
+        )}
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink/85">
             {t("signin.email.label")}
@@ -52,9 +83,16 @@ export function SignInForm({ next }: { next?: string }) {
             className="rounded-2xl border border-bean bg-surface px-4 py-3 text-base text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
           />
         </label>
+        {needsCaptcha && (
+          <TurnstileWidget
+            key={captchaKey}
+            siteKey={turnstileSiteKey}
+            onToken={setCaptchaToken}
+          />
+        )}
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || (needsCaptcha && !captchaToken)}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
           {pending ? t("signin.button.pending") : `${t("signin.button")} →`}

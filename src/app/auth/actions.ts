@@ -73,6 +73,21 @@ export async function sendMagicLink(
     };
   }
 
+  // Bot defence: when a Turnstile site key is configured, GoTrue is set to
+  // require a CAPTCHA token (Supabase dashboard → Auth → enable CAPTCHA), so
+  // a token must ride along. Fail fast with a friendly message if the widget
+  // hasn't produced one yet rather than letting GoTrue reject it raw. When
+  // no key is configured (local dev) this is a no-op and signInWithOtp runs
+  // as before.
+  const captchaToken =
+    (formData.get("captchaToken") as string | null) || undefined;
+  if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
+    return {
+      status: "error",
+      message: "Please complete the verification and try again.",
+    };
+  }
+
   const next = safeNext(parsed.data.next);
   const callback = next
     ? `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`
@@ -81,7 +96,7 @@ export async function sendMagicLink(
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.signInWithOtp({
     email: parsed.data.email,
-    options: { emailRedirectTo: callback },
+    options: { emailRedirectTo: callback, captchaToken },
   });
   if (error) {
     return { status: "error", message: error.message };

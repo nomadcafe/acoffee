@@ -67,7 +67,10 @@ export default async function SignInPage({
           <p>{callbackErrorMessage(reason, detail)}</p>
         </div>
       )}
-      <SignInForm next={safe} />
+      <SignInForm
+        next={safe}
+        turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+      />
     </main>
   );
 }
