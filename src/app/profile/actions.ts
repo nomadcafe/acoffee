@@ -21,6 +21,7 @@ import { type Locale } from "@/lib/i18n/dict";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
+import { checkUrlsSafe } from "@/lib/safe-browsing";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
 import { formatSlot, isValidTimeZone } from "@/lib/datetime";
@@ -215,6 +216,26 @@ export async function updateProfile(
       };
     }
     socialLinks = result.links;
+  }
+
+  // Trust & safety: website/mastodon are the only links carrying an
+  // arbitrary URL, so screen them against Google Safe Browsing — a card
+  // shouldn't be able to point at a known phishing/malware page. No-op when
+  // unconfigured and fails open on API errors (see lib/safe-browsing).
+  const arbitraryUrls = socialLinks
+    .filter((l) => l.platform === "website" || l.platform === "mastodon")
+    .map((l) => l.value);
+  if (arbitraryUrls.length > 0) {
+    const safe = await checkUrlsSafe(arbitraryUrls);
+    if (!safe.safe) {
+      return {
+        status: "error",
+        message: "Please fix the highlighted fields.",
+        fieldErrors: {
+          socialLinks: `This link was flagged as unsafe and can't be saved: ${safe.flagged.join(", ")}`,
+        },
+      };
+    }
   }
 
   // interests: JSON-encoded by the InterestsEditor (same hidden-input

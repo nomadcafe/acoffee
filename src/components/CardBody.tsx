@@ -223,7 +223,7 @@ export function CardBody({
               key={s.key}
               href={s.href}
               target="_blank"
-              rel="noopener noreferrer me"
+              rel="me nofollow ugc noopener noreferrer"
               aria-label={s.title}
               title={s.title}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-bean bg-surface text-ink/70 transition-colors hover:border-accent/60 hover:bg-accent-soft hover:text-accent"
