@@ -43,6 +43,20 @@ export function formatSlot(
   }
 }
 
+// Absolute short date ("Jun 5, 2026") in the app's locale. Same locale
+// handling as formatSlot (zh → zh-CN), so surfaces like the inbox history
+// render dates in the language the user picked in-app rather than whatever
+// their browser happens to be set to. Empty string on an invalid date.
+export function formatShortDate(iso: string, locale: Locale): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString(localeToBcp47(locale), {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 // Offset in ms between `timeZone` and UTC at a given instant — positive
 // east of UTC, DST-correct for that instant. Reads the zone's wall-clock
 // via formatToParts and diffs it against the instant's UTC epoch. Throws

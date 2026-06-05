@@ -10,7 +10,7 @@ import {
 import { KIND_EMOJI } from "@/components/CardBody";
 import { useLocale, useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
-import { formatSlot } from "@/lib/datetime";
+import { formatShortDate, formatSlot } from "@/lib/datetime";
 import { tmpl } from "@/lib/i18n/dict";
 import type { Invite } from "@/lib/types";
 
@@ -191,9 +191,15 @@ function PendingRow({
   const t = useT();
   const locale = useLocale();
   const router = useRouter();
+  const kind = kindLabel(invite.requestedKind, t);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [decided, setDecided] = useState<"accepted" | "declined" | null>(
+    null,
+  );
+  // Which action is mid-flight, so the spinner lands on the button the host
+  // actually clicked (not always Accept) and the other stays labelled.
+  const [inFlight, setInFlight] = useState<"accepted" | "declined" | null>(
     null,
   );
   // On accept, false means the contact-delivery email failed — we keep the
@@ -202,6 +208,7 @@ function PendingRow({
 
   function decide(next: "accepted" | "declined") {
     setError(null);
+    setInFlight(next);
     startTransition(async () => {
       const action = next === "accepted" ? approveInvite : rejectInvite;
       const result = await action(invite.id);
@@ -220,6 +227,7 @@ function PendingRow({
         if (!failed) router.refresh();
       } else {
         setError(result.message);
+        setInFlight(null);
       }
     });
   }
@@ -259,9 +267,7 @@ function PendingRow({
         </p>
         <p className="text-xs text-muted">
           {timeAgo(invite.createdAt, t)}
-          {kindLabel(invite.requestedKind, t)
-            ? ` · ${kindLabel(invite.requestedKind, t)}`
-            : ""}
+          {kind ? ` · ${kind}` : ""}
         </p>
       </header>
 
@@ -307,7 +313,7 @@ function PendingRow({
           onClick={() => decide("accepted")}
           className="inline-flex items-center gap-2 rounded-2xl bg-accent px-4 py-2 text-sm font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
-          {pending ? "…" : t("inbox.action.accept")}
+          {inFlight === "accepted" ? "…" : t("inbox.action.accept")}
         </button>
         <button
           type="button"
@@ -315,7 +321,7 @@ function PendingRow({
           onClick={() => decide("declined")}
           className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent disabled:opacity-60"
         >
-          {t("inbox.action.decline")}
+          {inFlight === "declined" ? "…" : t("inbox.action.decline")}
         </button>
       </div>
     </article>
@@ -339,6 +345,7 @@ function HistoryRow({
       ? "expired"
       : invite.status;
   const tone = STATUS_TONE[statusKind];
+  const kind = kindLabel(invite.requestedKind, t);
   const decidedDate =
     invite.decidedAt ?? invite.expiresAt ?? invite.createdAt;
   return (
@@ -361,10 +368,8 @@ function HistoryRow({
         “{invite.requesterTopic}”
       </p>
       <p className="text-xs text-muted">
-        {kindLabel(invite.requestedKind, t)
-          ? `${kindLabel(invite.requestedKind, t)} · `
-          : ""}
-        {formatDate(decidedDate)}
+        {kind ? `${kind} · ` : ""}
+        {formatShortDate(decidedDate, locale)}
       </p>
       {invite.slotStartsAt && (
         <p className="text-xs text-muted">
@@ -449,17 +454,4 @@ function timeAgo(iso: string, t: ReturnType<typeof useT>): string {
   if (hours < 24) return tmpl(t("time.hoursAgo"), { n: hours });
   const days = Math.floor(hours / 24);
   return tmpl(t("time.daysAgo"), { n: days });
-}
-
-// Decided rows can live forever — render absolute date so the host can
-// orient ("did I accept this last week or last month?"). Browser's
-// Intl.DateTimeFormat picks the right month name per locale; passing
-// undefined lets the platform default kick in.
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }

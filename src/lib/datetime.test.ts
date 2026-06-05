@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatShortDate,
   formatSlot,
   isValidTimeZone,
   nowWallInZone,
@@ -73,6 +74,24 @@ describe("zonedWallToInstant", () => {
 
   it("returns null on an invalid zone", () => {
     expect(zonedWallToInstant("2026-06-12T15:00", "Not/AZone")).toBeNull();
+  });
+});
+
+describe("formatShortDate", () => {
+  it("renders month, day, and year", () => {
+    const out = formatShortDate("2026-06-05T12:00:00.000Z", "en");
+    expect(out).toMatch(/2026/);
+    expect(out).toMatch(/5/);
+  });
+
+  it("follows the app locale, not the runtime default (zh → zh-CN)", () => {
+    const zh = formatShortDate("2026-06-05T12:00:00.000Z", "zh");
+    // zh-CN renders the month with the 月 marker.
+    expect(zh).toContain("月");
+  });
+
+  it("returns empty string for an invalid date", () => {
+    expect(formatShortDate("not-a-date", "en")).toBe("");
   });
 });
 
