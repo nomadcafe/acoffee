@@ -549,6 +549,46 @@ export const en = {
 
   // Language switcher
   "lang.label": "Language",
+
+  // Invite-link generator (/invite) — the no-signup "invite someone for
+  // coffee" page. Generator UI + the shared invitation landing card.
+  "inviteLink.meta.title": "Invite someone for coffee · acoffee",
+  "inviteLink.meta.desc":
+    "Make a coffee invitation link and send it to anyone — no account needed.",
+  "inviteLink.meta.descFrom": "{from} wants to grab a coffee with you.",
+  "inviteLink.breadcrumb": "Invite someone",
+  "inviteLink.h1": "Invite someone for coffee",
+  "inviteLink.subhead":
+    "Fill in a few details, copy the link, and send it however you like. No account needed — they'll see a friendly invitation when they open it.",
+  "inviteLink.gen.from.label": "Your name",
+  "inviteLink.gen.from.placeholder": "Who's inviting?",
+  "inviteLink.gen.to.label": "Their name (optional)",
+  "inviteLink.gen.to.placeholder": "Who are you inviting?",
+  "inviteLink.gen.city.label": "City (optional)",
+  "inviteLink.gen.city.placeholder": "Where? e.g. Lisbon, online",
+  "inviteLink.gen.topic.label": "What you'd love to chat about (optional)",
+  "inviteLink.gen.topic.placeholder": "domains, AI, nomad life…",
+  "inviteLink.gen.kind.legend": "What kind of meetup?",
+  "inviteLink.gen.link.label": "Your invite link",
+  "inviteLink.gen.copy": "Copy link",
+  "inviteLink.gen.copyText": "Copy as text",
+  "inviteLink.gen.copied": "Copied ✓",
+  "inviteLink.gen.preview.label": "Preview",
+  "inviteLink.gen.hint": "Fill in at least one field to get your link.",
+  "inviteLink.gen.example.from": "Alex",
+  "inviteLink.gen.example.city": "Lisbon",
+  "inviteLink.gen.example.topic": "domains, AI & nomad life",
+  "inviteLink.card.badge": "Coffee invite",
+  "inviteLink.card.greeting": "Hi {name} 👋",
+  "inviteLink.card.headlineFrom": "{from} wants to grab a coffee with you",
+  "inviteLink.card.headlineAnon": "You're invited for coffee",
+  "inviteLink.card.cta": "Get your own coffee page",
+  "inviteLink.card.ctaSub":
+    "Free — claim acoffee.com/you and let anyone invite you for coffee.",
+  "inviteLink.card.what": "What's acoffee? →",
+  "siteFooter.invite": "Invite someone",
+  "home.inviteAlt.text": "Rather reach out than wait to be found?",
+  "home.inviteAlt.link": "Make an invite link →",
 } as const;
 
 export type DictKey = keyof typeof en;
@@ -983,6 +1023,42 @@ export const zh: Record<DictKey, string> = {
   "confirm.backHome": "回 acoffee",
 
   "lang.label": "语言",
+
+  "inviteLink.meta.title": "约人喝咖啡 · acoffee",
+  "inviteLink.meta.desc": "生成一个咖啡邀约链接，发给任何人——无需注册。",
+  "inviteLink.meta.descFrom": "{from} 想约你喝杯咖啡。",
+  "inviteLink.breadcrumb": "约人喝咖啡",
+  "inviteLink.h1": "约人喝咖啡",
+  "inviteLink.subhead":
+    "填几个信息，复制链接，随手发出去。对方无需注册——打开就能看到一张友好的邀请卡。",
+  "inviteLink.gen.from.label": "你的名字",
+  "inviteLink.gen.from.placeholder": "谁在邀请？",
+  "inviteLink.gen.to.label": "对方名字（可选）",
+  "inviteLink.gen.to.placeholder": "你想约谁？",
+  "inviteLink.gen.city.label": "城市（可选）",
+  "inviteLink.gen.city.placeholder": "在哪？如 里斯本、线上",
+  "inviteLink.gen.topic.label": "想聊点什么（可选）",
+  "inviteLink.gen.topic.placeholder": "域名、AI、数字游民生活…",
+  "inviteLink.gen.kind.legend": "想怎么见？",
+  "inviteLink.gen.link.label": "你的邀约链接",
+  "inviteLink.gen.copy": "复制链接",
+  "inviteLink.gen.copyText": "复制为文字",
+  "inviteLink.gen.copied": "已复制 ✓",
+  "inviteLink.gen.preview.label": "预览",
+  "inviteLink.gen.hint": "至少填一项即可生成链接。",
+  "inviteLink.gen.example.from": "Alex",
+  "inviteLink.gen.example.city": "里斯本",
+  "inviteLink.gen.example.topic": "域名、AI 和数字游民生活",
+  "inviteLink.card.badge": "咖啡邀约",
+  "inviteLink.card.greeting": "嗨 {name} 👋",
+  "inviteLink.card.headlineFrom": "{from} 想约你喝杯咖啡",
+  "inviteLink.card.headlineAnon": "有人想约你喝咖啡",
+  "inviteLink.card.cta": "拥有你自己的咖啡页",
+  "inviteLink.card.ctaSub": "免费——注册 acoffee.com/你，让任何人都能约你喝咖啡。",
+  "inviteLink.card.what": "acoffee 是什么？→",
+  "siteFooter.invite": "约人喝咖啡",
+  "home.inviteAlt.text": "想主动约人，而不是等别人找你？",
+  "home.inviteAlt.link": "生成邀请链接 →",
 };
 
 export const ja: Record<DictKey, string> = {
@@ -1450,6 +1526,45 @@ export const ja: Record<DictKey, string> = {
   "confirm.backHome": "acoffee に戻る",
 
   "lang.label": "言語",
+
+  "inviteLink.meta.title": "誰かをコーヒーに誘う · acoffee",
+  "inviteLink.meta.desc":
+    "コーヒーの招待リンクを作って、誰にでも送れます——登録不要。",
+  "inviteLink.meta.descFrom": "{from} さんがあなたをコーヒーに誘っています。",
+  "inviteLink.breadcrumb": "誰かを誘う",
+  "inviteLink.h1": "誰かをコーヒーに誘う",
+  "inviteLink.subhead":
+    "いくつか入力してリンクをコピーし、好きな方法で送るだけ。相手は登録不要——開くと素敵な招待カードが表示されます。",
+  "inviteLink.gen.from.label": "あなたの名前",
+  "inviteLink.gen.from.placeholder": "誘うのは誰?",
+  "inviteLink.gen.to.label": "相手の名前(任意)",
+  "inviteLink.gen.to.placeholder": "誰を誘いますか?",
+  "inviteLink.gen.city.label": "都市(任意)",
+  "inviteLink.gen.city.placeholder": "どこで? 例: リスボン、オンライン",
+  "inviteLink.gen.topic.label": "話したいこと(任意)",
+  "inviteLink.gen.topic.placeholder": "ドメイン、AI、ノマド生活…",
+  "inviteLink.gen.kind.legend": "どんな形で会う?",
+  "inviteLink.gen.link.label": "あなたの招待リンク",
+  "inviteLink.gen.copy": "リンクをコピー",
+  "inviteLink.gen.copyText": "テキストでコピー",
+  "inviteLink.gen.copied": "コピーしました ✓",
+  "inviteLink.gen.preview.label": "プレビュー",
+  "inviteLink.gen.hint": "1つ以上入力するとリンクができます。",
+  "inviteLink.gen.example.from": "Alex",
+  "inviteLink.gen.example.city": "リスボン",
+  "inviteLink.gen.example.topic": "ドメイン、AI、ノマド生活",
+  "inviteLink.card.badge": "コーヒーの招待",
+  "inviteLink.card.greeting": "こんにちは {name} さん 👋",
+  "inviteLink.card.headlineFrom":
+    "{from} さんがあなたをコーヒーに誘っています",
+  "inviteLink.card.headlineAnon": "コーヒーに誘われています",
+  "inviteLink.card.cta": "自分のコーヒーページを作る",
+  "inviteLink.card.ctaSub":
+    "無料——acoffee.com/you を取得して、誰でもあなたをコーヒーに誘えるように。",
+  "inviteLink.card.what": "acoffee とは? →",
+  "siteFooter.invite": "誰かを誘う",
+  "home.inviteAlt.text": "見つけてもらうより、自分から誘いたい?",
+  "home.inviteAlt.link": "招待リンクを作る →",
 };
 
 const DICTS: Record<Locale, Record<DictKey, string>> = { en, zh, ja };

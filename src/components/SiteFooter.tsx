@@ -14,6 +14,9 @@ export async function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4 text-xs text-muted sm:px-6">
         <p>© {new Date().getFullYear()} ACoffee.com</p>
         <nav className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link href="/invite" className="hover:text-accent">
+            {t(locale, "siteFooter.invite")}
+          </Link>
           <Link href="/privacy" className="hover:text-accent">
             {t(locale, "siteFooter.privacy")}
           </Link>

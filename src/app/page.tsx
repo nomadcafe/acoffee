@@ -187,6 +187,18 @@ export async function HomeView({ locale }: { locale: Locale }) {
             </li>
           ))}
         </ol>
+
+        {/* Lightweight alt path for people who'd rather reach out than be
+            reached — the no-signup invite-link generator at /invite. */}
+        <p className="text-sm text-ink/70">
+          {t(locale, "home.inviteAlt.text")}{" "}
+          <Link
+            href="/invite"
+            className="font-medium text-accent underline-offset-4 hover:underline"
+          >
+            {t(locale, "home.inviteAlt.link")}
+          </Link>
+        </p>
       </section>
 
       <HomeCities cities={activeCities} locale={locale} />

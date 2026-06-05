@@ -330,13 +330,24 @@ export default async function HandlePage(
             <p className="text-sm italic text-ink/70">
               {t(locale, "card.owner.footer.note")}
             </p>
-            <Link
-              href="/profile"
-              className="inline-flex self-start items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
-            >
-              {t(locale, "card.owner.footer.cta")}
-              <span aria-hidden>→</span>
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/profile"
+                className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
+              >
+                {t(locale, "card.owner.footer.cta")}
+                <span aria-hidden>→</span>
+              </Link>
+              {/* Reach-out path: prefill the invite-link generator with the
+                  owner's own name so they can invite someone directly. */}
+              <Link
+                href={`/invite?from=${encodeURIComponent(profile.displayName)}`}
+                className="inline-flex items-center gap-2 rounded-2xl border border-bean bg-surface px-4 py-2.5 text-sm font-medium text-ink/85 hover:border-accent/60 hover:text-accent"
+              >
+                {t(locale, "siteFooter.invite")}
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
           </>
         ) : (
           <>
