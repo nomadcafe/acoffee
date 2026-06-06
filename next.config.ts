@@ -17,10 +17,13 @@ const SECURITY_HEADERS = [
   // SaaS choice — full referrer same-origin, only the origin cross-site.
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   // Disable browser features we never use, in case a future XSS tries
-  // to pop a camera or geolocation prompt.
+  // to pop a camera or geolocation prompt. Dropped the old FLoC
+  // `interest-cohort` opt-out: Chrome retired FLoC and now logs it as an
+  // "Unrecognized feature". Its successor opt-out is `browsing-topics=()`
+  // if we ever want to opt out of the Topics API too.
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    value: "camera=(), microphone=(), geolocation=()",
   },
   // HSTS — Vercel already serves over HTTPS, so tell browsers to never
   // try HTTP for acoffee.com again. preload directive opts us into
