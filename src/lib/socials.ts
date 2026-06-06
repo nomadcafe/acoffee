@@ -17,11 +17,10 @@ export type PlatformMeta = {
   pattern: RegExp;
   // Friendly error to show when `pattern` fails.
   patternError: string;
-  // Build the public URL for the card from the stored value. For
-  // platforms with instance variance (website, mastodon, substack
-  // when fed a full URL) the value is the URL itself — composer just
-  // returns it. For username-based platforms it slots the value into
-  // the canonical URL.
+  // Build the public URL for the card from the stored value. Every
+  // platform is username/handle-based, so the composer slots the value
+  // into a fixed canonical URL — the stored value is never used as a
+  // raw href, which is what keeps arbitrary URLs off the card.
   urlFor: (value: string) => string;
   // What the user sees when the card surfaces this row (above the
   // icon, in the tooltip). Usually `@username` or the bare hostname.
@@ -31,29 +30,15 @@ export type PlatformMeta = {
 // Username regex helpers. Keep these compact — Twitter, IG, GH, etc.
 // each have their own char-set rules but the form just needs "enough"
 // to reject obvious typos. The real source of truth is the platform.
-const URL_RE = /^https?:\/\/[^\s/$.?#].[^\s]*$/i;
-
+//
+// Strips a leading `@` and, for reddit/twitch, the `u/` style prefix a
+// user might paste, so the canonical URL composes cleanly from the bare
+// handle regardless of how it was typed.
 function stripAt(value: string): string {
-  return value.replace(/^@/, "").trim();
-}
-
-function hostname(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url;
-  }
+  return value.replace(/^@/, "").replace(/^u\//i, "").trim();
 }
 
 export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
-  website: {
-    label: "Website",
-    placeholder: "https://your.site",
-    pattern: URL_RE,
-    patternError: "Full URL with https://",
-    urlFor: (v) => v,
-    displayLabel: (v) => hostname(v),
-  },
   x: {
     label: "X (Twitter)",
     placeholder: "@yourhandle",
@@ -68,6 +53,15 @@ export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
     pattern: /^@?[A-Za-z0-9_.]{1,30}$/,
     patternError: "Username only — letters/digits/_/., up to 30 chars",
     urlFor: (v) => `https://instagram.com/${stripAt(v)}`,
+    displayLabel: (v) => `@${stripAt(v)}`,
+  },
+  threads: {
+    label: "Threads",
+    placeholder: "@yourhandle",
+    // Threads handles mirror Instagram's char-set.
+    pattern: /^@?[A-Za-z0-9_.]{1,30}$/,
+    patternError: "Username only — letters/digits/_/., up to 30 chars",
+    urlFor: (v) => `https://www.threads.com/@${stripAt(v)}`,
     displayLabel: (v) => `@${stripAt(v)}`,
   },
   github: {
@@ -94,6 +88,14 @@ export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
     urlFor: (v) => `https://youtube.com/@${stripAt(v)}`,
     displayLabel: (v) => `@${stripAt(v)}`,
   },
+  twitch: {
+    label: "Twitch",
+    placeholder: "yourhandle",
+    pattern: /^@?[A-Za-z0-9_]{4,25}$/,
+    patternError: "Username only — letters/digits/_, 4–25 chars",
+    urlFor: (v) => `https://twitch.tv/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
   tiktok: {
     label: "TikTok",
     placeholder: "@yourhandle",
@@ -101,6 +103,24 @@ export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
     patternError: "Username only — letters/digits/_/., 2–24 chars",
     urlFor: (v) => `https://tiktok.com/@${stripAt(v)}`,
     displayLabel: (v) => `@${stripAt(v)}`,
+  },
+  reddit: {
+    label: "Reddit",
+    placeholder: "u/yourhandle",
+    pattern: /^(?:u\/)?@?[A-Za-z0-9_-]{3,20}$/i,
+    patternError: "Username only — letters/digits/_/-, 3–20 chars",
+    urlFor: (v) => `https://reddit.com/user/${stripAt(v)}`,
+    displayLabel: (v) => `u/${stripAt(v)}`,
+  },
+  facebook: {
+    label: "Facebook",
+    placeholder: "yourname",
+    // Facebook usernames are letters/digits/dots, 5+ chars. Numeric
+    // profile.php?id= links are intentionally unsupported — username only.
+    pattern: /^[A-Za-z0-9.]{5,50}$/,
+    patternError: "Username only — letters/digits/., 5–50 chars",
+    urlFor: (v) => `https://facebook.com/${v}`,
+    displayLabel: (v) => v,
   },
   substack: {
     label: "Substack",
@@ -110,25 +130,6 @@ export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
     urlFor: (v) => `https://${v}.substack.com`,
     displayLabel: (v) => `${v}.substack.com`,
   },
-  mastodon: {
-    label: "Mastodon",
-    // Instance varies (mastodon.social, hachyderm.io, fosstodon.org…),
-    // so the cleanest contract is "paste your profile URL".
-    placeholder: "https://mastodon.social/@you",
-    pattern: URL_RE,
-    patternError: "Paste your full profile URL (instance varies)",
-    urlFor: (v) => v,
-    displayLabel: (v) => {
-      // Try to reduce to @user@instance — readable on the card.
-      try {
-        const u = new URL(v);
-        const handle = u.pathname.replace(/^\/@?/, "");
-        return `@${handle}@${u.hostname.replace(/^www\./, "")}`;
-      } catch {
-        return v;
-      }
-    },
-  },
   bluesky: {
     label: "Bluesky",
     placeholder: "you.bsky.social",
@@ -137,16 +138,99 @@ export const PLATFORMS: Record<SocialPlatform, PlatformMeta> = {
     urlFor: (v) => `https://bsky.app/profile/${stripAt(v)}`,
     displayLabel: (v) => `@${stripAt(v)}`,
   },
+  soundcloud: {
+    label: "SoundCloud",
+    placeholder: "yourname",
+    pattern: /^@?[A-Za-z0-9_-]{1,40}$/,
+    patternError: "Username only — letters/digits/_/-, up to 40 chars",
+    urlFor: (v) => `https://soundcloud.com/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  pinterest: {
+    label: "Pinterest",
+    placeholder: "yourname",
+    pattern: /^@?[A-Za-z0-9_]{3,30}$/,
+    patternError: "Username only — letters/digits/_, 3–30 chars",
+    urlFor: (v) => `https://pinterest.com/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  letterboxd: {
+    label: "Letterboxd",
+    placeholder: "yourname",
+    pattern: /^@?[A-Za-z0-9_]{1,30}$/,
+    patternError: "Username only — letters/digits/_, up to 30 chars",
+    urlFor: (v) => `https://letterboxd.com/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  medium: {
+    label: "Medium",
+    placeholder: "@yourname",
+    pattern: /^@?[A-Za-z0-9_.]{1,40}$/,
+    patternError: "Username only — letters/digits/_/., up to 40 chars",
+    urlFor: (v) => `https://medium.com/@${stripAt(v)}`,
+    displayLabel: (v) => `@${stripAt(v)}`,
+  },
+  note: {
+    label: "Note",
+    placeholder: "yourname",
+    // note.com creator handles: letters/digits/underscore.
+    pattern: /^@?[A-Za-z0-9_]{1,30}$/,
+    patternError: "Username only — letters/digits/_, up to 30 chars",
+    urlFor: (v) => `https://note.com/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  zenn: {
+    label: "Zenn",
+    placeholder: "yourname",
+    pattern: /^@?[A-Za-z0-9_]{1,30}$/,
+    patternError: "Username only — letters/digits/_, up to 30 chars",
+    urlFor: (v) => `https://zenn.dev/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  behance: {
+    label: "Behance",
+    placeholder: "yourname",
+    pattern: /^@?[A-Za-z0-9_-]{1,40}$/,
+    patternError: "Username only — letters/digits/_/-, up to 40 chars",
+    urlFor: (v) => `https://www.behance.net/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  dribbble: {
+    label: "Dribbble",
+    placeholder: "yourname",
+    pattern: /^@?[A-Za-z0-9_-]{1,40}$/,
+    patternError: "Username only — letters/digits/_/-, up to 40 chars",
+    urlFor: (v) => `https://dribbble.com/${stripAt(v)}`,
+    displayLabel: (v) => stripAt(v),
+  },
+  zhihu: {
+    // 知乎 — China. The profile path uses a custom url-token, not a
+    // numeric id, so it slots cleanly into the template.
+    label: "Zhihu (知乎)",
+    placeholder: "your-id",
+    pattern: /^[A-Za-z0-9_-]{1,64}$/,
+    patternError: "Profile id — letters/digits/_/-, up to 64 chars",
+    urlFor: (v) => `https://www.zhihu.com/people/${v}`,
+    displayLabel: (v) => v,
+  },
+  douban: {
+    // 豆瓣 — China. people/{id} accepts the user's custom id.
+    label: "Douban (豆瓣)",
+    placeholder: "your-id",
+    pattern: /^[A-Za-z0-9_-]{2,40}$/,
+    patternError: "Profile id — letters/digits/_/-, 2–40 chars",
+    urlFor: (v) => `https://www.douban.com/people/${v}/`,
+    displayLabel: (v) => v,
+  },
 };
 
 // Defensive parser for the jsonb column on read. Filters out anything
-// the app doesn't recognise (typos, stale platform names, malformed
-// rows) so the typed payload downstream never carries surprises. Values
-// are re-checked against the platform `pattern` — the same gate the form
-// runs on write — because `website`/`mastodon` feed their stored value
-// straight into the card's <a href> (urlFor: v => v). Without this a row
-// that bypassed the form (direct DB write, legacy/pre-validation data)
-// could smuggle a `javascript:` URL onto a public card.
+// the app doesn't recognise (typos, stale/retired platform names like the
+// old `website`/`mastodon` free-URL rows, malformed rows) so the typed
+// payload downstream never carries surprises. Values are re-checked
+// against the platform `pattern` — the same gate the form runs on write —
+// so a row that bypassed the form (direct DB write, legacy/pre-validation
+// data) can't smuggle a malformed handle into a composed URL.
 export function parseSocialLinks(raw: unknown): SocialLink[] {
   if (!Array.isArray(raw)) return [];
   const out: SocialLink[] = [];

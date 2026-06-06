@@ -21,7 +21,6 @@ import { type Locale } from "@/lib/i18n/dict";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
-import { checkUrlsSafe } from "@/lib/safe-browsing";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
 import { formatSlot, isValidTimeZone } from "@/lib/datetime";
@@ -218,25 +217,10 @@ export async function updateProfile(
     socialLinks = result.links;
   }
 
-  // Trust & safety: website/mastodon are the only links carrying an
-  // arbitrary URL, so screen them against Google Safe Browsing — a card
-  // shouldn't be able to point at a known phishing/malware page. No-op when
-  // unconfigured and fails open on API errors (see lib/safe-browsing).
-  const arbitraryUrls = socialLinks
-    .filter((l) => l.platform === "website" || l.platform === "mastodon")
-    .map((l) => l.value);
-  if (arbitraryUrls.length > 0) {
-    const safe = await checkUrlsSafe(arbitraryUrls);
-    if (!safe.safe) {
-      return {
-        status: "error",
-        message: "Please fix the highlighted fields.",
-        fieldErrors: {
-          socialLinks: `This link was flagged as unsafe and can't be saved: ${safe.flagged.join(", ")}`,
-        },
-      };
-    }
-  }
+  // Trust & safety note: every social platform is now username/handle-based
+  // (the value slots into a fixed per-platform URL template), so a card can
+  // no longer carry an arbitrary URL — the old website/mastodon free-URL
+  // Safe Browsing screen was retired along with those platforms.
 
   // interests: JSON-encoded by the InterestsEditor (same hidden-input
   // pattern as socials). Normalisation + caps live in lib/interests.ts so
@@ -316,16 +300,12 @@ export async function updateProfile(
   const locale = await getLocale();
 
   const telegram = parsed.data.telegramHandle?.replace(/^@/, "") ?? null;
-  // Normalise each social row's stored value — username-based platforms
-  // get the leading @ stripped so `https://x.com/{value}` composes
-  // cleanly. URL-based platforms (website, mastodon) skip the strip
-  // since '@' is legitimately part of some mastodon paths.
-  const URL_VALUE_PLATFORMS = new Set(["website", "mastodon"]);
+  // Normalise each social row's stored value — every platform is now
+  // username-based, so strip a leading @ uniformly and let urlFor compose
+  // the canonical link (e.g. `https://x.com/{value}`).
   const normalisedSocials = socialLinks.map((l) => ({
     platform: l.platform,
-    value: URL_VALUE_PLATFORMS.has(l.platform)
-      ? l.value.trim()
-      : l.value.replace(/^@/, "").trim(),
+    value: l.value.replace(/^@/, "").trim(),
   }));
   // If the user cleared their city, drop city_until too — a "until" date
   // without a city is nonsense and would render as orphan banner state.

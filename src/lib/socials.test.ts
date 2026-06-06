@@ -43,6 +43,27 @@ describe("validateSocialLinks", () => {
     expect(r.ok).toBe(false);
   });
 
+  it("accepts the handle-based platforms added in v17", () => {
+    const r = validateSocialLinks([
+      { platform: "threads", value: "@maker" },
+      { platform: "facebook", value: "mia.makes" },
+      { platform: "reddit", value: "u/mia" },
+      { platform: "twitch", value: "miastream" },
+    ]);
+    expect(r.ok).toBe(true);
+  });
+
+  it("rejects free URLs (no platform accepts an arbitrary URL anymore)", () => {
+    // The retired website/mastodon free-URL platforms are gone, and the
+    // remaining handle fields reject anything URL-shaped.
+    expect(
+      validateSocialLinks([{ platform: "website", value: "https://a.dev" }]).ok,
+    ).toBe(false);
+    expect(
+      validateSocialLinks([{ platform: "facebook", value: "https://evil.example" }]).ok,
+    ).toBe(false);
+  });
+
   it("rejects unsupported platforms and non-arrays", () => {
     expect(validateSocialLinks([{ platform: "myspace", value: "x" }]).ok).toBe(
       false,
@@ -59,14 +80,6 @@ describe("validateSocialLinks", () => {
     if (r.ok) expect(r.links).toEqual([{ platform: "github", value: "octocat" }]);
   });
 
-  it("rejects a website that isn't a URL", () => {
-    expect(validateSocialLinks([{ platform: "website", value: "notaurl" }]).ok).toBe(
-      false,
-    );
-    expect(
-      validateSocialLinks([{ platform: "website", value: "https://a.dev" }]).ok,
-    ).toBe(true);
-  });
 });
 
 describe("PLATFORMS url + label composition", () => {
@@ -78,14 +91,30 @@ describe("PLATFORMS url + label composition", () => {
     expect(PLATFORMS.substack.urlFor("foo")).toBe("https://foo.substack.com");
   });
 
-  it("passes through full URLs for url-based platforms", () => {
-    expect(PLATFORMS.website.urlFor("https://a.dev")).toBe("https://a.dev");
-    expect(PLATFORMS.website.displayLabel("https://www.a.dev/x")).toBe("a.dev");
+  it("composes the v17 handle platforms (incl. reddit u/ prefix)", () => {
+    expect(PLATFORMS.threads.urlFor("@mia")).toBe("https://www.threads.com/@mia");
+    expect(PLATFORMS.facebook.urlFor("mia.makes")).toBe(
+      "https://facebook.com/mia.makes",
+    );
+    // A pasted `u/` prefix is stripped before composing.
+    expect(PLATFORMS.reddit.urlFor("u/mia")).toBe("https://reddit.com/user/mia");
+    expect(PLATFORMS.reddit.displayLabel("mia")).toBe("u/mia");
+    expect(PLATFORMS.twitch.urlFor("@miastream")).toBe(
+      "https://twitch.tv/miastream",
+    );
   });
 
-  it("reduces a mastodon profile URL to @user@instance", () => {
-    expect(
-      PLATFORMS.mastodon.displayLabel("https://mastodon.social/@me"),
-    ).toBe("@me@mastodon.social");
+  it("composes the regional + creator platforms", () => {
+    expect(PLATFORMS.note.urlFor("mia")).toBe("https://note.com/mia");
+    expect(PLATFORMS.zenn.urlFor("mia")).toBe("https://zenn.dev/mia");
+    expect(PLATFORMS.zhihu.urlFor("mia-zhang")).toBe(
+      "https://www.zhihu.com/people/mia-zhang",
+    );
+    expect(PLATFORMS.douban.urlFor("mia")).toBe(
+      "https://www.douban.com/people/mia/",
+    );
+    expect(PLATFORMS.medium.urlFor("@mia")).toBe("https://medium.com/@mia");
+    expect(PLATFORMS.behance.urlFor("mia")).toBe("https://www.behance.net/mia");
+    expect(PLATFORMS.soundcloud.urlFor("mia")).toBe("https://soundcloud.com/mia");
   });
 });

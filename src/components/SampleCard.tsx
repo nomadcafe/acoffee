@@ -35,12 +35,11 @@ const DEFAULT_SAMPLE: SampleCardData = {
   kinds: ["coffee", "cowork", "hike"],
   interests: ["design", "stationery", "indie-hacking"],
   // Generic, non-personal links for the sample so the preview never points
-  // at a real (or squattable) account. instagram is a username field, so an
-  // empty value composes to the bare https://instagram.com/; website takes
-  // a full URL and points back at the product.
+  // at a real (or squattable) account. Both are username fields with empty
+  // values, so they compose to the bare platform URL — no real handle.
   socialLinks: [
     { platform: "instagram", value: "" },
-    { platform: "website", value: "https://www.acoffee.com/" },
+    { platform: "threads", value: "" },
   ],
 };
 

@@ -82,6 +82,15 @@ const BRAND_AND_GENERIC = [
   "reddit",
   "pinterest",
   "threads",
+  "facebook",
+  "twitch",
+  "soundcloud",
+  "behance",
+  "dribbble",
+  "letterboxd",
+  "zenn",
+  "zhihu",
+  "douban",
 
   // Coffee theme — only the two that directly collide with the
   // product name. Things like 'espresso', 'mocha', 'barista' are

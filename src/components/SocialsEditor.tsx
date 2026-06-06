@@ -27,12 +27,12 @@ export function SocialsEditor({
 }) {
   const t = useT();
 
-  // Default new-row platform = website. Most useful first pick + has the
-  // simplest validation (any URL) so the user can confirm the add flow
-  // before learning per-platform rules.
+  // Default new-row platform = x. First entry in the menu and a familiar
+  // handle field, so the user can confirm the add flow before reaching
+  // for a less-common platform.
   function addRow() {
     if (links.length >= MAX_SOCIAL_LINKS) return;
-    onChange([...links, { platform: "website", value: "" }]);
+    onChange([...links, { platform: "x", value: "" }]);
   }
 
   function updateRow(index: number, patch: Partial<SocialLink>) {

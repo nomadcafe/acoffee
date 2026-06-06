@@ -21,22 +21,48 @@ export type Gender = (typeof GENDERS)[number];
 // from this menu; each row is stored as `{ platform, value }` inside the
 // `social_links` jsonb column. Per-platform regex + URL composition
 // lives in lib/socials.ts so this file stays a pure type registry.
+//
+// v17 — every platform is now username/handle-based: the value slots into
+// a fixed per-platform URL template, so a card can never carry an
+// arbitrary URL. The old free-URL `website`/`mastodon` rows were dropped
+// (phishing/abuse surface); legacy rows for those platforms are silently
+// discarded by parseSocialLinks on read since they're no longer allowed.
 export const SOCIAL_PLATFORMS = [
-  "website",
+  // General social
   "x",
   "instagram",
-  "github",
+  "threads",
+  "facebook",
+  "bluesky",
+  // Professional / code
   "linkedin",
+  "github",
+  // Video / audio
   "youtube",
   "tiktok",
+  "twitch",
+  "soundcloud",
+  // Communities / discovery
+  "reddit",
+  "pinterest",
+  "letterboxd",
+  // Writing
   "substack",
-  "mastodon",
-  "bluesky",
+  "medium",
+  "note",
+  "zenn",
+  // Design portfolios
+  "behance",
+  "dribbble",
+  // China
+  "zhihu",
+  "douban",
 ] as const;
 export type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
 export type SocialLink = { platform: SocialPlatform; value: string };
-// Soft cap so a runaway form can't bloat a row. 10 is more than any
-// real user needs and matches the seeded platform count.
+// Soft cap so a runaway form can't bloat a row. 10 is more than any real
+// user needs — deliberately below the platform count so a card stays a
+// curated handful of links, not an exhaustive Linktree.
 export const MAX_SOCIAL_LINKS = 10;
 
 export type MyProfile = {
