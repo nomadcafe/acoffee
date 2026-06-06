@@ -23,7 +23,12 @@ import { RESERVED_HANDLES } from "@/lib/reserved-handles";
 import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
-import { formatSlot, isValidTimeZone } from "@/lib/datetime";
+import {
+  formatShortDate,
+  formatSlot,
+  isValidTimeZone,
+  localDateInZone,
+} from "@/lib/datetime";
 
 // Rate-limit helper for signed-in server actions. Keys on user.id when
 // available (otherwise falls back to IP) so a single signed-in account
@@ -909,6 +914,30 @@ export async function addSlot(
       status: "error",
       message: `Slow down — try again in ${addLimit.retryAfterSec}s.`,
     };
+  }
+
+  // Presence binding: a host shouldn't offer a coffee time after they've
+  // left the city they say they're in. Compare the slot's calendar date in
+  // the host's display zone against their `city_until` departure date. Only
+  // enforced while city_until is still ahead — a stale past date reads as
+  // "no end date / I live here", same as the PresenceBanner. Null (resident,
+  // no end date) imposes no bound.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("city, city_until, timezone")
+    .eq("id", user.id)
+    .maybeSingle();
+  const cityUntil = (prof?.city_until as string | null) ?? null;
+  const displayTz = (prof?.timezone as string | null) ?? tz;
+  if (cityUntil && cityUntil >= localDateInZone(new Date(), displayTz)) {
+    if (localDateInZone(when, displayTz) > cityUntil) {
+      const where = (prof?.city as string | null) ?? "that city";
+      const leave = formatShortDate(`${cityUntil}T12:00:00`, "en");
+      return {
+        status: "error",
+        message: `You're in ${where} until ${leave} — pick an earlier time, or update your departure date first.`,
+      };
+    }
   }
 
   const { error } = await supabase.from("availability_slots").insert({

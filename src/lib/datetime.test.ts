@@ -3,12 +3,36 @@ import {
   formatShortDate,
   formatSlot,
   isValidTimeZone,
+  localDateInZone,
   nowWallInZone,
   zonedWallToInstant,
 } from "@/lib/datetime";
 
 // A fixed instant: 2026-06-12 08:00 UTC == 15:00 in Asia/Bangkok (UTC+7).
 const ISO = "2026-06-12T08:00:00.000Z";
+
+describe("localDateInZone", () => {
+  it("returns the calendar date in the given zone", () => {
+    // 08:00 UTC is 15:00 same-day in Bangkok.
+    expect(localDateInZone(new Date(ISO), "Asia/Bangkok")).toBe("2026-06-12");
+  });
+
+  it("rolls to the next/prev day across the zone's midnight", () => {
+    // 22:00 UTC on the 12th is already the 13th in Bangkok (UTC+7 → 05:00),
+    // but still the 12th in Los Angeles (UTC-7 → 15:00). This cross-midnight
+    // case is exactly what the city_until slot binding must get right.
+    const lateUtc = "2026-06-12T22:00:00.000Z";
+    expect(localDateInZone(new Date(lateUtc), "Asia/Bangkok")).toBe("2026-06-13");
+    expect(localDateInZone(new Date(lateUtc), "America/Los_Angeles")).toBe(
+      "2026-06-12",
+    );
+  });
+
+  it("falls back to the UTC date for a null or invalid zone", () => {
+    expect(localDateInZone(new Date(ISO), null)).toBe("2026-06-12");
+    expect(localDateInZone(new Date(ISO), "Not/AZone")).toBe("2026-06-12");
+  });
+});
 
 describe("formatSlot", () => {
   it("renders the instant in the given timezone, with the zone labelled", () => {

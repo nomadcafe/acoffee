@@ -156,6 +156,7 @@ export const en = {
   // v16 — slot picker shown instead of the free-form time when the host
   // has scheduling on and has open slots.
   "invite.form.slot.legend": "Pick a time",
+  "invite.form.slot.presence": "Only in {city} until {date} — grab a time before then.",
   "invite.form.slot.hint":
     "Times in {tz}. {name} confirms when they accept.",
   "invite.form.slot.none":
@@ -669,6 +670,7 @@ export const zh: Record<DictKey, string> = {
   "invite.form.time.placeholder": "周二/周四下午,或下周早上任何时间",
   "invite.form.time.hint": "随便写——接受后双方再敲具体时间。",
   "invite.form.slot.legend": "选择时间",
+  "invite.form.slot.presence": "只在{city}待到 {date}——挑个之前的时间吧。",
   "invite.form.slot.hint": "时间按 {tz} 显示。{name} 接受后会确认。",
   "invite.form.slot.none": "暂时没有可约时间——可在下方填写建议时间。",
   "invite.form.submit": "发送邀请",
@@ -1117,6 +1119,7 @@ export const ja: Record<DictKey, string> = {
   "invite.form.time.hint":
     "自由記述で OK ——承認後に双方で具体的な時間を決めます。",
   "invite.form.slot.legend": "時間を選ぶ",
+  "invite.form.slot.presence": "{city} には {date} まで——それまでの時間を選ぼう。",
   "invite.form.slot.hint": "時間は {tz} で表示。承認時に {name} さんが確定します。",
   "invite.form.slot.none": "現在空き時間がありません。下に希望を記入してください。",
   "invite.form.submit": "招待を送る",

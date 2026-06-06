@@ -144,6 +144,31 @@ export function nowWallInZone(timeZone: string): string {
   }
 }
 
+// The calendar date ("YYYY-MM-DD") an instant falls on *in* `timeZone` —
+// e.g. an 11pm-Bangkok slot and a 1am-Bangkok slot the next day are
+// different dates even though they're hours apart in UTC. Used to compare
+// a scheduling slot against the host's `city_until` departure date (a bare
+// date) in the host's own zone. en-CA yields ISO order (YYYY-MM-DD), so
+// the result string-compares correctly. Null/invalid zone → the UTC date.
+export function localDateInZone(
+  instant: Date,
+  timeZone: string | null,
+): string {
+  if (timeZone) {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(instant);
+    } catch {
+      // fall through to the UTC date
+    }
+  }
+  return instant.toISOString().slice(0, 10);
+}
+
 // Validate an IANA timezone name. The host's chosen zone arrives from a
 // client <select>, but the server action must not trust it — a hand-rolled
 // POST could carry junk that would later make formatSlot fall back to the

@@ -6,7 +6,7 @@ import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
 import { KIND_EMOJI } from "@/components/CardBody";
 import { useLocale, useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
-import { formatSlot } from "@/lib/datetime";
+import { formatShortDate, formatSlot } from "@/lib/datetime";
 import { tmpl } from "@/lib/i18n/dict";
 import { type AvailabilitySlot, type CoffeeChatKind } from "@/lib/types";
 
@@ -59,6 +59,11 @@ export function InviteForm(props: {
   schedulingEnabled: boolean;
   slots: AvailabilitySlot[];
   hostTimezone: string | null;
+  // v17 — presence context for the slot picker: when the host has a future
+  // departure date, the picker shows "only in {city} until {date}" so the
+  // limited slots read as "grab a time before they go".
+  city: string | null;
+  cityUntil: string | null;
 }) {
   const [resetCount, setResetCount] = useState(0);
   return (
@@ -78,6 +83,8 @@ function InviteFormInner({
   schedulingEnabled,
   slots,
   hostTimezone,
+  city,
+  cityUntil,
   onSendAnother,
 }: {
   hostHandle: string;
@@ -87,6 +94,8 @@ function InviteFormInner({
   schedulingEnabled: boolean;
   slots: AvailabilitySlot[];
   hostTimezone: string | null;
+  city: string | null;
+  cityUntil: string | null;
   onSendAnother: () => void;
 }) {
   const t = useT();
@@ -102,6 +111,13 @@ function InviteFormInner({
   // scheduling-on-but-no-slots falls back to the free-form time field with
   // a small note so the visitor can still suggest a time.
   const showSlotPicker = schedulingEnabled && slots.length > 0;
+  // Presence nudge above the picker: only when the host has a city and a
+  // departure date still ahead (date-string compare, same gate as the
+  // card's PresenceBanner). Past/empty → no line.
+  const presenceUntil =
+    city && cityUntil && cityUntil >= new Date().toISOString().slice(0, 10)
+      ? cityUntil
+      : null;
   // Track the email the visitor just submitted, so the success state can
   // tell them "check this inbox" without us re-deriving it from FormData
   // (it's already wiped by the time we render the result).
@@ -307,6 +323,14 @@ function InviteFormInner({
           <legend className="text-sm font-medium text-ink/85">
             {t("invite.form.slot.legend")}
           </legend>
+          {presenceUntil && (
+            <p className="-mt-1 text-sm text-accent">
+              {tmpl(t("invite.form.slot.presence"), {
+                city: city!,
+                date: formatShortDate(`${presenceUntil}T12:00:00`, locale),
+              })}
+            </p>
+          )}
           <input type="hidden" name="slotId" value={slotId} />
           <div className="flex flex-wrap gap-2">
             {slots.map((s) => {

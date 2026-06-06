@@ -291,6 +291,8 @@ export default async function HandlePage(
               schedulingEnabled={profile.schedulingEnabled}
               slots={slots}
               hostTimezone={profile.timezone}
+              city={profile.city}
+              cityUntil={profile.cityUntil}
             />
           ) : (
             <p className="text-sm text-muted">

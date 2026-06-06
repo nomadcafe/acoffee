@@ -5,6 +5,7 @@ import type {
   Invite,
   MyProfile,
 } from "./types";
+import { localDateInZone } from "./datetime";
 import { parseInterests } from "./interests";
 import { deriveDisplayName, parseChatKinds, parseGender } from "./profile";
 import { parseSocialLinks } from "./socials";
@@ -174,8 +175,30 @@ export async function listAvailableSlots(
     .in("status", SLOT_ACTIVE_STATUSES as unknown as string[]);
   const takenIds = new Set((held ?? []).map((r) => r.slot_id as string));
 
+  // Presence binding (read side): hide any slot that falls after the host's
+  // departure date so shortening a stay cleans up the visitor's booking UI
+  // on its own — no cron, same read-side gating the PresenceBanner uses.
+  // addSlot blocks creating these, but a host can also move their
+  // city_until up after the fact; this catches that. Only bind while the
+  // date is still ahead (a stale past date = "no end date"). The host's own
+  // editor reads slots elsewhere, so their slots stay visible to them.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("city_until, timezone")
+    .eq("id", hostId)
+    .maybeSingle();
+  const cityUntil = (prof?.city_until as string | null) ?? null;
+  const tz = (prof?.timezone as string | null) ?? null;
+  const bindUntil =
+    cityUntil && cityUntil >= localDateInZone(new Date(), tz) ? cityUntil : null;
+
   return (slots ?? [])
     .filter((s) => !takenIds.has(s.id as string))
+    .filter(
+      (s) =>
+        !bindUntil ||
+        localDateInZone(new Date(s.starts_at as string), tz) <= bindUntil,
+    )
     .map((s) => ({ id: s.id as string, startsAt: s.starts_at as string }));
 }
 
