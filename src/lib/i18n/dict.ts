@@ -36,16 +36,12 @@ export const en = {
   "how.step1.body.post": ". That's your card forever.",
   "how.step2.title": "Fill your card",
   "how.step2.body":
-    "Your city, a line about what you're doing, what you're up for. Add Telegram or email so invites actually land.",
+    "Your city, a line about what you're doing, what you're up for. Add Telegram or email so invites actually land — and times you're free, if you'd like people to book a slot.",
   "how.step3.title": "Share & get invited",
   "how.step3.body.pre":
-    "Drop your card link in a Slack, a tweet, a co-working board. Nomads in your city click ",
+    "Drop your card link in a Slack, a tweet, a co-working board. Whoever you share it with clicks ",
   "how.step3.body.quoted": "“Invite for coffee”",
   "how.step3.body.post": " and you're talking by tonight.",
-
-  // Latest cards strip
-  "latest.eyebrow": "Latest cards",
-  "latest.h2": "Folks who joined this week.",
 
   // Home page "Why this exists" — personal narrative section between
   // the hero and How-it-works. First-person voice; gives the product a
@@ -55,8 +51,6 @@ export const en = {
     "With acoffee, you might meet a few new people. You can also share when you're free and let others book a coffee with you.",
 
   "home.proof": "{count} builders & nomads with a coffee card",
-
-  "home.cities.h2": "People are around right now in",
 
   // Home page signature footer
   "homeFooter.signature":
@@ -553,7 +547,7 @@ export const en = {
     "Free — claim acoffee.com/you and let anyone invite you for coffee.",
   "inviteLink.card.what": "What's acoffee? →",
   "siteFooter.invite": "Invite someone",
-  "home.inviteAlt.text": "Rather reach out than wait to be found?",
+  "home.inviteAlt.text": "Rather reach out than wait for an invite?",
   "home.inviteAlt.link": "Make an invite link →",
 } as const;
 
@@ -575,23 +569,18 @@ export const zh: Record<DictKey, string> = {
   "how.step1.body.post": "。这就是你以后的名片。",
   "how.step2.title": "填名片",
   "how.step2.body":
-    "你所在的城市、一句话简介、想约什么。加 Telegram 或邮箱，邀请才能真正到达。",
+    "你所在的城市、一句话简介、想约什么。加 Telegram 或邮箱，邀请才能真正到达；想让人直接约时间，就放出你有空的时段。",
   "how.step3.title": "分享 & 收到邀请",
   "how.step3.body.pre":
-    "把链接放进 Slack、推文、协作空间公告板。你城市的 nomads 点 ",
+    "把链接放进 Slack、推文、协作空间公告板。看到的人点 ",
   "how.step3.body.quoted": "「Invite for coffee」",
   "how.step3.body.post": "，今晚就能聊起来。",
-
-  "latest.eyebrow": "最近加入",
-  "latest.h2": "本周加入的人。",
 
   "home.why.eyebrow": "为什么",
   "home.why.body":
     "通过 acoffee，或许能认识一些新朋友。你也可以把自己有空的时间分享出来，让别人来约你喝杯咖啡。",
 
   "home.proof": "已有 {count} 位 builder 和数字游民挂出了咖啡名片",
-
-  "home.cities.h2": "现在这些城市有人",
 
   "homeFooter.signature":
     "在咖啡馆之间做的。如果你在一个陌生城市看到这个——欢迎。做张名片，让下一个人不那么孤单。",
@@ -995,7 +984,7 @@ export const zh: Record<DictKey, string> = {
   "inviteLink.card.ctaSub": "免费——注册 acoffee.com/你，让任何人都能约你喝咖啡。",
   "inviteLink.card.what": "acoffee 是什么？→",
   "siteFooter.invite": "约人喝咖啡",
-  "home.inviteAlt.text": "想主动约人，而不是等别人找你？",
+  "home.inviteAlt.text": "想主动约人，而不是等别人邀请你？",
   "home.inviteAlt.link": "生成邀请链接 →",
 };
 
@@ -1016,23 +1005,18 @@ export const ja: Record<DictKey, string> = {
   "how.step1.body.post": "。これがあなたのカードになる。",
   "how.step2.title": "カードを埋める",
   "how.step2.body":
-    "今いる街、いま何をしているか、何に乗ってくるか。Telegram かメールを入れておけば招待が届く。",
+    "今いる街、いま何をしているか、何に乗ってくるか。Telegram かメールを入れておけば招待が届く。予約してほしいなら、空き時間も載せておこう。",
   "how.step3.title": "シェアして招待される",
   "how.step3.body.pre":
-    "Slack、ツイート、コワーキングの掲示板にリンクを貼る。あなたの街にいるノマドが ",
+    "Slack、ツイート、コワーキングの掲示板にリンクを貼る。受け取った人が ",
   "how.step3.body.quoted": "「Invite for coffee」",
   "how.step3.body.post": " を押せば、今夜には会話が始まる。",
-
-  "latest.eyebrow": "最近のカード",
-  "latest.h2": "今週始めた人たち。",
 
   "home.why.eyebrow": "なぜ",
   "home.why.body":
     "acoffee なら、新しい人と知り合えるかもしれない。空いている時間をシェアして、誰かにコーヒーを予約してもらうこともできる。",
 
   "home.proof": "{count} 人の builder・ノマドがコーヒーカードを公開中",
-
-  "home.cities.h2": "いま人がいる街",
 
   "homeFooter.signature":
     "カフェの合間に作っています。新しい街でこれを読んでいるなら——ようこそ。カードを作って、次にここに来る誰かが孤独にならないようにしよう。",
@@ -1469,7 +1453,7 @@ export const ja: Record<DictKey, string> = {
     "無料——acoffee.com/you を取得して、誰でもあなたをコーヒーに誘えるように。",
   "inviteLink.card.what": "acoffee とは? →",
   "siteFooter.invite": "誰かを誘う",
-  "home.inviteAlt.text": "見つけてもらうより、自分から誘いたい?",
+  "home.inviteAlt.text": "招待を待つより、自分から誘いたい?",
   "home.inviteAlt.link": "招待リンクを作る →",
 };
 
