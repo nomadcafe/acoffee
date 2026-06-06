@@ -123,43 +123,6 @@ export const en = {
   "card.visitor.footer.note":
     "Like this card? Make your own — share what you're working on, get invited for coffee in your next city.",
 
-  // /city/[slug] discovery page
-  "browse.nav": "Browse",
-  "browse.breadcrumb": "Browse",
-  "browse.meta.title": "Browse coffee cards · acoffee",
-  "browse.meta.description":
-    "Find people up for a coffee — filter by city, what they're up for, and interests.",
-  "browse.h1": "Find someone for coffee",
-  "browse.subhead":
-    "People with a coffee card, around right now. Filter by city, what they're up for, or a shared interest.",
-  "browse.filter.city": "City",
-  "browse.filter.kind": "Up for",
-  "browse.filter.interests": "Interests",
-  "browse.search.placeholder": "Search name, city, or status",
-  "browse.search.submit": "Search",
-  "browse.clear": "Clear filters",
-  "browse.count": "{n} card{plural}",
-  "browse.empty":
-    "No cards match those filters yet. Try clearing a filter — or make your own card and be findable here.",
-  "city.breadcrumb": "Around town",
-  "city.h1": "Folks around {city}",
-  "city.subhead":
-    "People with a coffee card here right now. Open a card to invite them.",
-  "city.footer.note":
-    "Around {city} too? Make a card so the next person can find you.",
-  "city.row.until": "until {date}",
-  "city.empty.body":
-    "No one's listed a public coffee card around {city} right now.",
-  "city.empty.cta.note": "Be the first. Make a card and start the table.",
-  "city.meta.title": "Coffee in {city} · acoffee",
-  "city.meta.description":
-    "Find people around {city} open to a coffee, a cowork, or a chat — and make your own coffee card.",
-
-  // Profile — city discovery opt-out
-  "profile.field.discoverable.label": "List me on the {city} page",
-  "profile.field.discoverable.hint":
-    "Lets people browsing your city find your card. Your card stays shareable by link either way.",
-
   // SampleCard on the home hero
   "sample.live": "Live preview",
   "sample.badge": "Sample",
@@ -681,37 +644,6 @@ export const zh: Record<DictKey, string> = {
   "card.visitor.footer.note":
     "喜欢这张名片？也做一张你自己的——分享你在做的事，在下一座城市被约咖啡。",
 
-  "browse.nav": "浏览",
-  "browse.breadcrumb": "浏览",
-  "browse.meta.title": "浏览咖啡名片 · acoffee",
-  "browse.meta.description": "找想喝咖啡的人——按城市、想做的事、兴趣筛选。",
-  "browse.h1": "找个人喝咖啡",
-  "browse.subhead":
-    "此刻在线的咖啡名片。按城市、想做的事,或共同兴趣筛选。",
-  "browse.filter.city": "城市",
-  "browse.filter.kind": "想做",
-  "browse.filter.interests": "兴趣",
-  "browse.search.placeholder": "搜名字、城市或状态",
-  "browse.search.submit": "搜索",
-  "browse.clear": "清除筛选",
-  "browse.count": "{n} 张名片",
-  "browse.empty":
-    "还没有符合的名片。试试清除一个筛选——或者做张自己的名片,让别人在这里找到你。",
-  "city.breadcrumb": "这座城市",
-  "city.h1": "{city} 附近的人",
-  "city.subhead": "此刻在这里挂着咖啡名片的人。点开名片就能约。",
-  "city.footer.note": "你也在 {city}？做张名片，让下一个人能找到你。",
-  "city.row.until": "到 {date}",
-  "city.empty.body": "{city} 附近现在还没有公开的咖啡名片。",
-  "city.empty.cta.note": "做第一张吧，把这桌开起来。",
-  "city.meta.title": "{city} 的咖啡 · acoffee",
-  "city.meta.description":
-    "找到 {city} 附近愿意一起喝咖啡、办公或聊聊的人——也做一张你自己的咖啡名片。",
-
-  "profile.field.discoverable.label": "把我列进 {city} 页面",
-  "profile.field.discoverable.hint":
-    "让浏览你所在城市的人能找到你的名片。无论开关与否，名片都还能用链接分享。",
-
   "sample.live": "实时预览",
   "sample.badge": "样例",
   "sample.contactUnlock": "联系方式在邀请被接受后才公开",
@@ -1156,41 +1088,6 @@ export const ja: Record<DictKey, string> = {
   "card.owner.footer.cta": "カードを編集",
   "card.visitor.footer.note":
     "このカードが気に入った？自分のも作ろう——取り組んでいることを共有して、次の街でコーヒーに誘われよう。",
-
-  "browse.nav": "ブラウズ",
-  "browse.breadcrumb": "ブラウズ",
-  "browse.meta.title": "コーヒーカードを探す · acoffee",
-  "browse.meta.description":
-    "コーヒーしたい人を見つけよう — 街・やりたいこと・興味で絞り込み。",
-  "browse.h1": "コーヒー相手を見つけよう",
-  "browse.subhead":
-    "今いる人のコーヒーカード。街・やりたいこと・共通の興味で絞り込めます。",
-  "browse.filter.city": "街",
-  "browse.filter.kind": "やりたいこと",
-  "browse.filter.interests": "興味",
-  "browse.search.placeholder": "名前・街・ステータスで検索",
-  "browse.search.submit": "検索",
-  "browse.clear": "フィルターをクリア",
-  "browse.count": "{n} 枚のカード",
-  "browse.empty":
-    "条件に合うカードはまだありません。フィルターを外すか、自分のカードを作ってここで見つけてもらいましょう。",
-  "city.breadcrumb": "この街",
-  "city.h1": "{city} 周辺の人たち",
-  "city.subhead":
-    "いまここにコーヒーカードを公開している人たち。カードを開いて誘おう。",
-  "city.footer.note":
-    "あなたも {city} 周辺に？カードを作って、次の人に見つけてもらおう。",
-  "city.row.until": "{date}まで",
-  "city.empty.body":
-    "{city} 周辺には今、公開されているコーヒーカードがありません。",
-  "city.empty.cta.note": "最初の一人になろう。カードを作ってテーブルを開こう。",
-  "city.meta.title": "{city} のコーヒー · acoffee",
-  "city.meta.description":
-    "{city} 周辺でコーヒー・コワーク・おしゃべりに前向きな人を見つけよう——自分のコーヒーカードも作れます。",
-
-  "profile.field.discoverable.label": "{city} ページに掲載する",
-  "profile.field.discoverable.hint":
-    "あなたの街を見ている人がカードを見つけられます。どちらでもカードはリンクで共有できます。",
 
   "sample.live": "ライブプレビュー",
   "sample.badge": "サンプル",

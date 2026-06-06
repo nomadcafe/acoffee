@@ -86,12 +86,9 @@ export type MyProfile = {
   socialLinks: SocialLink[];
   avatarUrl: string | null;
   // v13 — small set of normalised interest tags (`ai`, `web3`, …). Give
-  // a card a hook beyond city + coffee_chat_kinds and back the /browse
-  // interest filter. Normalisation + caps live in lib/interests.ts.
+  // a card a hook beyond city + coffee_chat_kinds, rendered as `#tag`
+  // chips. Normalisation + caps live in lib/interests.ts.
   interests: string[];
-  // v12 — whether the card is listed on city discovery pages. Default
-  // true; the owner can opt out (still shareable by direct link).
-  discoverable: boolean;
   // v16 — opt-in coffee scheduling. When on, the invite form offers the
   // host's `availability_slots` instead of a free-form time. `timezone`
   // (IANA) is the tz those slots are displayed in; null until the host

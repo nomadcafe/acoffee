@@ -12,7 +12,6 @@ import {
   getSessionUser,
   listAvailableSlots,
 } from "@/lib/auth-queries";
-import { cityHrefSlug } from "@/lib/city";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
@@ -56,8 +55,6 @@ type PublicProfile = {
   // v0.11 — ISO date (YYYY-MM-DD) for the presence banner. Past dates
   // are kept in the type but PresenceBanner suppresses them at render.
   cityUntil: string | null;
-  // Generated slug for the city, used to link to the discovery page.
-  citySlug: string | null;
   coffeeChatKinds: CoffeeChatKind[];
   // v0.9 — gender soft signal. null = "prefer not to say".
   gender: Gender | null;
@@ -92,7 +89,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, handle, bio, city, city_until, city_slug, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, scheduling_enabled, timezone, created_at, updated_at",
+      "id, handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, scheduling_enabled, timezone, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -106,7 +103,6 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
     bio: (data.bio as string | null) ?? null,
     city: (data.city as string | null) ?? null,
     cityUntil: (data.city_until as string | null) ?? null,
-    citySlug: (data.city_slug as string | null) ?? null,
     coffeeChatKinds: parseChatKinds(data.coffee_chat_kinds),
     gender: parseGender(data.gender),
     socialLinks: parseSocialLinks(data.social_links),
@@ -215,13 +211,6 @@ export default async function HandlePage(
       : null;
 
   const joinedLabel = formatJoined(profile.joinedAt, locale);
-  // Link the city (meta line + presence banner) to its discovery page so
-  // a visitor can find others around the same place. Independent of this
-  // card's own discoverable flag — the link is a "who else is here" aid,
-  // not a claim that this person is listed.
-  const cityHref = profile.citySlug
-    ? `/city/${cityHrefSlug(profile.citySlug)}`
-    : null;
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-14 sm:px-6 sm:py-20">
@@ -267,7 +256,6 @@ export default async function HandlePage(
         city={profile.city}
         cityUntil={profile.cityUntil}
         locale={locale}
-        href={cityHref}
       />
 
       <CardBody
@@ -275,7 +263,6 @@ export default async function HandlePage(
         handle={profile.handle}
         displayName={profile.displayName}
         city={profile.city}
-        cityHref={cityHref}
         locator={joinedLabel}
         status={profile.bio}
         kinds={profile.coffeeChatKinds}

@@ -1,6 +1,4 @@
 import type { MetadataRoute } from "next";
-import { listIndexableCities } from "@/lib/auth-queries";
-import { cityPath } from "@/lib/i18n/routes";
 import { SHADOWED_HANDLES } from "@/lib/reserved-handles";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
@@ -36,13 +34,6 @@ const MARKETING_PATHS: ReadonlyArray<{
     changeFrequency: "weekly",
   },
   {
-    // Discovery page — content turns over as cards come and go, so it's
-    // the highest-priority surface after the home.
-    paths: ["/browse", "/zh/browse", "/ja/browse"],
-    priority: 0.8,
-    changeFrequency: "weekly",
-  },
-  {
     paths: ["/privacy", "/zh/privacy", "/ja/privacy"],
     priority: 0.3,
     changeFrequency: "yearly",
@@ -56,10 +47,7 @@ const MARKETING_PATHS: ReadonlyArray<{
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const [cards, cities] = await Promise.all([
-    fetchPublishedCards(),
-    listIndexableCities(),
-  ]);
+  const cards = await fetchPublishedCards();
   const marketing: MetadataRoute.Sitemap = MARKETING_PATHS.flatMap((group) =>
     group.paths.map((path) => ({
       url: `${siteUrl}${path}`,
@@ -68,22 +56,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: group.priority,
     })),
   );
-  // City discovery pages, one entry per locale variant (page metadata
-  // emits the hreflang graph). Only cities past the index floor reach
-  // here — listIndexableCities shares that floor with the page's noindex
-  // decision, so we never advertise a page that asks not to be indexed.
-  // changeFrequency daily: presence turns over as people come and go.
-  const cityEntries: MetadataRoute.Sitemap = cities.flatMap((c) =>
-    (["en", "zh", "ja"] as const).map((locale) => ({
-      url: `${siteUrl}${cityPath(c.slug, locale)}`,
-      lastModified: now,
-      changeFrequency: "daily" as const,
-      priority: 0.6,
-    })),
-  );
   return [
     ...marketing,
-    ...cityEntries,
     ...cards.map((c) => ({
       url: `${siteUrl}/${c.handle}`,
       lastModified: new Date(c.createdAt),

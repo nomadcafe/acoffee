@@ -67,10 +67,6 @@ export function ProfileForm({
   );
   const [city, setCity] = useState(profile.city ?? "");
   const [cityUntil, setCityUntil] = useState(profile.cityUntil ?? "");
-  // v12 — list this card on the /city/[slug] discovery page. Default on;
-  // a hidden input always submits the value so the server sees it even
-  // when the visible toggle is hidden (no city set).
-  const [discoverable, setDiscoverable] = useState(profile.discoverable);
   // v16 — opt-in coffee scheduling toggle. Rides the form submit via the
   // hidden input the AvailabilityEditor renders; slots themselves are
   // managed by their own actions inside that editor.
@@ -266,34 +262,6 @@ export function ProfileForm({
               hint={t("profile.field.cityUntil.hint")}
               error={errs.cityUntil}
             />
-          )}
-          {/* Discovery opt-out. Always submits via the hidden input; the
-              visible control only appears once there's a city to be
-              discovered under (no city = nothing to list). */}
-          <input
-            type="hidden"
-            name="discoverable"
-            value={discoverable ? "true" : "false"}
-          />
-          {city.trim().length > 0 && (
-            <label className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={discoverable}
-                onChange={(e) => setDiscoverable(e.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-accent"
-              />
-              <span className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-ink/85">
-                  {tmpl(t("profile.field.discoverable.label"), {
-                    city: city.trim(),
-                  })}
-                </span>
-                <span className="text-sm text-muted">
-                  {t("profile.field.discoverable.hint")}
-                </span>
-              </span>
-            </label>
           )}
           <FieldArea
             label={t("profile.field.status.label")}

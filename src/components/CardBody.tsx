@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { Avatar } from "./Avatar";
 import { SocialIcon } from "./icons/SocialIcons";
 import { t, type Locale } from "@/lib/i18n/dict";
@@ -35,10 +34,6 @@ export type CardBodyProps = {
   // second <h1>. The visual styling is identical across tags.
   nameAs?: "h1" | "h2" | "p";
   city: string | null;
-  // When set, the city in the meta line links here (the /city/[slug]
-  // discovery page). Omitted by SampleCard / LiveCardPreview, where the
-  // city is mock or not yet discoverable — those render it as plain text.
-  cityHref?: string | null;
   // A short, magazine-style locator line under the name. Sample card shows
   // "landed Mon"; real card may show "Joined May 2026" or similar. Optional
   // — pass null to hide the row.
@@ -69,7 +64,6 @@ export function CardBody({
   displayName,
   nameAs: NameTag = "p",
   city,
-  cityHref,
   locator,
   status,
   kinds,
@@ -84,25 +78,10 @@ export function CardBody({
   const genderLabel = gender
     ? t(locale, `profile.field.gender.opt.${gender}` as const)
     : null;
-  // The city can be a link (to its discovery page) while the rest of the
-  // meta line stays plain text, so build nodes rather than a joined
-  // string. Keys are stable part names, not array indices.
+  // Build the meta line as discrete nodes (city · locator · gender)
+  // rather than a joined string, so keys stay stable part names.
   const metaNodes: { key: string; node: React.ReactNode }[] = [];
-  if (city) {
-    metaNodes.push({
-      key: "city",
-      node: cityHref ? (
-        <Link
-          href={cityHref}
-          className="underline-offset-2 hover:text-accent hover:underline"
-        >
-          {city}
-        </Link>
-      ) : (
-        city
-      ),
-    });
-  }
+  if (city) metaNodes.push({ key: "city", node: city });
   if (locator) metaNodes.push({ key: "locator", node: locator });
   if (genderLabel) metaNodes.push({ key: "gender", node: genderLabel });
   // Compose the public URL + tooltip per link using the central

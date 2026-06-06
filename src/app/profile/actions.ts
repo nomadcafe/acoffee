@@ -314,11 +314,6 @@ export async function updateProfile(
       ? parsed.data.cityUntil
       : null;
 
-  // v12 — city-discovery opt-out. Hidden input always submits "true"/
-  // "false"; treat anything but an explicit "false" as listed (the
-  // default), so a missing value can never silently hide a card.
-  const discoverable = formData.get("discoverable") !== "false";
-
   // v16 — opt-in coffee scheduling. Hidden input submits "true"/"false";
   // default off, so anything but an explicit "true" leaves it disabled.
   const schedulingEnabled = formData.get("schedulingEnabled") === "true";
@@ -349,7 +344,6 @@ export async function updateProfile(
       gender: parsed.data.gender ?? null,
       social_links: normalisedSocials,
       interests,
-      discoverable,
       scheduling_enabled: schedulingEnabled,
       ...timezonePatch,
       locale,

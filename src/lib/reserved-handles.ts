@@ -41,6 +41,12 @@ const LOCALES = ["zh", "ja", "en"];
 // having to peel a real card off a city slug.
 const CITIES = ["chiang-mai", "osaka", "lisbon", "bali"];
 
+// Discovery-era top-level routes. The /browse and /city/[slug] pages were
+// removed in v0.17 (cards are link-shared, not browsed), but reserve the
+// slugs so no one can claim acoffee.com/browse as a personal card and so
+// the URLs stay free if a discovery model ever returns.
+const DISCOVERY_ROUTES = ["browse", "city", "discover", "explore"];
+
 // Generic / brand / squat-worthy terms no individual should be able to
 // claim as a personal card. Big tech, the social platforms our socials
 // editor already lists, coffee vocabulary (acoffee → 'coffee' / 'cafe'
@@ -159,6 +165,7 @@ export const RESERVED_HANDLES: ReadonlySet<string> = new Set([
   ...ROUTES,
   ...LOCALES,
   ...CITIES,
+  ...DISCOVERY_ROUTES,
   ...BRAND_AND_GENERIC,
 ]);
 

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 
 // v0.11 — nomad presence pill rendered above the card on /[handle]
@@ -15,14 +14,10 @@ export function PresenceBanner({
   city,
   cityUntil,
   locale,
-  href,
 }: {
   city: string | null;
   cityUntil: string | null;
   locale: Locale;
-  // When set, the banner links to the city's discovery page. Omitted on
-  // the live preview where the page doesn't exist yet.
-  href?: string | null;
 }) {
   if (!city || !cityUntil) return null;
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -41,22 +36,14 @@ export function PresenceBanner({
 
   const className =
     "inline-flex w-fit items-center gap-2 rounded-full border border-accent/40 bg-accent-soft/60 px-3.5 py-1.5 text-sm font-medium text-accent";
-  const inner = (
-    <>
+  return (
+    <p className={className}>
       <span aria-hidden>📍</span>
       <span>
         {tmpl(t(locale, "presence.banner"), { city, date: dateLabel })}
       </span>
-    </>
+    </p>
   );
-  if (href) {
-    return (
-      <Link href={href} className={`${className} transition-colors hover:bg-accent-soft`}>
-        {inner}
-      </Link>
-    );
-  }
-  return <p className={className}>{inner}</p>;
 }
 
 function toBcp47(locale: Locale): string {
