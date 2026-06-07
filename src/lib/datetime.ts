@@ -118,13 +118,11 @@ export function zonedWallToInstant(
   }
 }
 
-// Current wall-clock time in `timeZone`, formatted as the value a native
-// <input type="datetime-local"> expects ("YYYY-MM-DDTHH:mm"). Used as the
-// picker's `min` so past times are unselectable relative to the zone the
-// host is scheduling in (not their browser's). Falls back to the runtime
-// zone's components if the timezone is invalid.
-export function nowWallInZone(timeZone: string): string {
-  const now = new Date();
+// Wall-clock components of `instant` in `timeZone`, formatted as the value
+// a native <input type="datetime-local"> uses ("YYYY-MM-DDTHH:mm"). The
+// inverse of zonedWallToInstant: instant → local wall string. Falls back to
+// the runtime zone's components if the timezone is invalid.
+export function wallInZone(instant: Date, timeZone: string): string {
   try {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone,
@@ -134,14 +132,33 @@ export function nowWallInZone(timeZone: string): string {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
-    }).formatToParts(now);
+    }).formatToParts(instant);
     const get = (type: string) =>
       parts.find((p) => p.type === type)?.value ?? "";
     return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
   } catch {
     const pad = (n: number) => String(n).padStart(2, "0");
-    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    return `${instant.getFullYear()}-${pad(instant.getMonth() + 1)}-${pad(instant.getDate())}T${pad(instant.getHours())}:${pad(instant.getMinutes())}`;
   }
+}
+
+// Current wall-clock time in `timeZone` ("YYYY-MM-DDTHH:mm"). Used as the
+// picker's `min` so past times are unselectable relative to the zone the
+// host is scheduling in (not their browser's).
+export function nowWallInZone(timeZone: string): string {
+  return wallInZone(new Date(), timeZone);
+}
+
+// Add whole `days` to the date part of a "YYYY-MM-DDTHH:mm" wall-clock
+// string, keeping the time-of-day. Rolling a slot forward in *wall* time
+// (then re-anchoring via zonedWallToInstant) keeps "3pm" at 3pm across a
+// DST change in the host's zone, where a naive +7×24h would slip an hour.
+export function addDaysToWall(wall: string, days: number): string {
+  const [date, time = "00:00"] = wall.split("T");
+  const [y, m, d] = date.split("-").map(Number);
+  const rolled = new Date(Date.UTC(y, m - 1, d + days));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${rolled.getUTCFullYear()}-${pad(rolled.getUTCMonth() + 1)}-${pad(rolled.getUTCDate())}T${time}`;
 }
 
 // The calendar date ("YYYY-MM-DD") an instant falls on *in* `timeZone` —

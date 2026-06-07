@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { addSlot, removeSlot } from "@/app/profile/actions";
+import {
+  addSlot,
+  duplicateSlotsNextWeek,
+  removeSlot,
+} from "@/app/profile/actions";
 import { useLocale, useT } from "@/components/LocaleProvider";
 import { formatSlot, nowWallInZone, zonedWallToInstant } from "@/lib/datetime";
 import type { AvailabilitySlot } from "@/lib/types";
@@ -51,6 +55,7 @@ export function AvailabilityEditor({
   const [draft, setDraft] = useState("");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
 
   // The browser's detected zone — the default for a host who hasn't picked
   // one yet, and the target of the "use detected" nudge after a relocation.
@@ -86,6 +91,7 @@ export function AvailabilityEditor({
       return;
     }
     setError(null);
+    setCopyMsg(null);
     startTransition(async () => {
       const res = await addSlot(instant.toISOString(), tz);
       if (res.status === "ok") {
@@ -99,10 +105,35 @@ export function AvailabilityEditor({
 
   function remove(id: string) {
     setError(null);
+    setCopyMsg(null);
     startTransition(async () => {
       const res = await removeSlot(id);
       if (res.status === "ok") router.refresh();
       else setError(res.message);
+    });
+  }
+
+  // Roll this week's times forward a week in one tap. The server does the
+  // wall-clock +7d shift and re-applies every addSlot gate (future, ≤2y,
+  // before departure, no dupes), so we just report how many landed.
+  function copyWeek() {
+    setError(null);
+    setCopyMsg(null);
+    startTransition(async () => {
+      const res = await duplicateSlotsNextWeek(tz);
+      if (res.status === "ok") {
+        setCopyMsg(
+          res.added > 0
+            ? t("profile.scheduling.copyDone").replace(
+                "{n}",
+                String(res.added),
+              )
+            : t("profile.scheduling.copyNone"),
+        );
+        router.refresh();
+      } else {
+        setError(res.message);
+      }
     });
   }
 
@@ -237,6 +268,23 @@ export function AvailabilityEditor({
                 </li>
               ))}
             </ul>
+          )}
+
+          {/* One-tap "office hours": copy this week's times to next week.
+              Only worth showing once there's at least one slot to copy. */}
+          {slots.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                onClick={copyWeek}
+                disabled={pending}
+                className="inline-flex w-fit items-center gap-1.5 rounded-xl border border-bean bg-surface px-3 py-1.5 text-sm font-medium text-ink/80 hover:border-accent/60 hover:text-accent disabled:opacity-50"
+              >
+                <span aria-hidden>↻</span>
+                {t("profile.scheduling.copyWeek")}
+              </button>
+              {copyMsg && <p className="text-xs text-muted">{copyMsg}</p>}
+            </div>
           )}
         </div>
       )}

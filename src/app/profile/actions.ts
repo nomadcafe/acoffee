@@ -24,10 +24,13 @@ import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
 import {
+  addDaysToWall,
   formatShortDate,
   formatSlot,
   isValidTimeZone,
   localDateInZone,
+  wallInZone,
+  zonedWallToInstant,
 } from "@/lib/datetime";
 
 // Rate-limit helper for signed-in server actions. Keys on user.id when
@@ -1002,4 +1005,101 @@ export async function removeSlot(slotId: string): Promise<SlotActionResult> {
 
   revalidatePath("/profile");
   return { status: "ok" };
+}
+
+export type DuplicateSlotsResult =
+  | { status: "ok"; added: number }
+  | { status: "error"; message: string };
+
+// Roll the next 7 days of slots forward a week — the "office hours" of a
+// host who offers the same times each week, without re-entering them. The
+// shift is done in wall-clock (wallInZone → +7 days → zonedWallToInstant)
+// so "3pm" stays 3pm across a DST change rather than slipping an hour. Each
+// copy goes through the same gates as addSlot — future, ≤2y out, before the
+// host's departure (city_until), and not a duplicate of an existing slot —
+// so a copied set can never include a time the host couldn't add by hand.
+export async function duplicateSlotsNextWeek(
+  timezone: string,
+): Promise<DuplicateSlotsResult> {
+  if (!isAuthConfigured()) {
+    return { status: "error", message: "Sign-in isn't configured." };
+  }
+  const paramTz =
+    typeof timezone === "string" && isValidTimeZone(timezone)
+      ? timezone
+      : null;
+
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { status: "error", message: "Sign in to add times." };
+
+  const copyLimit = checkRateLimit(await rlKey("addSlot", user.id), [
+    { max: 20, windowMs: 60_000 },
+    { max: 100, windowMs: 60 * 60_000 },
+  ]);
+  if (!copyLimit.allowed) {
+    return {
+      status: "error",
+      message: `Slow down — try again in ${copyLimit.retryAfterSec}s.`,
+    };
+  }
+
+  // Presence + display zone: the same binding addSlot enforces. A future
+  // city_until bounds the copies; a stale/absent one imposes none.
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("city_until, timezone")
+    .eq("id", user.id)
+    .maybeSingle();
+  const displayTz = (prof?.timezone as string | null) ?? paramTz;
+  const cityUntil = (prof?.city_until as string | null) ?? null;
+  const shiftTz = displayTz ?? "UTC";
+
+  const now = Date.now();
+  const weekAheadIso = new Date(now + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const bindUntil =
+    cityUntil && cityUntil >= localDateInZone(new Date(now), displayTz)
+      ? cityUntil
+      : null;
+
+  // All upcoming slots: the ones inside the next 7 days are the "this week"
+  // set to copy; the full set is the dedupe guard so a second click (or an
+  // already-copied week) doesn't pile up duplicates.
+  const { data: upcoming, error: readErr } = await supabase
+    .from("availability_slots")
+    .select("starts_at")
+    .eq("host_id", user.id)
+    .gte("starts_at", new Date(now).toISOString())
+    .order("starts_at", { ascending: true });
+  if (readErr) return { status: "error", message: readErr.message };
+
+  const existing = new Set(
+    (upcoming ?? []).map((r) => new Date(r.starts_at as string).getTime()),
+  );
+  const twoYears = now + 2 * 365 * 24 * 60 * 60 * 1000;
+  const rows: { host_id: string; starts_at: string }[] = [];
+  for (const r of upcoming ?? []) {
+    const startsAt = r.starts_at as string;
+    if (startsAt >= weekAheadIso) continue; // outside the "this week" window
+    const next = zonedWallToInstant(
+      addDaysToWall(wallInZone(new Date(startsAt), shiftTz), 7),
+      shiftTz,
+    );
+    if (!next) continue;
+    const ts = next.getTime();
+    if (ts <= now || ts > twoYears) continue;
+    if (existing.has(ts)) continue;
+    if (bindUntil && localDateInZone(next, displayTz) > bindUntil) continue;
+    existing.add(ts);
+    rows.push({ host_id: user.id, starts_at: next.toISOString() });
+  }
+
+  if (rows.length > 0) {
+    const { error } = await supabase.from("availability_slots").insert(rows);
+    if (error) return { status: "error", message: error.message };
+    revalidatePath("/profile");
+  }
+  return { status: "ok", added: rows.length };
 }

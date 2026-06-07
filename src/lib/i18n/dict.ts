@@ -230,6 +230,9 @@ export const en = {
   "profile.scheduling.booked": "Booked",
   "profile.scheduling.remove": "Remove time",
   "profile.scheduling.invalid": "Pick a valid date and time.",
+  "profile.scheduling.copyWeek": "Copy this week → next week",
+  "profile.scheduling.copyDone": "Copied {n} to next week.",
+  "profile.scheduling.copyNone": "No times in the next 7 days to copy.",
 
   // ProfileForm fields
   "profile.field.handle.label": "Handle",
@@ -730,6 +733,9 @@ export const zh: Record<DictKey, string> = {
   "profile.scheduling.booked": "已预约",
   "profile.scheduling.remove": "删除时间",
   "profile.scheduling.invalid": "请选择有效的日期和时间。",
+  "profile.scheduling.copyWeek": "把本周复制到下周",
+  "profile.scheduling.copyDone": "已复制 {n} 个到下周。",
+  "profile.scheduling.copyNone": "未来 7 天内没有可复制的时段。",
 
   "profile.field.handle.label": "Handle",
   "profile.field.handle.placeholder": "挑一个 · 例如 alex_nomad",
@@ -1175,6 +1181,9 @@ export const ja: Record<DictKey, string> = {
   "profile.scheduling.booked": "予約済み",
   "profile.scheduling.remove": "時間を削除",
   "profile.scheduling.invalid": "有効な日時を選んでください。",
+  "profile.scheduling.copyWeek": "今週を来週にコピー",
+  "profile.scheduling.copyDone": "{n} 件を来週にコピーしました。",
+  "profile.scheduling.copyNone": "今後 7 日間にコピーできる時間がありません。",
 
   "profile.field.handle.label": "Handle",
   "profile.field.handle.placeholder": "選んでください · 例: alex_nomad",

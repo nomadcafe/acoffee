@@ -1,15 +1,42 @@
 import { describe, expect, it } from "vitest";
 import {
+  addDaysToWall,
   formatShortDate,
   formatSlot,
   isValidTimeZone,
   localDateInZone,
   nowWallInZone,
+  wallInZone,
   zonedWallToInstant,
 } from "@/lib/datetime";
 
 // A fixed instant: 2026-06-12 08:00 UTC == 15:00 in Asia/Bangkok (UTC+7).
 const ISO = "2026-06-12T08:00:00.000Z";
+
+describe("addDaysToWall + wallInZone (weekly slot copy)", () => {
+  it("keeps the wall-clock time across a spring-forward DST change", () => {
+    // Lisbon springs forward on 2026-03-29 (WET→WEST). A 3pm slot on the
+    // 25th copied +7 days must still read 3pm on Apr 1, even though the
+    // absolute instant shifts an hour — a naive +7×24h would land at 4pm.
+    const tz = "Europe/Lisbon";
+    const start = zonedWallToInstant("2026-03-25T15:00", tz);
+    const next = zonedWallToInstant(
+      addDaysToWall(wallInZone(start!, tz), 7),
+      tz,
+    );
+    expect(wallInZone(next!, tz)).toBe("2026-04-01T15:00");
+  });
+
+  it("rolls the date across month boundaries, keeping the time", () => {
+    expect(addDaysToWall("2026-01-28T09:30", 7)).toBe("2026-02-04T09:30");
+  });
+
+  it("wallInZone inverts zonedWallToInstant", () => {
+    const tz = "Asia/Bangkok";
+    const inst = zonedWallToInstant("2026-06-12T15:00", tz);
+    expect(wallInZone(inst!, tz)).toBe("2026-06-12T15:00");
+  });
+});
 
 describe("localDateInZone", () => {
   it("returns the calendar date in the given zone", () => {
