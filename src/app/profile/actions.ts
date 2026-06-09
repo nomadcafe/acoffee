@@ -883,30 +883,40 @@ async function prunePastSlots(
   userId: string,
 ): Promise<void> {
   const nowIso = new Date().toISOString();
-  const { data: past } = await supabase
-    .from("availability_slots")
-    .select("id")
-    .eq("host_id", userId)
-    .lt("starts_at", nowIso);
-  if (!past || past.length === 0) return;
 
+  // Slots still referenced by any invite are KEPT — invites.slot_id is ON
+  // DELETE SET NULL, so deleting a booked past slot would blank the meeting
+  // time on a historical accepted invite. This keep-set is naturally small (a
+  // host only ever booked a handful of times), so it's safe to inline into the
+  // delete filter. The past-slot set, by contrast, grows without bound for a
+  // heavy recurring host, so we never enumerate it — a single scoped delete
+  // does the work server-side rather than fetching ids to subtract in JS.
   const { data: referenced } = await supabase
     .from("invites")
     .select("slot_id")
     .eq("host_id", userId)
     .not("slot_id", "is", null);
-  const keep = new Set((referenced ?? []).map((r) => r.slot_id as string));
+  const keep = [...new Set((referenced ?? []).map((r) => r.slot_id as string))];
 
-  const stale = past
-    .map((r) => r.id as string)
-    .filter((id) => !keep.has(id));
-  if (stale.length === 0) return;
-
-  await supabase
+  let del = supabase
     .from("availability_slots")
     .delete()
     .eq("host_id", userId)
-    .in("id", stale);
+    .lt("starts_at", nowIso);
+  // Exclude the referenced slots. Values are our own UUIDs (hex + hyphen), so
+  // the inlined list carries no injection surface.
+  if (keep.length > 0) del = del.not("id", "in", `(${keep.join(",")})`);
+
+  const { error } = await del;
+  if (error) {
+    // Housekeeping only — never fail the host's action. Warn so a persistent
+    // failure stays visible in logs (same pattern as the invite rate-limit
+    // warn) rather than silently letting the table grow.
+    console.warn("[scheduling] prunePastSlots failed", {
+      userId,
+      message: error.message,
+    });
+  }
 }
 
 // Add one availability slot. The client sends an absolute instant (it
