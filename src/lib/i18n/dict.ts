@@ -155,6 +155,9 @@ export const en = {
     "Times in {tz}. {name} confirms when they accept.",
   "invite.form.slot.none":
     "No open times right now — suggest one below instead.",
+  // Appended after a slot's host-zone time when the viewer's browser zone
+  // differs, so they don't have to do the tz math themselves.
+  "invite.form.slot.yourTime": "{time} your time",
   "invite.form.submit": "Send invite",
   "invite.form.submit.pending": "Sending…",
   "invite.form.note": "No account needed — your email is just for the reply.",
@@ -665,6 +668,7 @@ export const zh: Record<DictKey, string> = {
   "invite.form.slot.presence": "只在{city}待到 {date}——挑个之前的时间吧。",
   "invite.form.slot.hint": "时间按 {tz} 显示。{name} 接受后会确认。",
   "invite.form.slot.none": "暂时没有可约时间——可在下方填写建议时间。",
+  "invite.form.slot.yourTime": "你的时间 {time}",
   "invite.form.submit": "发送邀请",
   "invite.form.submit.pending": "发送中…",
   "invite.form.note": "不需要账号——邮箱只是用来收回复。",
@@ -1112,6 +1116,7 @@ export const ja: Record<DictKey, string> = {
   "invite.form.slot.presence": "{city} には {date} まで——それまでの時間を選ぼう。",
   "invite.form.slot.hint": "時間は {tz} で表示。承認時に {name} さんが確定します。",
   "invite.form.slot.none": "現在空き時間がありません。下に希望を記入してください。",
+  "invite.form.slot.yourTime": "あなたの時間で {time}",
   "invite.form.submit": "招待を送る",
   "invite.form.submit.pending": "送信中…",
   "invite.form.note": "アカウント不要——メールは返信用にだけ使います。",

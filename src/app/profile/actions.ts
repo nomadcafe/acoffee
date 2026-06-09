@@ -871,6 +871,44 @@ export type SlotActionResult =
   | { status: "ok" }
   | { status: "error"; message: string };
 
+// Best-effort cleanup of the host's own past slots so availability_slots
+// doesn't grow without bound — there's no cron, so we piggyback on the host's
+// own slot edits (add / copy-week). Slots still referenced by any invite are
+// KEPT, even past ones: invites.slot_id is ON DELETE SET NULL, so deleting a
+// booked past slot would blank the meeting time on a historical accepted
+// invite. Unbooked expired slots are the bulk and are safe to drop. Errors are
+// swallowed — this is housekeeping, never a reason to fail the host's action.
+async function prunePastSlots(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  userId: string,
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+  const { data: past } = await supabase
+    .from("availability_slots")
+    .select("id")
+    .eq("host_id", userId)
+    .lt("starts_at", nowIso);
+  if (!past || past.length === 0) return;
+
+  const { data: referenced } = await supabase
+    .from("invites")
+    .select("slot_id")
+    .eq("host_id", userId)
+    .not("slot_id", "is", null);
+  const keep = new Set((referenced ?? []).map((r) => r.slot_id as string));
+
+  const stale = past
+    .map((r) => r.id as string)
+    .filter((id) => !keep.has(id));
+  if (stale.length === 0) return;
+
+  await supabase
+    .from("availability_slots")
+    .delete()
+    .eq("host_id", userId)
+    .in("id", stale);
+}
+
 // Add one availability slot. The client sends an absolute instant (it
 // anchors the datetime-local value to the host's *chosen* display tz) plus
 // that tz name. We validate it's a real, near-future instant and store it;
@@ -958,6 +996,8 @@ export async function addSlot(
       .eq("id", user.id)
       .is("timezone", null);
   }
+
+  await prunePastSlots(supabase, user.id);
 
   revalidatePath("/profile");
   return { status: "ok" };
@@ -1101,5 +1141,8 @@ export async function duplicateSlotsNextWeek(
     if (error) return { status: "error", message: error.message };
     revalidatePath("/profile");
   }
+
+  await prunePastSlots(supabase, user.id);
+
   return { status: "ok", added: rows.length };
 }

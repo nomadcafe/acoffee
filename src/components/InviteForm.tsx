@@ -1,12 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
 import { KIND_EMOJI } from "@/components/CardBody";
 import { useLocale, useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
-import { formatShortDate, formatSlot } from "@/lib/datetime";
+import { formatInstantIn, formatShortDate, formatSlot } from "@/lib/datetime";
 import { tmpl } from "@/lib/i18n/dict";
 import { type AvailabilitySlot, type CoffeeChatKind } from "@/lib/types";
 
@@ -118,6 +123,26 @@ function InviteFormInner({
     city && cityUntil && cityUntil >= new Date().toISOString().slice(0, 10)
       ? cityUntil
       : null;
+  // The viewer's own browser timezone — unknown at SSR time. Slots are shown
+  // in the HOST's zone (so two visitors agree on which instant a slot is), but
+  // a visitor in another city shouldn't have to do the tz math — once we know
+  // their zone and it differs from the host's, each pill also shows the slot in
+  // their local time. Same useSyncExternalStore idiom as CardSharePanel's
+  // navigator.share probe: server snapshot (null) for the initial paint, client
+  // snapshot on hydration, so the local line appears with no hydration
+  // mismatch. The zone doesn't change within a session, so subscribe is a noop.
+  const viewerTz = useSyncExternalStore(
+    () => () => {},
+    () => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+      } catch {
+        return null;
+      }
+    },
+    () => null,
+  );
+
   // Track the email the visitor just submitted, so the success state can
   // tell them "check this inbox" without us re-deriving it from FormData
   // (it's already wiped by the time we render the result).
@@ -296,7 +321,7 @@ function InviteFormInner({
             return (
               <label
                 key={k}
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-page ${
                   active
                     ? "border-accent bg-accent text-page shadow-sm"
                     : "border-bean bg-surface text-ink/80 hover:border-accent/60 hover:text-accent"
@@ -335,10 +360,17 @@ function InviteFormInner({
           <div className="flex flex-wrap gap-2">
             {slots.map((s) => {
               const active = slotId === s.id;
+              // Viewer-local rendering only when we know their zone and it
+              // differs from the host's — otherwise the host line already says
+              // it all and a duplicate would just be noise.
+              const localTime =
+                viewerTz && viewerTz !== hostTimezone
+                  ? formatInstantIn(s.startsAt, viewerTz, locale)
+                  : null;
               return (
                 <label
                   key={s.id}
-                  className={`inline-flex cursor-pointer items-center rounded-full border px-3.5 py-2 text-sm font-medium transition-colors ${
+                  className={`inline-flex cursor-pointer flex-col items-start rounded-2xl border px-3.5 py-2 text-sm font-medium transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-accent has-[:focus-visible]:ring-offset-1 has-[:focus-visible]:ring-offset-page ${
                     active
                       ? "border-accent bg-accent text-page shadow-sm"
                       : "border-bean bg-surface text-ink/80 hover:border-accent/60 hover:text-accent"
@@ -352,7 +384,16 @@ function InviteFormInner({
                     onChange={() => setSlotId(s.id)}
                     className="sr-only"
                   />
-                  {formatSlot(s.startsAt, hostTimezone, locale)}
+                  <span>{formatSlot(s.startsAt, hostTimezone, locale)}</span>
+                  {localTime && (
+                    <span
+                      className={`text-xs font-normal ${
+                        active ? "text-page/80" : "text-muted"
+                      }`}
+                    >
+                      {tmpl(t("invite.form.slot.yourTime"), { time: localTime })}
+                    </span>
+                  )}
                 </label>
               );
             })}

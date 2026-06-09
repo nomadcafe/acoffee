@@ -43,6 +43,34 @@ export function formatSlot(
   }
 }
 
+// Date + time-of-day of an instant in `timeZone`, WITHOUT the trailing zone
+// label — for when the surrounding UI already says whose time it is (e.g. the
+// invite form's "· 9:00 AM your time" next to the host-zone formatSlot). Keeps
+// the date because a slot can land on a different calendar day in the viewer's
+// zone. Invalid tz → runtime zone; invalid instant → empty string.
+export function formatInstantIn(
+  startsAtIso: string,
+  timezone: string | null,
+  locale: Locale,
+): string {
+  const date = new Date(startsAtIso);
+  if (Number.isNaN(date.getTime())) return "";
+  const opts: Intl.DateTimeFormatOptions = {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  };
+  try {
+    return date.toLocaleString(localeToBcp47(locale), {
+      timeZone: timezone ?? undefined,
+      ...opts,
+    });
+  } catch {
+    return date.toLocaleString(localeToBcp47(locale), opts);
+  }
+}
+
 // Absolute short date ("Jun 5, 2026") in the app's locale. Same locale
 // handling as formatSlot (zh → zh-CN), so surfaces like the inbox history
 // render dates in the language the user picked in-app rather than whatever

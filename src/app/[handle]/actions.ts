@@ -3,6 +3,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { localDateInZone } from "@/lib/datetime";
 import { emailInviteConfirm, emailNewInvite } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
@@ -152,7 +153,7 @@ export async function createInvite(
   const admin = createSupabaseAdmin();
   const { data: host, error: hostErr } = await admin
     .from("profiles")
-    .select("id, handle")
+    .select("id, handle, city_until, timezone")
     .eq("handle", parsed.data.handle.toLowerCase())
     .maybeSingle();
   if (hostErr || !host) {
@@ -189,6 +190,25 @@ export async function createInvite(
       .eq("host_id", hostId)
       .maybeSingle();
     if (!slot || new Date(slot.starts_at as string) <= new Date()) {
+      return {
+        status: "error",
+        message: "That time isn't available anymore — pick another.",
+        fieldErrors: { slotId: "Pick an available time." },
+      };
+    }
+    // Presence binding (write side): mirror addSlot and listAvailableSlots so
+    // a slot past the host's departure can't be booked via a crafted POST
+    // after they've shortened their stay. listAvailableSlots already hides
+    // these in the UI; this closes the gap for a hand-built request. Only
+    // enforced while city_until is still ahead (stale past date = no bound),
+    // compared in the host's display zone.
+    const cityUntil = (host.city_until as string | null) ?? null;
+    const tz = (host.timezone as string | null) ?? null;
+    if (
+      cityUntil &&
+      cityUntil >= localDateInZone(new Date(), tz) &&
+      localDateInZone(new Date(slot.starts_at as string), tz) > cityUntil
+    ) {
       return {
         status: "error",
         message: "That time isn't available anymore — pick another.",
