@@ -23,6 +23,22 @@ export async function proxy(request: NextRequest) {
     request.headers.set("x-url-locale", urlLocale);
   }
 
+  // Fallback for misconfigured Supabase redirects. The magic link should land
+  // on /auth/callback (where we exchange the PKCE code for a session), but if
+  // the `emailRedirectTo` isn't in Supabase's allow-list it silently falls
+  // back to the Site URL root and tacks `?code=...` onto it — so the code
+  // lands on `/` with nothing to exchange it and the user stays logged out.
+  // Forward that to the real callback so login still works. The fix is still
+  // the config (NEXT_PUBLIC_SITE_URL + Supabase Redirect URLs); this is belt.
+  if (
+    request.nextUrl.pathname === "/" &&
+    request.nextUrl.searchParams.has("code")
+  ) {
+    const callback = request.nextUrl.clone();
+    callback.pathname = "/auth/callback";
+    return NextResponse.redirect(callback);
+  }
+
   // Expose the current path (+ query) so server components can build a
   // "come back here after sign-in" link. SiteNav's sign-in button uses
   // this for `?next=`, so signing in from someone's card returns you to
