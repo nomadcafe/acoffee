@@ -1,15 +1,20 @@
 import { cache } from "react";
-import type {
-  AvailabilitySlot,
-  CoffeeChatKind,
-  Invite,
-  MyProfile,
+import {
+  SLOT_ACTIVE_STATUSES,
+  type AvailabilitySlot,
+  type CoffeeChatKind,
+  type Invite,
+  type MyProfile,
 } from "./types";
 import { localDateInZone } from "./datetime";
 import { parseInterests } from "./interests";
-import { deriveDisplayName, parseChatKinds, parseGender } from "./profile";
+import { parseChatKinds, parseGender } from "./profile";
 import { parseSocialLinks } from "./socials";
-import { createSupabaseServer, isAuthConfigured } from "./supabase/server";
+import {
+  createSupabaseAdmin,
+  createSupabaseServer,
+  isAuthConfigured,
+} from "./supabase/server";
 
 // Auth-scoped reads. RLS scopes results to the signed-in user automatically.
 // Use these from Server Components / Actions that need user-specific state.
@@ -33,10 +38,21 @@ export const getRequestUser = cache(async () => {
   return user;
 });
 
+// The owner's own row, contacts included — this backs the /profile edit
+// form, which has to show the user the Telegram/email they saved.
+//
+// v0.18: goes through the service-role client rather than the request's
+// anon+JWT one. telegram_handle / email_contact are revoked from both anon
+// and authenticated (schema_v18_1.sql) — column privileges are role-wide,
+// so there's no way to grant "your own row only" through them, and leaving
+// them readable by `authenticated` would be no protection at all given
+// signup is free. Bypassing RLS is safe here precisely because the filter
+// is `id = <the JWT-validated user>`: getRequestUser() calls getUser(),
+// which verifies the token server-side rather than trusting the cookie.
 export async function getMyProfile(): Promise<MyProfile | null> {
   const user = await getRequestUser();
   if (!user) return null;
-  const supabase = await createSupabaseServer();
+  const supabase = createSupabaseAdmin();
   const { data, error } = await supabase
     .from("profiles")
     .select(
@@ -111,10 +127,25 @@ export const getSessionNavProfile = cache(
   },
 );
 
-// Status set in which an invite "holds" its slot (mirrors the partial
-// unique index invites_slot_active_idx). A slot referenced by an invite in
-// any of these is unavailable; decline/expiry frees it.
-const SLOT_ACTIVE_STATUSES = ["unconfirmed", "pending", "accepted"] as const;
+// The set of slot_ids currently held by a *live* invite for this host.
+// "Live" is both halves: an active status AND not past its TTL. Dropping
+// the TTL half is what let an abandoned `unconfirmed` invite hold a slot
+// for good (see SLOT_ACTIVE_STATUSES). Shared by the host's editor and
+// the public picker so the two can't disagree about what's taken.
+async function takenSlotIds(
+  supabase: Awaited<ReturnType<typeof createSupabaseServer>>,
+  hostId: string,
+  nowIso: string,
+): Promise<Set<string>> {
+  const { data } = await supabase
+    .from("invites")
+    .select("slot_id")
+    .eq("host_id", hostId)
+    .not("slot_id", "is", null)
+    .in("status", SLOT_ACTIVE_STATUSES as unknown as string[])
+    .gt("expires_at", nowIso);
+  return new Set((data ?? []).map((r) => r.slot_id as string));
+}
 
 // The signed-in host's own future slots, each flagged `taken` when an
 // active invite holds it — drives the availability editor. Two reads
@@ -134,13 +165,7 @@ export async function listMySlots(): Promise<AvailabilitySlot[]> {
     .order("starts_at", { ascending: true });
   if (error) return [];
 
-  const { data: held } = await supabase
-    .from("invites")
-    .select("slot_id")
-    .eq("host_id", user.id)
-    .not("slot_id", "is", null)
-    .in("status", SLOT_ACTIVE_STATUSES as unknown as string[]);
-  const takenIds = new Set((held ?? []).map((r) => r.slot_id as string));
+  const takenIds = await takenSlotIds(supabase, user.id, nowIso);
 
   return (slots ?? []).map((s) => ({
     id: s.id as string,
@@ -167,13 +192,7 @@ export async function listAvailableSlots(
     .order("starts_at", { ascending: true });
   if (error) return [];
 
-  const { data: held } = await supabase
-    .from("invites")
-    .select("slot_id")
-    .eq("host_id", hostId)
-    .not("slot_id", "is", null)
-    .in("status", SLOT_ACTIVE_STATUSES as unknown as string[]);
-  const takenIds = new Set((held ?? []).map((r) => r.slot_id as string));
+  const takenIds = await takenSlotIds(supabase, hostId, nowIso);
 
   // Presence binding (read side): hide any slot that falls after the host's
   // departure date so shortening a stay cleans up the visitor's booking UI
@@ -309,67 +328,20 @@ export async function countMyPendingInvites(): Promise<number> {
   return count ?? 0;
 }
 
-// Latest published cards for the home page "Latest cards" strip. Anonymous
-// read — relies on the public profiles_read RLS. Filters out the auto-
-// generated `user_<hex>` skeletons and rows with no bio AND no city (no
-// surface area worth showing). Capped low because the home is a render-
-// hot path; loosen via `limit` if Phase 2 ever wants a real feed.
-export type LatestCard = {
-  handle: string;
-  displayName: string;
-  city: string | null;
-  status: string | null;
-  avatarUrl: string | null;
-  // Surfaced on the strip as small emoji chips — gives each tile a
-  // hint of personality without crowding the bigger /[handle] card.
-  coffeeChatKinds: CoffeeChatKind[];
-};
-
+// Trigger-generated skeleton handles ("user_<8 hex>") — accounts that
+// signed in but never picked a real handle.
 const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 
-export async function listLatestCards(limit = 5): Promise<LatestCard[]> {
-  if (!isAuthConfigured()) return [];
-  const supabase = await createSupabaseServer();
-  // Over-fetch a bit so we can filter auto-handles + empty cards client-
-  // side without coming back short of `limit`.
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("handle, bio, city, avatar_url, coffee_chat_kinds, created_at")
-    .order("created_at", { ascending: false })
-    .limit(limit * 3);
-  if (error) return [];
-  const rows = data ?? [];
-  return rows
-    .filter((r) => {
-      const handle = r.handle as string;
-      if (AUTO_HANDLE.test(handle)) return false;
-      // Empty cards (no city, no status) read as "ghost" rows on the feed
-      // — skip them so the strip is always real signal.
-      if (!r.bio && !r.city) return false;
-      return true;
-    })
-    .slice(0, limit)
-    .map((r) => ({
-      handle: r.handle as string,
-      displayName: deriveDisplayName(r.handle as string),
-      city: (r.city as string | null) ?? null,
-      status: (r.bio as string | null) ?? null,
-      avatarUrl: (r.avatar_url as string | null) ?? null,
-      coffeeChatKinds: parseChatKinds(r.coffee_chat_kinds),
-    }));
-}
-
 // Count of "real" published cards for the home-page social-proof line.
-// Same intent as listLatestCards' filter — drop the auto skeletons and
-// rows with no bio AND no city — but as a head-only exact count so we
-// never pull rows just to size a number. Anonymous read via the public
-// profiles_read RLS; runs under the home's hourly ISR, not per request.
+// Drops the auto skeletons and rows with no bio AND no city, as a head-only
+// exact count so we never pull rows just to size a number. Anonymous read
+// via the public profiles_read RLS; runs under the home's hourly ISR, not
+// per request.
 //
-// Reuses AUTO_HANDLE.source via the `match` operator (PostgREST `~`,
-// POSIX regex) so the skeleton-handle definition stays byte-identical to
-// listLatestCards' client-side filter — a plain `like 'user\_%'` would
-// also drop legitimately-chosen handles like `user_smith`, which the
-// exact `^user_[a-f0-9]{8}$` shape leaves in.
+// Uses AUTO_HANDLE.source via the `match` operator (PostgREST `~`, POSIX
+// regex) rather than a plain `like 'user\_%'`, which would also drop
+// legitimately-chosen handles like `user_smith`; the exact
+// `^user_[a-f0-9]{8}$` shape leaves those in.
 export async function countPublishedCards(): Promise<number> {
   if (!isAuthConfigured()) return 0;
   const supabase = await createSupabaseServer();

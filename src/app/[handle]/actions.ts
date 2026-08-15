@@ -169,6 +169,26 @@ export async function createInvite(
     return { status: "error", message: "You can't invite yourself." };
   }
 
+  // v0.18 — retire this host's timed-out invites before we try to write.
+  // `invites_slot_active_idx` keys off `status` alone (it can't call now()
+  // — a partial index predicate has to be immutable), so a row that's past
+  // its TTL still occupies its slot as far as the index is concerned. The
+  // read paths already ignore such rows, which means the visitor is being
+  // offered a slot the insert below would then reject with a bogus "that
+  // time was just taken". Sweeping first keeps the index's idea of "active"
+  // in step with everyone else's. Scoped to this host and idempotent —
+  // re-running matches nothing. Best-effort: a failure here just means the
+  // visitor may see the 23505 message, not a lost invite.
+  const { error: sweepErr } = await admin
+    .from("invites")
+    .update({ status: "expired" })
+    .eq("host_id", hostId)
+    .in("status", ["unconfirmed", "pending"])
+    .lt("expires_at", new Date().toISOString());
+  if (sweepErr) {
+    console.warn("[invite] expiry sweep failed (non-fatal)", sweepErr);
+  }
+
   // Snapshot the visitor's locale on the row — the host's accept/decline
   // happens later and the cookie/header chain is gone by then. Without
   // this, follow-up emails to the visitor would fall back to English

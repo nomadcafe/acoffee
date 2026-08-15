@@ -174,7 +174,7 @@ export default async function CardOg({
           }}
         >
           {card.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <img
               src={card.avatarUrl}
               alt=""

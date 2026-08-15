@@ -62,8 +62,13 @@ export function Avatar({
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
 
   if (src && failedSrc !== src) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // Plain <img>, not next/image: avatars are user-uploaded Supabase
+      // storage URLs (no remote pattern configured for them), already
+      // resized to 256×256 on upload, and this needs the onError fallback
+      // below. The directive has to sit on the element — on the `return`
+      // line above it lands outside the JSX and reports as unused.
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={`${displayName}'s avatar`}

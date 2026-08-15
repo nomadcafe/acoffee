@@ -5,6 +5,7 @@ import { ConfirmEventBeacon } from "@/components/ConfirmEventBeacon";
 import { emailNewInvite } from "@/lib/email";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
+import { deriveDisplayName } from "@/lib/profile";
 import { createSupabaseAdmin } from "@/lib/supabase/server";
 import { type CoffeeChatKind } from "@/lib/types";
 
@@ -51,11 +52,7 @@ async function processConfirm(token: string): Promise<Outcome> {
     .eq("id", hostId)
     .maybeSingle();
   const hostHandle = (host?.handle as string | undefined) ?? "the host";
-  const hostDisplayName = hostHandle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
+  const hostDisplayName = deriveDisplayName(hostHandle);
   const hostLocaleRaw = host?.locale as string | null | undefined;
   const hostLocale: Locale =
     hostLocaleRaw === "zh" || hostLocaleRaw === "ja" ? hostLocaleRaw : "en";

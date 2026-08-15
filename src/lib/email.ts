@@ -42,10 +42,6 @@ function pickBackend(): Backend | null {
   return null;
 }
 
-export function isEmailConfigured(): boolean {
-  return !!process.env.EMAIL_FROM && pickBackend() !== null;
-}
-
 let resendClient: Resend | null = null;
 function getResend(): Resend {
   if (!resendClient) resendClient = new Resend(process.env.RESEND_API_KEY!);
@@ -242,38 +238,6 @@ export async function emailInviteConfirm(args: {
 <p style="font-size:15px;margin:0 0 18px">${escapeHtml(tmpl(t(args.locale, "email.confirm.intro"), v))}</p>
 <p style="margin:0 0 24px"><a href="${confirmUrl}" style="display:inline-block;background:#b45309;color:#fff;padding:10px 18px;border-radius:14px;text-decoration:none;font-weight:500">${escapeHtml(t(args.locale, "email.confirm.cta"))} &rarr;</a></p>
 <p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; ${escapeHtml(t(args.locale, "email.confirm.disclaimer"))}</p>
-</body></html>`,
-  });
-}
-
-// Legacy: previously sent to the visitor right after submit. v0.8.5
-// replaced this with emailInviteConfirm (the click-to-confirm flow) —
-// kept exported so we don't break callers in a rollback window; new
-// code shouldn't reach for it.
-export async function emailInviteReceived(args: {
-  to: string;
-  requesterName: string;
-  hostDisplayName: string;
-  hostHandle: string;
-  locale: Locale;
-}) {
-  const cardUrl = `${siteUrl}/${args.hostHandle}`;
-  const v = { name: args.requesterName, host: args.hostDisplayName };
-  await sendEmail({
-    to: args.to,
-    subject: tmpl(t(args.locale, "email.received.subject"), v),
-    text:
-      `${tmpl(t(args.locale, "email.received.greeting"), v)}\n\n` +
-      `${tmpl(t(args.locale, "email.received.intro"), v)}\n\n` +
-      `${t(args.locale, "email.received.explanation")}\n\n` +
-      `${cardUrl}\n\n— ${siteName}`,
-    html: `<!doctype html>
-<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;color:#1a1a1a;line-height:1.55;max-width:540px;margin:0 auto;padding:24px">
-<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.received.greeting"), v))}</p>
-<p style="font-size:15px;margin:0 0 14px">${escapeHtml(tmpl(t(args.locale, "email.received.intro"), v))}</p>
-<p style="font-size:14px;color:#555;margin:0 0 18px">${escapeHtml(t(args.locale, "email.received.explanation"))}</p>
-<p style="margin:0 0 24px"><a href="${cardUrl}" style="color:#b45309">${escapeHtml(t(args.locale, "email.received.viewCard"))} &rarr;</a></p>
-<p style="font-size:12px;color:#888;border-top:1px dashed #ddd;padding-top:16px;margin:0">${siteName} &middot; ${escapeHtml(tmpl(t(args.locale, "email.received.disclaimer"), v))}</p>
 </body></html>`,
   });
 }

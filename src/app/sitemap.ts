@@ -76,15 +76,15 @@ async function fetchPublishedCards(): Promise<IndexableCard[]> {
   if (!isAuthConfigured()) return [];
   try {
     const supabase = await createSupabaseServer();
-    // Pull bio + city + contact channels so we can skip cards that have
+    // Pull bio + city + the has_contact flag so we can skip cards that have
     // no real content — auto-generated handles plus first-time users who
     // never filled anything past sign-in. Letting those into Google's
-    // index is worse than a smaller sitemap.
+    // index is worse than a smaller sitemap. (has_contact is the generated
+    // boolean, not the contact columns themselves — those are revoked from
+    // the anon role this client runs as. See schema_v18_1.sql.)
     const { data, error } = await supabase
       .from("profiles")
-      .select(
-        "handle, bio, city, telegram_handle, email_contact, created_at",
-      )
+      .select("handle, bio, city, has_contact, created_at")
       .order("created_at", { ascending: false })
       .limit(MAX_CARDS);
     if (error) return [];
@@ -97,7 +97,7 @@ async function fetchPublishedCards(): Promise<IndexableCard[]> {
         // city, AND at least one contact channel. Pure-handle skeletons
         // get filtered out.
         const hasSubstance = !!(r.bio || r.city);
-        const hasContact = !!r.telegram_handle || !!r.email_contact;
+        const hasContact = !!r.has_contact;
         return hasSubstance && hasContact;
       })
       .map((r) => ({

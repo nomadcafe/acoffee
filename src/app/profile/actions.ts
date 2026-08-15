@@ -18,9 +18,15 @@ import {
 } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
+import { deriveDisplayName } from "@/lib/profile";
 import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
 import { RESERVED_HANDLES } from "@/lib/reserved-handles";
-import { COFFEE_CHAT_KINDS, GENDERS, type SocialLink } from "@/lib/types";
+import {
+  COFFEE_CHAT_KINDS,
+  GENDERS,
+  SLOT_ACTIVE_STATUSES,
+  type SocialLink,
+} from "@/lib/types";
 import { validateSocialLinks } from "@/lib/socials";
 import { validateInterests } from "@/lib/interests";
 import {
@@ -678,18 +684,17 @@ async function decideInvite(
     ? invite.requester_locale
     : "en";
   if (next === "accepted") {
-    const { data: profile } = await supabase
+    // Service-role read: the contact columns are revoked from anon and
+    // authenticated (schema_v18_1.sql), so the request-scoped client can no
+    // longer see them. Scoped to `user.id`, which came from a validated JWT.
+    const { data: profile } = await createSupabaseAdmin()
       .from("profiles")
       .select("handle, telegram_handle, email_contact, timezone")
       .eq("id", user.id)
       .maybeSingle();
     if (profile) {
       const handle = profile.handle as string;
-      const displayName = handle
-        .split("_")
-        .filter(Boolean)
-        .map((p) => p[0].toUpperCase() + p.slice(1))
-        .join(" ");
+      const displayName = deriveDisplayName(handle);
       // If the visitor booked a slot, name the time (host tz, visitor
       // locale) in the accept email.
       const slotIso =
@@ -725,11 +730,7 @@ async function decideInvite(
       .eq("id", user.id)
       .maybeSingle();
     const handle = (profile?.handle as string | undefined) ?? "the host";
-    const displayName = handle
-      .split("_")
-      .filter(Boolean)
-      .map((p) => p[0].toUpperCase() + p.slice(1))
-      .join(" ");
+    const displayName = deriveDisplayName(handle);
     await emailInviteDeclined({
       to: invite.requester_email as string,
       requesterName: invite.requester_name as string,
@@ -819,7 +820,9 @@ export async function resendAcceptedContact(
     };
   }
 
-  const { data: profile } = await supabase
+  // Service-role read for the same reason as decideInvite's accept branch —
+  // the contact columns aren't readable by the request's own role.
+  const { data: profile } = await createSupabaseAdmin()
     .from("profiles")
     .select("handle, telegram_handle, email_contact, timezone")
     .eq("id", user.id)
@@ -828,11 +831,7 @@ export async function resendAcceptedContact(
     return { status: "error", message: "Your profile is missing." };
   }
   const handle = profile.handle as string;
-  const displayName = handle
-    .split("_")
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
+  const displayName = deriveDisplayName(handle);
   const requesterLocale = isInviteLocale(invite.requester_locale)
     ? invite.requester_locale
     : "en";
@@ -1031,13 +1030,17 @@ export async function removeSlot(slotId: string): Promise<SlotActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { status: "error", message: "Sign in to manage times." };
 
-  // Refuse if an active invite holds this slot — same status set as the
-  // availability filter. The host should decline that invite first.
+  // Refuse if a live invite holds this slot — same condition as the
+  // availability filter, TTL included. The host should decline that invite
+  // first. The `expires_at` half matters most here: without it a timed-out
+  // invite the host can't even see in their inbox would block this delete
+  // forever, leaving the slot permanently stuck.
   const { data: held } = await supabase
     .from("invites")
     .select("id")
     .eq("slot_id", slotId)
-    .in("status", ["unconfirmed", "pending", "accepted"])
+    .in("status", SLOT_ACTIVE_STATUSES as unknown as string[])
+    .gt("expires_at", new Date().toISOString())
     .limit(1);
   if (held && held.length > 0) {
     return {

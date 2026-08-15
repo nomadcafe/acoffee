@@ -122,6 +122,23 @@ export const INVITE_STATUSES = [
 ] as const;
 export type InviteStatus = (typeof INVITE_STATUSES)[number];
 
+// v16 — the statuses in which an invite "holds" its availability slot.
+// Mirrors the partial unique index `invites_slot_active_idx`.
+//
+// v0.18 — status alone is NOT the whole condition: a row in one of these
+// states that is past `expires_at` has no claim on the slot any more, and
+// every query using this set must pair it with `expires_at > now()`.
+// Without that pairing an `unconfirmed` invite the visitor never confirmed
+// held its slot forever — invisible in the host's inbox (which only lists
+// `pending`), unbookable by visitors, and undeletable by the host. Shared
+// from here so the read path, the host's editor, and removeSlot can't
+// drift apart again.
+export const SLOT_ACTIVE_STATUSES = [
+  "unconfirmed",
+  "pending",
+  "accepted",
+] as const satisfies readonly InviteStatus[];
+
 export type Invite = {
   id: string;
   hostId: string;

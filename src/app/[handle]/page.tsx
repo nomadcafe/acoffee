@@ -46,6 +46,15 @@ const AUTO_HANDLE = /^user_[a-f0-9]{8}$/;
 // the invite-then-email flow on accept is the only path to those values
 // now. A single `hasContact` boolean is enough for the UI to choose
 // between the invite form and the "no contact yet" empty state.
+//
+// v0.18 — that stripping used to be *only* here in TypeScript: the row was
+// fetched whole with the anon key and the contacts dropped in JS, so anyone
+// could re-issue the same PostgREST query themselves and read every user's
+// Telegram + email. The columns are now revoked from anon/authenticated
+// (schema_v18_1.sql) and this reads the generated `has_contact` boolean
+// instead. Nothing here should ever select the real contact columns again —
+// the only paths that read them are the owner's own edit form and the
+// accept-email composer, both via the service-role client.
 type PublicProfile = {
   id: string;
   handle: string;
@@ -89,7 +98,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, handle, bio, city, city_until, coffee_chat_kinds, gender, telegram_handle, email_contact, social_links, avatar_url, interests, scheduling_enabled, timezone, created_at, updated_at",
+      "id, handle, bio, city, city_until, coffee_chat_kinds, gender, has_contact, social_links, avatar_url, interests, scheduling_enabled, timezone, created_at, updated_at",
     )
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
@@ -107,7 +116,7 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
     gender: parseGender(data.gender),
     socialLinks: parseSocialLinks(data.social_links),
     interests: parseInterests(data.interests),
-    hasContact: !!(data.telegram_handle || data.email_contact),
+    hasContact: !!data.has_contact,
     avatarUrl: (data.avatar_url as string | null) ?? null,
     joinedAt: data.created_at as string,
     schedulingEnabled: !!data.scheduling_enabled,

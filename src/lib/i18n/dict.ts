@@ -163,11 +163,6 @@ export const en = {
   "invite.form.note": "No account needed — your email is just for the reply.",
 
   // InviteForm — sent state
-  "invite.sent.title": "Invite sent ✓",
-  "invite.sent.body":
-    "{name} will get your invite by email. We just sent you a confirmation too. If they accept, their contact channels land in your inbox; if not, you'll get a polite note.",
-  "invite.sent.ttl": "Pending invites expire after 7 days.",
-  "invite.sent.sendAnother": "Send another invite to {name} →",
 
   // Profile page header
   "profile.header.welcome.eyebrow": "Welcome to acoffee",
@@ -277,7 +272,6 @@ export const en = {
   "profile.save": "Save",
   "profile.save.continue": "Save & continue",
   "profile.save.pending": "Saving…",
-  "profile.save.saved": "Saved.",
 
   // LiveCardPreview
   "profile.preview.label": "Live preview",
@@ -311,7 +305,6 @@ export const en = {
   "share.copy.ariaCopied": "Card URL copied to clipboard",
   "share.live.announcement": "Card URL copied to clipboard.",
   "share.viewMyCard": "View my card",
-  "share.shareOnX": "Share on X",
   "share.native": "Share",
   "share.channelAria": "Share on {channel}",
 
@@ -382,14 +375,6 @@ export const en = {
 
   // Visitor-facing emails — sent in the locale the requester was
   // browsing in when they submitted the invite (stored on the row).
-  "email.received.subject": "We sent your coffee invite to {host}",
-  "email.received.greeting": "Hi {name},",
-  "email.received.intro": "Your invite to {host} is in their inbox.",
-  "email.received.explanation":
-    "They'll either accept — you'll get an email with their contact channels — or decline, in which case you'll get a polite note. Either way you'll hear back; if not, the invite expires after 7 days.",
-  "email.received.viewCard": "See their card",
-  "email.received.disclaimer":
-    "You're receiving this because you filled the invite form on {host}'s card.",
 
   "email.accepted.subject":
     "{host} said yes — here's how to reach them",
@@ -673,11 +658,6 @@ export const zh: Record<DictKey, string> = {
   "invite.form.submit.pending": "发送中…",
   "invite.form.note": "不需要账号——邮箱只是用来收回复。",
 
-  "invite.sent.title": "邀请已发送 ✓",
-  "invite.sent.body":
-    "{name} 会收到邀请邮件,我们也已经给你发了确认邮件。如果接受,他们的联系方式会发到你邮箱;如果不接受,你也会收到一封礼貌的回复。",
-  "invite.sent.ttl": "未处理的邀请 7 天后过期。",
-  "invite.sent.sendAnother": "再给 {name} 发一封邀请 →",
 
   "profile.header.welcome.eyebrow": "欢迎来到 acoffee",
   "profile.header.welcome.h1": "决定别人怎么看你。",
@@ -775,7 +755,6 @@ export const zh: Record<DictKey, string> = {
   "profile.save": "保存",
   "profile.save.continue": "保存并继续",
   "profile.save.pending": "保存中…",
-  "profile.save.saved": "已保存。",
 
   "profile.preview.label": "实时预览",
   "profile.preview.updates.pre": "随输入实时更新。访客看到的就是这个: ",
@@ -803,7 +782,6 @@ export const zh: Record<DictKey, string> = {
   "share.copy.ariaCopied": "名片 URL 已复制到剪贴板",
   "share.live.announcement": "名片 URL 已复制到剪贴板。",
   "share.viewMyCard": "查看我的名片",
-  "share.shareOnX": "分享到 X",
   "share.native": "分享",
   "share.channelAria": "分享到 {channel}",
 
@@ -859,14 +837,6 @@ export const zh: Record<DictKey, string> = {
 
   "share.tweet.text": "我的咖啡邀约页上线了——来约我喝咖啡吧 ☕",
 
-  "email.received.subject": "已把你给 {host} 的咖啡邀请发出",
-  "email.received.greeting": "{name} 你好,",
-  "email.received.intro": "你给 {host} 的邀请已经发到他们的收件箱了。",
-  "email.received.explanation":
-    "他们要么接受——你会收到一封带联系方式的邮件;要么拒绝,你会收到一封礼貌的回复。无论如何你都会有反馈;如果没有,邀请会在 7 天后过期。",
-  "email.received.viewCard": "看看他们的名片",
-  "email.received.disclaimer":
-    "你收到这封邮件,是因为你在 {host} 的名片上填了邀请表单。",
 
   "email.accepted.subject": "{host} 答应了——这是联系方式",
   "email.accepted.greeting": "{name} 你好,",
@@ -1121,11 +1091,6 @@ export const ja: Record<DictKey, string> = {
   "invite.form.submit.pending": "送信中…",
   "invite.form.note": "アカウント不要——メールは返信用にだけ使います。",
 
-  "invite.sent.title": "招待を送信しました ✓",
-  "invite.sent.body":
-    "{name} さんに招待メールが届きます。あなたにも確認メールを送りました。承認されれば連絡先がメールで届き、そうでなければ丁寧な返信が届きます。",
-  "invite.sent.ttl": "未処理の招待は 7 日後に期限切れになります。",
-  "invite.sent.sendAnother": "{name} さんにもう一通招待を送る →",
 
   "profile.header.welcome.eyebrow": "acoffee へようこそ",
   "profile.header.welcome.h1": "他の人にどう見られたいか決めよう。",
@@ -1229,7 +1194,6 @@ export const ja: Record<DictKey, string> = {
   "profile.save": "保存",
   "profile.save.continue": "保存して続行",
   "profile.save.pending": "保存中…",
-  "profile.save.saved": "保存しました。",
 
   "profile.preview.label": "ライブプレビュー",
   "profile.preview.updates.pre":
@@ -1261,7 +1225,6 @@ export const ja: Record<DictKey, string> = {
   "share.live.announcement":
     "カードの URL をクリップボードにコピーしました。",
   "share.viewMyCard": "自分のカードを見る",
-  "share.shareOnX": "X でシェア",
   "share.native": "シェア",
   "share.channelAria": "{channel} でシェア",
 
@@ -1321,16 +1284,6 @@ export const ja: Record<DictKey, string> = {
   "share.tweet.text":
     "私のコーヒーチャットページが公開されました——コーヒーに誘ってください ☕",
 
-  "email.received.subject":
-    "{host} さんへのコーヒー招待を送信しました",
-  "email.received.greeting": "{name} さん、",
-  "email.received.intro":
-    "{host} さんに招待が届きました。",
-  "email.received.explanation":
-    "承認されれば連絡先が記載されたメールが届きます。辞退の場合は丁寧な返信が届きます。どちらにしても返事はあります;ない場合、招待は 7 日後に期限切れになります。",
-  "email.received.viewCard": "カードを見る",
-  "email.received.disclaimer":
-    "{host} さんのカードの招待フォームからメールアドレスを入力したのでこのメールが届いています。",
 
   "email.accepted.subject":
     "{host} さんが承認しました——連絡方法はこちら",
