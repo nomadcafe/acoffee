@@ -139,6 +139,24 @@ export const SLOT_ACTIVE_STATUSES = [
   "accepted",
 ] as const satisfies readonly InviteStatus[];
 
+// Two different clocks, deliberately, both stored in the one `expires_at`
+// column and swapped at the moment the visitor confirms.
+//
+// An unconfirmed invite is a claim nobody has verified yet: it holds one of
+// the host's slots while contributing nothing. In the normal case the
+// visitor clicks the link in the email within a minute or two, so an hour is
+// already generous — and it caps how long a bogus address (typo, or someone
+// submitting deliberately) can sit on a time nobody can book. If the copy
+// here changes, the three strings that quote the window change with it:
+// invite.sent.check.ttl, email.confirm.disclaimer, confirm.expired.body.
+export const UNCONFIRMED_INVITE_TTL_MS = 60 * 60 * 1000;
+
+// Once confirmed, the clock restarts and measures something else entirely:
+// how long the host has to accept or decline. That's a human on their own
+// schedule, so it stays a full week — counted from the confirmation, not
+// from the visitor's submit, so a slow confirm never eats into it.
+export const PENDING_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export type Invite = {
   id: string;
   hostId: string;

@@ -7,7 +7,7 @@ import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { deriveDisplayName } from "@/lib/profile";
 import { createSupabaseAdmin } from "@/lib/supabase/server";
-import { type CoffeeChatKind } from "@/lib/types";
+import { PENDING_INVITE_TTL_MS, type CoffeeChatKind } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +27,16 @@ export const metadata: Metadata = {
 // idempotent. If we ever see accidental confirms via prefetch we'll
 // switch to a button-and-form pattern.
 type Outcome =
-  | { kind: "success"; hostHandle: string; hostDisplayName: string }
-  | { kind: "alreadyDone"; hostHandle: string; hostDisplayName: string }
-  | { kind: "expired" }
+  | { kind: "success"; hostHandle: string | null; hostDisplayName: string }
+  | {
+      kind: "alreadyDone";
+      hostHandle: string | null;
+      hostDisplayName: string;
+    }
+  // Carries the host too: with a one-hour confirm window this page is
+  // reachable by ordinary people who read their email late, so it has to
+  // offer a way back to the card rather than dead-ending on "back home".
+  | { kind: "expired"; hostHandle: string | null; hostDisplayName: string }
   | { kind: "notFound" };
 
 async function processConfirm(token: string): Promise<Outcome> {
@@ -51,8 +58,11 @@ async function processConfirm(token: string): Promise<Outcome> {
     .select("handle, locale")
     .eq("id", hostId)
     .maybeSingle();
-  const hostHandle = (host?.handle as string | undefined) ?? "the host";
-  const hostDisplayName = deriveDisplayName(hostHandle);
+  // Null when the profile row somehow isn't there. The FK plus ON DELETE
+  // CASCADE make that near-impossible, but the display fallback must not
+  // leak into an href — "/the host" is a 404 dressed up as a call to action.
+  const hostHandle = (host?.handle as string | undefined) ?? null;
+  const hostDisplayName = hostHandle ? deriveDisplayName(hostHandle) : "the host";
   const hostLocaleRaw = host?.locale as string | null | undefined;
   const hostLocale: Locale =
     hostLocaleRaw === "zh" || hostLocaleRaw === "ja" ? hostLocaleRaw : "en";
@@ -64,7 +74,7 @@ async function processConfirm(token: string): Promise<Outcome> {
   }
 
   if (new Date(invite.expires_at as string) < new Date()) {
-    return { kind: "expired" };
+    return { kind: "expired", hostHandle, hostDisplayName };
   }
 
   // Guard the promotion on the row still being `unconfirmed` so two
@@ -78,6 +88,11 @@ async function processConfirm(token: string): Promise<Outcome> {
     .update({
       status: "pending",
       confirmed_at: new Date().toISOString(),
+      // Restart the clock. Up to here expires_at was the one-hour window for
+      // the visitor to click this link; from here it's the host's week to
+      // decide. Counting it from now rather than from the submit means a
+      // visitor who confirms at minute 59 doesn't cost the host an hour.
+      expires_at: new Date(Date.now() + PENDING_INVITE_TTL_MS).toISOString(),
     })
     .eq("id", invite.id as string)
     .eq("status", "unconfirmed")
@@ -106,7 +121,7 @@ async function processConfirm(token: string): Promise<Outcome> {
     try {
       const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
       const hostNotifyEmail = hostAuth.user?.email ?? null;
-      if (hostNotifyEmail) {
+      if (hostNotifyEmail && hostHandle) {
         await emailNewInvite({
           to: hostNotifyEmail,
           hostHandle,
@@ -167,15 +182,17 @@ function Body({
             host: outcome.hostDisplayName,
           })}
           primary={
-            <Link
-              href={`/${outcome.hostHandle}`}
-              className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
-            >
-              {tmpl(t(locale, "confirm.success.viewCard"), {
-                host: outcome.hostDisplayName,
-              })}
-              <span aria-hidden>→</span>
-            </Link>
+            outcome.hostHandle ? (
+              <Link
+                href={`/${outcome.hostHandle}`}
+                className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
+              >
+                {tmpl(t(locale, "confirm.success.viewCard"), {
+                  host: outcome.hostDisplayName,
+                })}
+                <span aria-hidden>→</span>
+              </Link>
+            ) : undefined
           }
           backLabel={t(locale, "confirm.backHome")}
           homeHref={homeHref}
@@ -204,6 +221,19 @@ function Body({
         tone="muted"
         title={t(locale, "confirm.expired.title")}
         body={t(locale, "confirm.expired.body")}
+        primary={
+          outcome.hostHandle ? (
+            <Link
+              href={`/${outcome.hostHandle}`}
+              className="inline-flex items-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md"
+            >
+              {tmpl(t(locale, "confirm.expired.sendAnother"), {
+                host: outcome.hostDisplayName,
+              })}
+              <span aria-hidden>→</span>
+            </Link>
+          ) : undefined
+        }
         backLabel={t(locale, "confirm.backHome")}
         homeHref={homeHref}
       />

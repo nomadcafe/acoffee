@@ -447,7 +447,7 @@ export const en = {
     "Click the link to send your coffee invite to {host}. Until you confirm, the invite is on hold — they won't see it.",
   "email.confirm.cta": "Confirm and send",
   "email.confirm.disclaimer":
-    "If you didn't mean to do this, just ignore this email — nothing happens. The link expires in 7 days.",
+    "If you didn't mean to do this, just ignore this email — nothing happens. The link expires in 60 minutes.",
 
   // InviteForm — success state after submit. Now points the visitor
   // back to their inbox instead of claiming the host already has the
@@ -455,7 +455,8 @@ export const en = {
   "invite.sent.check.title": "Check your email",
   "invite.sent.check.body":
     "We sent a confirmation link to {email}. Click it to send your invite to {name}. Nothing reaches them until you do.",
-  "invite.sent.check.ttl": "Unconfirmed invites expire after 7 days.",
+  "invite.sent.check.ttl":
+    "The confirmation link expires in 60 minutes — confirm now and it's on its way.",
   "invite.sent.check.sendAnother": "Use a different email →",
 
   // Signed-in shortcut — visitor was already on acoffee, we skipped
@@ -492,7 +493,8 @@ export const en = {
     "Looks like you confirmed this one already, or {host} has decided. Check your email for follow-ups.",
   "confirm.expired.title": "This link expired",
   "confirm.expired.body":
-    "Confirmation links are valid for 7 days. Send a fresh invite if you still want to reach out.",
+    "Confirmation links are only good for 60 minutes. Send a fresh invite and confirm it straight away.",
+  "confirm.expired.sendAnother": "Send {host} a new invite",
   "confirm.notFound.title": "Invite not found",
   "confirm.notFound.body":
     "This link is invalid or has already been used.",
@@ -891,12 +893,12 @@ export const zh: Record<DictKey, string> = {
     "点击链接把你的咖啡邀请发给 {host}。在你确认之前,邀请处于暂停状态——他们看不到。",
   "email.confirm.cta": "确认并发送",
   "email.confirm.disclaimer":
-    "如果不是你本人操作,忽略这封邮件即可——什么都不会发生。链接 7 天后过期。",
+    "如果不是你本人操作,忽略这封邮件即可——什么都不会发生。链接 60 分钟后过期。",
 
   "invite.sent.check.title": "查收你的邮箱",
   "invite.sent.check.body":
     "我们把确认链接发到了 {email}。点击链接才会把邀请发给 {name}。点击之前 host 看不到任何东西。",
-  "invite.sent.check.ttl": "未确认的邀请 7 天后过期。",
+  "invite.sent.check.ttl": "确认链接 60 分钟后过期,尽快点击就发出去了。",
   "invite.sent.check.sendAnother": "换一个邮箱 →",
 
   "invite.sent.direct.title": "已送达",
@@ -924,7 +926,8 @@ export const zh: Record<DictKey, string> = {
     "看起来你之前已经确认过,或 {host} 已经处理。查收你的邮箱看后续通知。",
   "confirm.expired.title": "这个链接过期了",
   "confirm.expired.body":
-    "确认链接 7 天有效。如果仍想联系,可以重新发一封邀请。",
+    "确认链接的有效期是 60 分钟。如果仍想联系,重新发一封邀请并立即确认。",
+  "confirm.expired.sendAnother": "重新邀请 {host}",
   "confirm.notFound.title": "邀请不存在",
   "confirm.notFound.body": "链接无效或已被使用。",
   "confirm.backHome": "回 acoffee",
@@ -1342,12 +1345,13 @@ export const ja: Record<DictKey, string> = {
     "リンクをクリックすると、{host} さんに招待が送信されます。確認するまで、招待は保留中です——相手には見えません。",
   "email.confirm.cta": "確認して送信",
   "email.confirm.disclaimer":
-    "心当たりがなければ、このメールは無視してください——何も起こりません。リンクは 7 日後に期限切れになります。",
+    "心当たりがなければ、このメールは無視してください——何も起こりません。リンクは 60 分後に期限切れになります。",
 
   "invite.sent.check.title": "メールを確認してください",
   "invite.sent.check.body":
     "{email} に確認リンクを送りました。クリックすると {name} さんに招待が届きます。クリックするまで相手には何も届きません。",
-  "invite.sent.check.ttl": "未確認の招待は 7 日後に期限切れになります。",
+  "invite.sent.check.ttl":
+    "確認リンクは 60 分後に期限切れになります。すぐにクリックすれば送信されます。",
   "invite.sent.check.sendAnother": "別のメールアドレスを使う →",
 
   "invite.sent.direct.title": "送信しました",
@@ -1376,7 +1380,8 @@ export const ja: Record<DictKey, string> = {
     "すでに確認済みか、{host} さんが対応しているようです。続きのメールはメールボックスを確認してください。",
   "confirm.expired.title": "このリンクは期限切れです",
   "confirm.expired.body":
-    "確認リンクは 7 日間有効です。まだ連絡したい場合は、改めて招待を送ってください。",
+    "確認リンクの有効期限は 60 分です。まだ連絡したい場合は、改めて招待を送ってすぐに確認してください。",
+  "confirm.expired.sendAnother": "{host} さんに改めて招待を送る",
   "confirm.notFound.title": "招待が見つかりません",
   "confirm.notFound.body":
     "リンクが無効か、すでに使用されています。",

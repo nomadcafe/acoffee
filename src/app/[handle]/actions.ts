@@ -14,7 +14,12 @@ import {
   createSupabaseServer,
   isAuthConfigured,
 } from "@/lib/supabase/server";
-import { COFFEE_CHAT_KINDS, type CoffeeChatKind } from "@/lib/types";
+import {
+  COFFEE_CHAT_KINDS,
+  PENDING_INVITE_TTL_MS,
+  UNCONFIRMED_INVITE_TTL_MS,
+  type CoffeeChatKind,
+} from "@/lib/types";
 
 // Visitor-side action backing the InviteForm on /[handle]. No auth required
 // — visitors don't have accounts. The server is the gateway: validates the
@@ -238,7 +243,15 @@ export async function createInvite(
   }
 
   const confirmToken = skipConfirm ? null : crypto.randomUUID();
+  // Write expires_at rather than leaning on the column default: an invite
+  // waiting on email confirmation gets an hour, one that's already pending
+  // gets the host's full week. See the constants for why they differ.
+  const expiresAt = new Date(
+    Date.now() +
+      (skipConfirm ? PENDING_INVITE_TTL_MS : UNCONFIRMED_INVITE_TTL_MS),
+  ).toISOString();
   const { error: insertErr } = await admin.from("invites").insert({
+    expires_at: expiresAt,
     host_id: hostId,
     requester_name: parsed.data.requesterName,
     requester_email: parsed.data.requesterEmail,
