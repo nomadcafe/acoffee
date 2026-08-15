@@ -214,6 +214,12 @@ export async function emailWelcome(args: {
 // see the invite until the visitor clicks the link, proving they actually
 // own the email address they typed. Bad emails bounce here, host inbox
 // stays clean.
+// Returns its SendResult, unlike the notification emails: this one is
+// load-bearing. Every other message in the app tells someone about a state
+// change that already happened, so a failed send is a degraded experience.
+// This message *is* the mechanism — the invite cannot leave `unconfirmed`
+// without the link inside it. Dropping the result on the floor means telling
+// the visitor "check your email" about an email that was never sent.
 export async function emailInviteConfirm(args: {
   to: string;
   requesterName: string;
@@ -221,10 +227,10 @@ export async function emailInviteConfirm(args: {
   hostHandle: string;
   confirmToken: string;
   locale: Locale;
-}) {
+}): Promise<SendResult> {
   const confirmUrl = `${siteUrl}/invite/confirm/${args.confirmToken}`;
   const v = { name: args.requesterName, host: args.hostDisplayName };
-  await sendEmail({
+  return sendEmail({
     to: args.to,
     subject: tmpl(t(args.locale, "email.confirm.subject"), v),
     text:

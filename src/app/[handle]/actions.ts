@@ -250,20 +250,25 @@ export async function createInvite(
     Date.now() +
       (skipConfirm ? PENDING_INVITE_TTL_MS : UNCONFIRMED_INVITE_TTL_MS),
   ).toISOString();
-  const { error: insertErr } = await admin.from("invites").insert({
-    expires_at: expiresAt,
-    host_id: hostId,
-    requester_name: parsed.data.requesterName,
-    requester_email: parsed.data.requesterEmail,
-    requester_topic: parsed.data.requesterTopic,
-    requested_kind: parsed.data.requestedKind,
-    preferred_time: parsed.data.preferredTime ?? null,
-    slot_id: parsed.data.slotId ?? null,
-    requester_locale: locale,
-    status: skipConfirm ? "pending" : "unconfirmed",
-    confirm_token: confirmToken,
-    confirmed_at: skipConfirm ? new Date().toISOString() : null,
-  });
+  const { data: inserted, error: insertErr } = await admin
+    .from("invites")
+    .insert({
+      expires_at: expiresAt,
+      host_id: hostId,
+      requester_name: parsed.data.requesterName,
+      requester_email: parsed.data.requesterEmail,
+      requester_topic: parsed.data.requesterTopic,
+      requested_kind: parsed.data.requestedKind,
+      preferred_time: parsed.data.preferredTime ?? null,
+      slot_id: parsed.data.slotId ?? null,
+      requester_locale: locale,
+      status: skipConfirm ? "pending" : "unconfirmed",
+      confirm_token: confirmToken,
+      confirmed_at: skipConfirm ? new Date().toISOString() : null,
+    })
+    // Needed to roll the row back if the confirm email doesn't make it out.
+    .select("id")
+    .maybeSingle();
   if (insertErr) {
     // 23505 = the partial unique index fired: another active invite already
     // holds this slot. Surface it as "just taken" so the visitor re-picks.
@@ -314,7 +319,7 @@ export async function createInvite(
     // the confirm link in this email first; that promotes the row to
     // `pending` and triggers emailNewInvite to the host. Fake emails
     // bounce here without disturbing anyone.
-    await emailInviteConfirm({
+    const sent = await emailInviteConfirm({
       to: parsed.data.requesterEmail,
       requesterName: parsed.data.requesterName,
       hostDisplayName,
@@ -323,6 +328,26 @@ export async function createInvite(
       confirmToken: confirmToken!,
       locale,
     });
+    if (!sent.ok) {
+      // Without that email the row is inert — there's no other way to reach
+      // the confirm link. Worse, it sits on the visitor's chosen slot for the
+      // next hour, so their retry would collide with their own dead attempt
+      // and get told "that time was just taken". Roll it back and say what
+      // actually happened instead of "check your email" about an email that
+      // doesn't exist. Provider outages and send-rate limits both land here.
+      console.error("[invite] confirm email failed — invite rolled back", {
+        handle: hostHandle,
+        error: sent.error,
+      });
+      if (inserted?.id) {
+        await admin.from("invites").delete().eq("id", inserted.id as string);
+      }
+      return {
+        status: "error",
+        message:
+          "We couldn't send the confirmation email — nothing was submitted. Check the address and try again.",
+      };
+    }
   }
 
   // Revalidate the host's profile so the new pending invite shows up in

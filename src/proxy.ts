@@ -34,6 +34,18 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname === "/" &&
     request.nextUrl.searchParams.has("code")
   ) {
+    // Loud on purpose. This exact misconfiguration silently dropped 10 of 14
+    // magic-link sign-ins over several weeks — every one of them a person who
+    // clicked the link — and went unnoticed because the failure looked
+    // identical to "never opened the email" from every angle we had. The
+    // redirect below rescues the request, which is precisely why it needs to
+    // announce itself: a working belt is indistinguishable from a fixed
+    // config unless it says something.
+    console.warn(
+      "[proxy] magic link landed on / instead of /auth/callback — add " +
+        "<site>/auth/callback to Supabase → Authentication → URL Configuration " +
+        "→ Redirect URLs. Forwarding as a fallback.",
+    );
     const callback = request.nextUrl.clone();
     callback.pathname = "/auth/callback";
     return NextResponse.redirect(callback);
