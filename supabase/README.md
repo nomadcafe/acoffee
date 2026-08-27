@@ -11,20 +11,29 @@ keeping each change in its own file "lets us roll forward without rewriting
 the originals". A file that creates a table which a later file drops stays
 exactly as it was; read the chain, or read the summary below.
 
+**`schema_current.sql` is the exception**: one unnumbered file that creates
+the end state directly, for bootstrapping an empty project. It is rewritten
+in place whenever a numbered file lands. It is *not* a migration — every
+statement is `if not exists`, so against a database that already has these
+tables it skips them wholesale, missing columns included.
+
 ## What actually exists today
 
-Three tables, all with RLS enabled:
+Four tables, all with RLS enabled:
 
 | Table | Purpose | RLS shape |
 |---|---|---|
 | `profiles` | one row per auth user; the card | public read (column-restricted), owner writes |
 | `invites` | visitor → host coffee requests | host reads/updates own; public insert |
 | `availability_slots` | host's opt-in bookable times | public read, owner insert/delete |
+| `rate_limit_hits` | one row per throttled request | RLS on with **no policies** — service role only |
 
 Plus:
 
 - `handle_new_user()` trigger on `auth.users` — creates the profile row with a
   `user_<8 hex>` placeholder handle.
+- `check_rate_limit(key, windows)` — the sliding-window check behind
+  `rate_limit_hits`; see `schema_v19.sql`.
 - `avatars` storage bucket (public read, owner writes) — see `schema_v07_1.sql`.
 
 Everything from the pre-Card product is gone: `pins`, `subscribers` (Phase 0),
@@ -36,7 +45,14 @@ and v0.7 leaves two anon-readable-and-writable tables holding emails and IPs.
 
 ## Bootstrapping a fresh database
 
-Run every file in this order — no skipping, no stopping early:
+Run `schema_current.sql`. That's the whole procedure.
+
+Replaying the chain also works and is the only way to see how the schema got
+here, but it is the worse option for a new project: every file has to run, in
+order, with no stopping. `schema.sql` creates `pins` and `subscribers`
+**without RLS**, holding emails and IP addresses, and nothing drops them until
+`schema_v07.sql` six files later — so a bootstrap abandoned halfway leaves two
+world-readable, world-writable tables behind. If you replay it anyway:
 
 ```
 schema.sql
@@ -47,10 +63,18 @@ schema_v08_4.sql     schema_v08_5.sql
 schema_v09.sql  …  schema_v17.sql
 schema_v18.sql
 schema_v18_1.sql
+schema_v19.sql
 ```
 
 `schema_v18_1.sql` goes last, and on an *existing* deployment it goes after the
 app code that matches it — see below.
+
+## Migrating an existing database
+
+The numbered chain, and only the numbered chain. Apply whichever files came
+after the last one this database has seen. A new change is still a new
+numbered file — plus the matching edit to `schema_current.sql`, so the two
+never disagree.
 
 ## Standing rules
 
@@ -65,6 +89,12 @@ access the running code still depends on (v0.18 is the example), the additive
 half ships first, then the code, then the restricting half. Each such file
 says so in its header.
 
+**`rate_limit_hits` has no policies, and that is the point.** An empty policy
+set under RLS denies everything to `anon` and `authenticated`; only the service
+role (which bypasses RLS) reaches it. The keys stored there are IP addresses and
+email addresses, so a policy that made it readable would be a leak, not a
+feature. `check_rate_limit` is `security definer` for the same reason.
+
 **The committed files can lag production.** Changes have been applied straight
 to the dashboard without a migration before now — the v0.12 `mode` →
 `requested_kind` change shipped that way and was only reconciled in v0.15.
@@ -75,7 +105,7 @@ writes (`src/lib/auth-queries.ts`, `src/app/[handle]/actions.ts`,
 ## Verifying a database matches
 
 ```sql
--- Every public table and whether RLS is on. Expect exactly the three above.
+-- Every public table and whether RLS is on. Expect exactly the four above.
 select c.relname as table_name,
        c.relrowsecurity as rls_enabled,
        (select count(*) from pg_policies p
@@ -91,4 +121,10 @@ select has_table_privilege ('anon', 'public.profiles', 'select')                
        has_column_privilege('anon', 'public.profiles', 'telegram_handle', 'select') as telegram,      -- false
        has_column_privilege('anon', 'public.profiles', 'has_contact',     'select') as has_contact,   -- true
        has_column_privilege('anon', 'public.profiles', 'handle',          'select') as handle;        -- true
+
+-- Durable rate limiting is live (v0.19). Without it the app still runs — the
+-- limiter silently falls back to its per-instance in-memory window and logs
+-- "[rate-limit] durable check unavailable" once per process.
+select public.check_rate_limit('probe:readme', '[{"seconds":60,"max":2}]');  -- {"allowed": true, …}
+delete from public.rate_limit_hits where key = 'probe:readme';
 ```
