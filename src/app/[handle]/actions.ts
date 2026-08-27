@@ -196,6 +196,74 @@ export async function createInvite(
     };
   }
 
+  // Per-recipient limit — the one the CAPTCHA and the per-IP window can't
+  // cover between them. Both of those count the *sender*, so a proxy pool
+  // rotating IPs (and solving a challenge each time, which is a purchasable
+  // service) can point an unbounded number of confirm emails at one inbox.
+  // Nothing was counting how much mail a single address had been sent.
+  //
+  // Anonymous path only: it's the sole branch that mails an address the
+  // submitter typed. On the signed-in path the mail goes to the host, and
+  // the address on the form is the visitor's own verified one.
+  //
+  // 5/hour, 12/day. Well above a real visitor — the per-IP window already
+  // caps them at 10/hour, and inviting a dozen different hosts in one day
+  // is enthusiastic, not typical — and far below "usable for flooding an
+  // inbox". Keyed on the address as typed (lowercased), matching
+  // signin:email:; it's what makes an incident greppable in the table.
+  if (!skipConfirm) {
+    const toKey = parsed.data.requesterEmail.toLowerCase();
+    const toLimit = await checkRateLimitDurable(`invite:to:${toKey}`, [
+      { max: 5, windowMs: 60 * 60 * 1000 },
+      { max: 12, windowMs: 24 * 60 * 60 * 1000 },
+    ]);
+    if (!toLimit.allowed) {
+      console.warn("[invite] recipient rate-limited", {
+        ip,
+        handle: parsed.data.handle,
+        retryAfterSec: toLimit.retryAfterSec,
+      });
+      const mins = Math.max(1, Math.ceil(toLimit.retryAfterSec / 60));
+      return {
+        status: "error",
+        message: `That email address has been used for a lot of invites lately. Try again in ${mins} min${mins === 1 ? "" : "s"}.`,
+      };
+    }
+  }
+
+  // Global ceiling. Everything above is per-something, so nothing bounded
+  // the total — and a sending domain's reputation is an aggregate. This is
+  // a circuit breaker, not a throttle: at ~7 invites all-time, 60/hour is
+  // roughly a hundred times normal, so tripping it doesn't mean "busy", it
+  // means something is wrong and the right outcome is to stop sending
+  // until a human looks. Hence console.error, not warn.
+  //
+  // Checked LAST on purpose. A hit is recorded only when a call is allowed,
+  // so a request already rejected above never touches this counter — which
+  // is what stops the ceiling itself from becoming the attack: burn 60
+  // rejected submissions an hour and nobody could invite anyone.
+  //
+  // The advisory lock in check_rate_limit is per-key, so this one key
+  // serialises every invite submission. At this volume that's free; if
+  // invites ever get busy enough for it to matter, that's the moment to
+  // replace the ceiling with something sampled rather than exact.
+  const globalLimit = await checkRateLimitDurable("invite:global", [
+    { max: 60, windowMs: 60 * 60 * 1000 },
+    { max: 300, windowMs: 24 * 60 * 60 * 1000 },
+  ]);
+  if (!globalLimit.allowed) {
+    console.error("[invite] GLOBAL ceiling hit — invites paused", {
+      ip,
+      handle: parsed.data.handle,
+      retryAfterSec: globalLimit.retryAfterSec,
+    });
+    return {
+      status: "error",
+      message:
+        "Invites are paused for a moment while we catch up. Please try again shortly.",
+    };
+  }
+
   // Admin client — bypasses RLS for the host lookup + insert. The public
   // INSERT policy would work too, but going through admin lets us read the
   // host's email + handle in the same query without exposing them in a

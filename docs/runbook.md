@@ -158,3 +158,64 @@ select u.email, i.provider, u.created_at, u.email_confirmed_at, u.last_sign_in_a
 Delete the test account afterwards from `/profile` (it goes through
 `deleteAccount`, which removes the auth user, the profile row, and the
 avatar) so it stays out of the numbers in §1.
+
+## 6. Is anything being throttled?
+
+`rate_limit_hits` is a live record of what the limiter has been counting, and
+the key prefix says which control fired. Unlike everything else in this file
+it answers a question about *right now*, so it's the first place to look when
+someone reports "it says I'm sending too many".
+
+```sql
+select split_part(key, ':', 1) || ':' || split_part(key, ':', 2) as control,
+       count(*)                                                  as hits,
+       count(distinct key)                                       as distinct_keys,
+       max(hit_at)                                               as latest
+  from rate_limit_hits
+ where hit_at > now() - interval '24 hours'
+ group by 1
+ order by hits desc;
+```
+
+Prefixes: `invite:<ip>` (per-IP submissions), `invite:to:<email>` (per
+recipient), `invite:global` (the ceiling), `signin:ip:` / `signin:email:`.
+An empty table after real traffic means the app never reached the RPC — check
+the Vercel logs for `[rate-limit] durable check unavailable`, which is emitted
+once per process when the durable check falls back to the in-memory window.
+
+Rows live for two days, so this is a rolling window, not history. Nothing
+here counts *rejected* attempts — a hit is recorded only when a call is
+allowed — so these numbers are legitimate-looking traffic, not attacks. The
+rejections are in the Vercel logs:
+
+```
+[invite] rate-limited                    -- per-IP window
+[invite] recipient rate-limited          -- one address being mailed a lot
+[invite] captcha rejected                -- token missing, expired, or refused
+[invite] GLOBAL ceiling hit              -- 60/hour of invites got through
+```
+
+The last one should never appear. At the §1 baseline it is roughly a hundred
+times normal volume, so it means either something is very wrong or the
+product got very popular in one afternoon; either way invites are paused
+until the window rolls and someone should look.
+
+Who is being hit hardest, when one of those warnings is showing up:
+
+```sql
+select key, count(*) as hits, min(hit_at) as first_seen, max(hit_at) as last_seen
+  from rate_limit_hits
+ where hit_at > now() - interval '6 hours'
+ group by key
+ having count(*) > 3
+ order by hits desc
+ limit 20;
+```
+
+To lift a block for one caller (a real person caught by a shared office IP,
+say) delete their rows — the window is computed from what's in the table, so
+this takes effect immediately:
+
+```sql
+delete from rate_limit_hits where key = 'invite:203.0.113.7';
+```
