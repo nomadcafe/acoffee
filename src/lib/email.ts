@@ -126,7 +126,17 @@ function altBackend(primary: Backend): Backend | null {
   return process.env.SMTP_HOST ? "smtp" : null;
 }
 
-async function sendEmail(opts: EmailPayload): Promise<SendResult> {
+async function sendEmail(raw: EmailPayload): Promise<SendResult> {
+  // A subject is a mail *header*, and several of ours interpolate names the
+  // visitor typed. Neither backend is known to be injectable — Resend takes
+  // JSON, nodemailer MIME-encodes what it's given — but "the library
+  // probably handles it" is not where header injection should be caught, and
+  // a subject can't legitimately contain a newline anyway. Collapse them
+  // here, once, rather than at each of the five call sites.
+  const opts: EmailPayload = {
+    ...raw,
+    subject: raw.subject.replace(/[\r\n]+/g, " ").trim(),
+  };
   const from = process.env.EMAIL_FROM;
   const backend = pickBackend();
   if (!from || !backend) {
