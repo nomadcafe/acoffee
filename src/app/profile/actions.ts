@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -380,13 +381,20 @@ export async function updateProfile(
   revalidatePath("/", "layout"); // SiteNav uses handle, lives in layout.
 
   if (isOnboardingCompletion && user.email) {
-    // Fire-and-forget — never throw back into the form. Failures land in
-    // Vercel logs via the email helper's catch. Locale tracks the user's
-    // current browsing language at the moment they finished onboarding.
-    await emailWelcome({
-      to: user.email,
-      handle: parsed.data.handle,
-      locale,
+    // Genuinely fire-and-forget: scheduled with after() so the provider
+    // round-trip runs once the response has flushed instead of sitting in
+    // the path of the user's Save. Failures land in Vercel logs via the
+    // email helper's catch — they must never throw back into the form.
+    // Locale tracks the user's browsing language at the moment they
+    // finished onboarding.
+    const welcomeEmail = user.email;
+    const welcomeHandle = parsed.data.handle;
+    after(async () => {
+      await emailWelcome({
+        to: welcomeEmail,
+        handle: welcomeHandle,
+        locale,
+      });
     });
   }
 
@@ -403,8 +411,9 @@ export async function updateProfile(
   // Returning-user save: honour any explicit `after` (used by other entry
   // points that still want a custom destination). Otherwise stay on
   // /profile so the share panel + form re-render with the new state.
-  const after = safeAfter(formData.get("after"));
-  if (after) redirect(after);
+  // `afterPath`, not `after` — the latter is now Next's after() import.
+  const afterPath = safeAfter(formData.get("after"));
+  if (afterPath) redirect(afterPath);
 
   return { status: "saved", message: "Saved." };
 }

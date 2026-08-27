@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { after } from "next/server";
 import {
   SLOT_ACTIVE_STATUSES,
   type AvailabilitySlot,
@@ -271,8 +272,15 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
   // updated in the background so the DB column matches what we showed
   // the user. Idempotent — re-running the WHERE clause would match
   // nothing because the rows are no longer pending. RLS lets the host
-  // update their own rows (invites_update_own). Fire-and-forget; an
-  // error here just means the next read will retry the sweep.
+  // update their own rows (invites_update_own). An error here just means
+  // the next read retries the sweep.
+  //
+  // Scheduled with after() rather than left as a bare floating promise:
+  // this runs during render, so on a serverless host the instance can be
+  // frozen the moment the response flushes and an un-awaited write is
+  // simply lost — the sweep would then never land, no matter how many
+  // times the host opened their inbox. after() is what keeps the runtime
+  // alive for it.
   const staleIds = rows
     .filter(
       (r) =>
@@ -281,18 +289,15 @@ export async function getMyInviteHistory(limit = 30): Promise<Invite[]> {
     )
     .map((r) => r.id as string);
   if (staleIds.length > 0) {
-    void supabase
-      .from("invites")
-      .update({ status: "expired" })
-      .in("id", staleIds)
-      .then(({ error: sweepErr }) => {
-        if (sweepErr) {
-          console.warn(
-            "[getMyInviteHistory] sweep failed (non-fatal)",
-            sweepErr,
-          );
-        }
-      });
+    after(async () => {
+      const { error: sweepErr } = await supabase
+        .from("invites")
+        .update({ status: "expired" })
+        .in("id", staleIds);
+      if (sweepErr) {
+        console.warn("[getMyInviteHistory] sweep failed (non-fatal)", sweepErr);
+      }
+    });
   }
 
   return rows.map((r) => {

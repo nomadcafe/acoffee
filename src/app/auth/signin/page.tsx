@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getMyProfile, getSessionUser } from "@/lib/auth-queries";
+import { getSessionNavProfile } from "@/lib/auth-queries";
 import { getLocale } from "@/lib/i18n";
 import { t } from "@/lib/i18n/dict";
 import { SignInForm } from "./SignInForm";
@@ -39,11 +39,13 @@ export default async function SignInPage({
   // where a logged-in visitor lands here from a stale link or the hero CTA
   // and still gets shown the "send me a link" form.
   if (!error) {
-    const session = await getSessionUser();
+    // Nav profile rather than getMyProfile: the handle is the only field
+    // this redirect needs, and it comes back on the cache()'d read the
+    // layout has already done.
+    const session = await getSessionNavProfile();
     if (session) {
       if (safe) redirect(safe);
-      const profile = await getMyProfile();
-      if (profile) redirect(`/${profile.handle}`);
+      if (session.handle) redirect(`/${session.handle}`);
       redirect("/profile");
     }
   }
