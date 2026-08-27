@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createInvite, type CreateInviteState } from "@/app/[handle]/actions";
 import { KIND_EMOJI } from "@/components/CardBody";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { useLocale, useT } from "@/components/LocaleProvider";
 import { trackEvent } from "@/lib/analytics";
 import { formatInstantIn, formatShortDate, formatSlot } from "@/lib/datetime";
@@ -69,6 +70,12 @@ export function InviteForm(props: {
   // limited slots read as "grab a time before they go".
   city: string | null;
   cityUntil: string | null;
+  // Public Turnstile site key, or undefined when the invite CAPTCHA isn't
+  // configured (see lib/turnstile.ts — it takes both halves of the key
+  // pair to count as on). Only the anonymous path renders a challenge;
+  // a signed-in visitor's address is already verified, so createInvite
+  // doesn't ask them for a token and neither do we.
+  captchaSiteKey?: string;
 }) {
   const [resetCount, setResetCount] = useState(0);
   return (
@@ -90,6 +97,7 @@ function InviteFormInner({
   hostTimezone,
   city,
   cityUntil,
+  captchaSiteKey,
   onSendAnother,
 }: {
   hostHandle: string;
@@ -101,6 +109,7 @@ function InviteFormInner({
   hostTimezone: string | null;
   city: string | null;
   cityUntil: string | null;
+  captchaSiteKey?: string;
   onSendAnother: () => void;
 }) {
   const t = useT();
@@ -147,6 +156,30 @@ function InviteFormInner({
   // tell them "check this inbox" without us re-deriving it from FormData
   // (it's already wiped by the time we render the result).
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null);
+
+  // CAPTCHA, same shape as SignInForm. Only the anonymous path shows one —
+  // a signed-in visitor is sending from a verified address to a host who
+  // asked to be reachable, and the server doesn't ask them for a token.
+  const needsCaptcha = !!captchaSiteKey && !visitorSession;
+  const [captchaToken, setCaptchaToken] = useState("");
+  // True when the widget errored or its script never loaded, so we can say
+  // why submit is stuck instead of leaving it silently disabled.
+  const [captchaFailed, setCaptchaFailed] = useState(false);
+  // Turnstile tokens are single-use: a failed submit needs a fresh one, so
+  // bump the key to remount the widget. Adjusting state during render
+  // against the previous value is React's recommended alternative to an
+  // effect here; on success the form is replaced by the sent view, so only
+  // the error path needs this.
+  const [captchaKey, setCaptchaKey] = useState(0);
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "error" && needsCaptcha) {
+      setCaptchaToken("");
+      setCaptchaFailed(false);
+      setCaptchaKey((k) => k + 1);
+    }
+  }
 
   // Fire the GA4 event once when the action transitions to `sent`.
   // Effect dependency is state.status — re-runs only on transition, so
@@ -251,6 +284,9 @@ function InviteFormInner({
       className="flex flex-col gap-4"
     >
       <input type="hidden" name="handle" value={hostHandle} />
+      {needsCaptcha && (
+        <input type="hidden" name="captchaToken" value={captchaToken} />
+      )}
 
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-xs font-medium uppercase tracking-wide text-accent">
@@ -425,6 +461,25 @@ function InviteFormInner({
         />
       )}
 
+      {needsCaptcha && (
+        <TurnstileWidget
+          key={captchaKey}
+          siteKey={captchaSiteKey!}
+          onToken={(token) => {
+            setCaptchaToken(token);
+            // A real token means the widget recovered — clear any earlier
+            // load/error notice.
+            if (token) setCaptchaFailed(false);
+          }}
+          onError={() => setCaptchaFailed(true)}
+        />
+      )}
+      {needsCaptcha && captchaFailed && (
+        <p className="text-sm text-amber-700 dark:text-amber-400">
+          {t("invite.form.captcha.failed")}
+        </p>
+      )}
+
       {state.status === "error" && !state.fieldErrors && (
         <p className="text-sm text-red-600 dark:text-red-400">
           {state.message}
@@ -434,7 +489,7 @@ function InviteFormInner({
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || (needsCaptcha && !captchaToken)}
           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-5 py-3 text-base font-medium text-page shadow-sm transition-shadow hover:bg-accent-hover hover:shadow-md disabled:opacity-60"
         >
           {pending

@@ -158,6 +158,8 @@ export const en = {
   // Appended after a slot's host-zone time when the viewer's browser zone
   // differs, so they don't have to do the tz math themselves.
   "invite.form.slot.yourTime": "{time} your time",
+  "invite.form.captcha.failed":
+    "Couldn't load the verification widget. Disable any ad/script blocker and retry.",
   "invite.form.submit": "Send invite",
   "invite.form.submit.pending": "Sending…",
   "invite.form.note": "No account needed — your email is just for the reply.",
@@ -656,6 +658,8 @@ export const zh: Record<DictKey, string> = {
   "invite.form.slot.hint": "时间按 {tz} 显示。{name} 接受后会确认。",
   "invite.form.slot.none": "暂时没有可约时间——可在下方填写建议时间。",
   "invite.form.slot.yourTime": "你的时间 {time}",
+  "invite.form.captcha.failed":
+    "验证组件加载失败。请关闭广告/脚本拦截插件后重试。",
   "invite.form.submit": "发送邀请",
   "invite.form.submit.pending": "发送中…",
   "invite.form.note": "不需要账号——邮箱只是用来收回复。",
@@ -1090,6 +1094,8 @@ export const ja: Record<DictKey, string> = {
   "invite.form.slot.hint": "時間は {tz} で表示。承認時に {name} さんが確定します。",
   "invite.form.slot.none": "現在空き時間がありません。下に希望を記入してください。",
   "invite.form.slot.yourTime": "あなたの時間で {time}",
+  "invite.form.captcha.failed":
+    "認証ウィジェットを読み込めませんでした。広告/スクリプトブロッカーを無効にして再試行してください。",
   "invite.form.submit": "招待を送る",
   "invite.form.submit.pending": "送信中…",
   "invite.form.note": "アカウント不要——メールは返信用にだけ使います。",

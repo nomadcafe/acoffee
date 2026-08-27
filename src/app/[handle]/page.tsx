@@ -8,13 +8,13 @@ import { InviteForm } from "@/components/InviteForm";
 import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
 import {
-  getMyProfile,
-  getSessionUser,
+  getSessionNavProfile,
   listAvailableSlots,
 } from "@/lib/auth-queries";
 import { currentHomeHref, getLocale } from "@/lib/i18n";
 import { t, tmpl, type Locale } from "@/lib/i18n/dict";
 import { siteUrl } from "@/lib/site";
+import { inviteCaptchaSiteKey } from "@/lib/turnstile";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 import {
   type CoffeeChatKind,
@@ -185,9 +185,16 @@ export default async function HandlePage(
   // Owner detection: if the signed-in viewer's handle matches the page,
   // they get edit affordances instead of the "make your own" CTA, and
   // an "almost there" nudge when the card has no status or contact yet.
-  const [viewer, sessionUser, locale, homeHref, slots] = await Promise.all([
-    getMyProfile(),
-    getSessionUser(),
+  //
+  // getSessionNavProfile, not getMyProfile: all this page needs of the
+  // viewer is their handle and auth email, and the nav profile carries
+  // both. It's also cache()'d and already resolved by SiteNav in the
+  // layout, so on a card view it costs nothing — where getMyProfile was a
+  // second, service-role read of the viewer's whole row, contact columns
+  // included, for a handle comparison. Nothing outside the owner's own
+  // edit form and the accept-email composer should be pulling those.
+  const [viewer, locale, homeHref, slots] = await Promise.all([
+    getSessionNavProfile(),
     getLocale(),
     currentHomeHref(),
     // v16 — only fetch bookable slots when the host turned scheduling on.
@@ -195,7 +202,8 @@ export default async function HandlePage(
       ? listAvailableSlots(profile.id)
       : Promise.resolve([]),
   ]);
-  const isOwner = viewer?.handle === profile.handle;
+  const viewerHandle = viewer?.handle ?? null;
+  const isOwner = viewerHandle === profile.handle;
   const isIncomplete = !profile.bio || !profile.hasContact;
   // Viewer is a signed-in acoffee user but NOT the card owner — they
   // qualify for the streamlined invite path (skip email confirm).
@@ -206,15 +214,16 @@ export default async function HandlePage(
   // applies (their email is verified), but we don't want the placeholder
   // surfaced — so blank the pre-filled name (they type a real one) and let
   // InviteForm switch to handle-less copy via `hasRealHandle`.
-  const viewerHasRealHandle = !!viewer && !AUTO_HANDLE.test(viewer.handle);
+  const viewerHasRealHandle =
+    !!viewerHandle && !AUTO_HANDLE.test(viewerHandle);
   const visitorSession =
-    sessionUser && viewer && !isOwner
+    viewerHandle && !isOwner
       ? {
-          handle: viewer.handle,
+          handle: viewerHandle,
           displayName: viewerHasRealHandle
-            ? deriveDisplayName(viewer.handle)
+            ? deriveDisplayName(viewerHandle)
             : "",
-          email: sessionUser.email ?? "",
+          email: viewer?.email ?? "",
           hasRealHandle: viewerHasRealHandle,
         }
       : null;
@@ -302,6 +311,7 @@ export default async function HandlePage(
               hostTimezone={profile.timezone}
               city={profile.city}
               cityUntil={profile.cityUntil}
+              captchaSiteKey={inviteCaptchaSiteKey()}
             />
           ) : (
             <p className="text-sm text-muted">

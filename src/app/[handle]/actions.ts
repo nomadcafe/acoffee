@@ -1,6 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { localDateInZone } from "@/lib/datetime";
@@ -8,7 +9,8 @@ import { emailInviteConfirm, emailNewInvite } from "@/lib/email";
 import { getLocale } from "@/lib/i18n";
 import { type Locale } from "@/lib/i18n/dict";
 import { deriveDisplayName } from "@/lib/profile";
-import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
+import { checkRateLimitDurable, ipFromHeaders } from "@/lib/rate-limit";
+import { inviteCaptchaSiteKey, verifyTurnstile } from "@/lib/turnstile";
 import {
   createSupabaseAdmin,
   createSupabaseServer,
@@ -110,12 +112,70 @@ export async function createInvite(
     };
   }
 
+  // Check if the visitor is a signed-in acoffee user whose auth email
+  // matches the email they typed. If so, we trust the address (Supabase
+  // verified it during signup) and skip the AA2 confirm round-trip —
+  // status=pending immediately, host email fires here. Anonymous
+  // visitors still go through the original confirm flow.
+  const ip = ipFromHeaders(await headers());
+  const supabase = await createSupabaseServer();
+  const {
+    data: { user: visitor },
+  } = await supabase.auth.getUser();
+  const visitorEmail = visitor?.email?.toLowerCase() ?? null;
+  const skipConfirm =
+    !!visitor &&
+    !!visitorEmail &&
+    visitorEmail === parsed.data.requesterEmail.toLowerCase();
+
+  // Bot gate, ahead of the rate limit on purpose — see below. Only the
+  // anonymous path carries one: that's the branch that puts visitor-typed
+  // text into an email addressed to a visitor-typed address, which is the
+  // thing worth abusing here. A signed-in visitor's address is Supabase-
+  // verified and their form has the field locked, so a challenge there
+  // would be friction with nothing behind it. (A crafted POST from a
+  // signed-in session with someone *else's* address doesn't skip confirm,
+  // so it lands here and needs a token like any other stranger.)
+  const captchaSiteKey = inviteCaptchaSiteKey();
+  if (captchaSiteKey && !skipConfirm) {
+    const captchaToken = trimOrUndefined(formData.get("captchaToken"));
+    if (!captchaToken) {
+      return {
+        status: "error",
+        message: "Please complete the verification and try again.",
+      };
+    }
+    const verdict = await verifyTurnstile(captchaToken, ip);
+    if (!verdict.ok) {
+      console.warn("[invite] captcha rejected", {
+        ip,
+        handle: parsed.data.handle,
+        error: verdict.error,
+      });
+      return {
+        status: "error",
+        message: "That verification didn't go through — please try again.",
+      };
+    }
+  }
+
   // Per-IP rate limit. Two windows: a short 5-min burst window prevents
   // form-replay floods, plus an hourly cap so even slow scripts can't
   // pile up. Generous enough for a small team brainstorming together not
   // to get blocked.
-  const ip = ipFromHeaders(await headers());
-  const limit = checkRateLimit(`invite:${ip}`, [
+  //
+  // Deliberately *after* the CAPTCHA: the limiter records a hit on every
+  // allowed call, and at 3 per 5 minutes a visitor whose challenge errored
+  // twice would have burned most of their budget on submissions that never
+  // reached the DB. Gating first means the budget is only spent by
+  // requests that already proved they're human. It costs nothing against a
+  // flood either — a request with no token is rejected above before
+  // anything leaves this process.
+  //
+  // v0.19 — the durable variant: counted in Postgres, so the window holds
+  // across serverless instances instead of resetting with each new one.
+  // This is the endpoint that most needed it.
+  const limit = await checkRateLimitDurable(`invite:${ip}`, [
     { max: 3, windowMs: 5 * 60 * 1000 },
     { max: 10, windowMs: 60 * 60 * 1000 },
   ]);
@@ -135,21 +195,6 @@ export async function createInvite(
       message: `Too many invites from this network. Try again in ${mins} min${mins === 1 ? "" : "s"}.`,
     };
   }
-
-  // Check if the visitor is a signed-in acoffee user whose auth email
-  // matches the email they typed. If so, we trust the address (Supabase
-  // verified it during signup) and skip the AA2 confirm round-trip —
-  // status=pending immediately, host email fires here. Anonymous
-  // visitors still go through the original confirm flow.
-  const supabase = await createSupabaseServer();
-  const {
-    data: { user: visitor },
-  } = await supabase.auth.getUser();
-  const visitorEmail = visitor?.email?.toLowerCase() ?? null;
-  const skipConfirm =
-    !!visitor &&
-    !!visitorEmail &&
-    visitorEmail === parsed.data.requesterEmail.toLowerCase();
 
   // Admin client — bypasses RLS for the host lookup + insert. The public
   // INSERT policy would work too, but going through admin lets us read the
@@ -287,33 +332,45 @@ export async function createInvite(
 
   const hostDisplayName = deriveDisplayName(hostHandle);
   if (skipConfirm) {
-    // Signed-in path: fire the host notification immediately. Mirrors
-    // the work the confirm route does after a visitor clicks their
-    // confirm link, just inlined here because there's no link to send.
-    const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
-    const hostNotifyEmail = hostAuth.user?.email ?? null;
-    const { data: hostProfile } = await admin
-      .from("profiles")
-      .select("locale")
-      .eq("id", hostId)
-      .maybeSingle();
-    const hostLocaleRaw = hostProfile?.locale as string | null | undefined;
-    const hostLocale: Locale =
-      hostLocaleRaw === "zh" || hostLocaleRaw === "ja"
-        ? hostLocaleRaw
-        : "en";
-    if (hostNotifyEmail) {
-      await emailNewInvite({
-        to: hostNotifyEmail,
-        hostHandle,
-        requesterName: parsed.data.requesterName,
-        requesterEmail: parsed.data.requesterEmail,
-        requesterTopic: parsed.data.requesterTopic,
-        kind: parsed.data.requestedKind as CoffeeChatKind,
-        preferredTime: parsed.data.preferredTime ?? null,
-        locale: hostLocale,
-      });
-    }
+    // Signed-in path: the host notification is the same work the confirm
+    // route does after a visitor clicks their link, inlined here because
+    // there's no link to send. Scheduled with after() for the same reason
+    // that route uses it — the visitor's "sent" outcome doesn't depend on
+    // it, so two admin lookups plus a provider round-trip shouldn't sit in
+    // the path of their submit. The row is already committed; a failure
+    // here degrades the host's heads-up, it can't lose the invite.
+    const notify = {
+      requesterName: parsed.data.requesterName,
+      requesterEmail: parsed.data.requesterEmail,
+      requesterTopic: parsed.data.requesterTopic,
+      kind: parsed.data.requestedKind as CoffeeChatKind,
+      preferredTime: parsed.data.preferredTime ?? null,
+    };
+    after(async () => {
+      try {
+        const { data: hostAuth } = await admin.auth.admin.getUserById(hostId);
+        const hostNotifyEmail = hostAuth.user?.email ?? null;
+        if (!hostNotifyEmail) return;
+        const { data: hostProfile } = await admin
+          .from("profiles")
+          .select("locale")
+          .eq("id", hostId)
+          .maybeSingle();
+        const hostLocaleRaw = hostProfile?.locale as string | null | undefined;
+        const hostLocale: Locale =
+          hostLocaleRaw === "zh" || hostLocaleRaw === "ja"
+            ? hostLocaleRaw
+            : "en";
+        await emailNewInvite({
+          to: hostNotifyEmail,
+          hostHandle,
+          ...notify,
+          locale: hostLocale,
+        });
+      } catch (e) {
+        console.warn("[invite] host notification failed (non-fatal)", e);
+      }
+    });
   } else {
     // AA2 anti-spam: the host is NOT notified here. Visitor must click
     // the confirm link in this email first; that promotes the row to

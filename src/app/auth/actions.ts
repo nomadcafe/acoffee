@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { checkRateLimit, ipFromHeaders } from "@/lib/rate-limit";
+import { checkRateLimitDurable, ipFromHeaders } from "@/lib/rate-limit";
 import { siteUrl } from "@/lib/site";
 import { createSupabaseServer, isAuthConfigured } from "@/lib/supabase/server";
 
@@ -52,15 +52,21 @@ export async function sendMagicLink(
   // Two-axis throttle: IP catches "one location floods", email catches
   // "targeted harassment of one inbox". Either tripping returns the same
   // generic message so we don't leak which axis a probe hit.
+  // v0.19 — durable (Postgres-backed) so the daily cap on one inbox is a
+  // real daily cap and not a per-instance one. Both axes are checked even
+  // when the first already failed: they're independent counters and
+  // skipping the second would let a flood spend one axis for free.
   const ip = ipFromHeaders(await headers());
   const emailKey = parsed.data.email.toLowerCase();
-  const ipLimit = checkRateLimit(`signin:ip:${ip}`, [
-    { windowMs: HOUR_MS, max: 20 },
-    { windowMs: DAY_MS, max: 60 },
-  ]);
-  const emailLimit = checkRateLimit(`signin:email:${emailKey}`, [
-    { windowMs: HOUR_MS, max: 20 },
-    { windowMs: DAY_MS, max: 60 },
+  const [ipLimit, emailLimit] = await Promise.all([
+    checkRateLimitDurable(`signin:ip:${ip}`, [
+      { windowMs: HOUR_MS, max: 20 },
+      { windowMs: DAY_MS, max: 60 },
+    ]),
+    checkRateLimitDurable(`signin:email:${emailKey}`, [
+      { windowMs: HOUR_MS, max: 20 },
+      { windowMs: DAY_MS, max: 60 },
+    ]),
   ]);
   if (!ipLimit.allowed || !emailLimit.allowed) {
     const retryAfterSec = Math.max(
