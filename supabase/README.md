@@ -65,13 +65,15 @@ schema_v18.sql
 schema_v18_1.sql
 schema_v19.sql
 schema_v20.sql
+schema_v21.sql
 ```
 
 `schema_v18_1.sql` is the one with an ordering constraint: it must follow every
 change to `profiles` (it rebuilds the column allow-list from the live catalog),
 and on an *existing* deployment it goes after the app code that matches it —
-see below. `schema_v20.sql` only revokes a privilege on `invites`, so it can go
-anywhere after the table exists.
+see below. `schema_v20.sql` (a privilege revoke on `invites`) and
+`schema_v21.sql` (two CHECK constraints on `profiles`) can go anywhere after
+their tables exist.
 
 ## Migrating an existing database
 
@@ -92,6 +94,15 @@ reads back as null everywhere with no error.
 access the running code still depends on (v0.18 is the example), the additive
 half ships first, then the code, then the restricting half. Each such file
 says so in its header.
+
+**RLS says whose row, never what's in it.** `profiles_write_own` scopes writes
+to the owner, and UPDATE is granted table-wide to `authenticated` — the v0.18
+block narrows SELECT only, because AvatarUpload writes `avatar_url` straight
+from the browser by design. So any column-shape rule that lives only in
+`ProfileSchema` is enforced on a path a signed-in user can skip with one
+PATCH to PostgREST. `handle` and `avatar_url` got CHECK constraints in
+`schema_v21.sql` for that reason; a new column the app validates and the DB
+doesn't is the same gap again.
 
 **`rate_limit_hits` has no policies, and that is the point.** An empty policy
 set under RLS denies everything to `anon` and `authenticated`; only the service
@@ -131,6 +142,13 @@ select has_table_privilege ('anon', 'public.profiles', 'select')                
 -- ceiling — can be skipped with the anon key that ships in the browser bundle.
 select has_table_privilege('anon',          'public.invites', 'insert') as anon,  -- false
        has_table_privilege('authenticated', 'public.invites', 'insert') as auth;  -- false
+
+-- The browser-written columns are constrained (v0.21). Missing rows here mean
+-- `handle` and `avatar_url` are back to whatever a signed-in user PATCHes in.
+select conname from pg_constraint
+ where conrelid = 'public.profiles'::regclass
+   and conname in ('profiles_handle_format', 'profiles_avatar_url_own');
+-- expect both
 
 -- Durable rate limiting is live (v0.19). Without it the app still runs — the
 -- limiter silently falls back to its per-instance in-memory window and logs

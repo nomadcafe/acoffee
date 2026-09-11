@@ -7,6 +7,7 @@ import { CardSharePanel } from "@/components/CardSharePanel";
 import { InviteForm } from "@/components/InviteForm";
 import { PresenceBanner } from "@/components/PresenceBanner";
 import { WelcomeBeacon } from "@/components/WelcomeBeacon";
+import { safeAvatarUrl } from "@/lib/avatar";
 import {
   getSessionNavProfile,
   listAvailableSlots,
@@ -117,7 +118,14 @@ const fetchPublicProfile = cache(async function fetchPublicProfile(
     socialLinks: parseSocialLinks(data.social_links),
     interests: parseInterests(data.interests),
     hasContact: !!data.has_contact,
-    avatarUrl: (data.avatar_url as string | null) ?? null,
+    // avatar_url is browser-written (AvatarUpload PATCHes it directly), so
+    // it's checked here rather than trusted — see lib/avatar.ts. A value
+    // that isn't this owner's own uploaded object reads as null, which the
+    // card already renders as the initials chip.
+    avatarUrl: safeAvatarUrl(
+      data.avatar_url as string | null,
+      data.id as string,
+    ),
     joinedAt: data.created_at as string,
     schedulingEnabled: !!data.scheduling_enabled,
     timezone: (data.timezone as string | null) ?? null,

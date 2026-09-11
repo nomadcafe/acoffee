@@ -7,6 +7,7 @@ import {
   type Invite,
   type MyProfile,
 } from "./types";
+import { safeAvatarUrl } from "./avatar";
 import { localDateInZone } from "./datetime";
 import { parseInterests } from "./interests";
 import { parseChatKinds, parseGender } from "./profile";
@@ -75,7 +76,11 @@ export async function getMyProfile(): Promise<MyProfile | null> {
     telegramHandle: (data.telegram_handle as string | null) ?? null,
     emailContact: (data.email_contact as string | null) ?? null,
     socialLinks: parseSocialLinks(data.social_links),
-    avatarUrl: (data.avatar_url as string | null) ?? null,
+    // Checked, not trusted — AvatarUpload writes this column straight from
+    // the browser. See lib/avatar.ts. Applied on the owner's own read too:
+    // a value that won't render on the public card shouldn't look fine in
+    // the edit form, or the user has no way to tell something is wrong.
+    avatarUrl: safeAvatarUrl(data.avatar_url as string | null, user.id),
     interests: parseInterests(data.interests),
     schedulingEnabled: (data.scheduling_enabled as boolean | null) ?? false,
     timezone: (data.timezone as string | null) ?? null,
@@ -119,7 +124,7 @@ export const getSessionNavProfile = cache(
         .maybeSingle();
       return {
         handle: (data?.handle as string | undefined) ?? null,
-        avatarUrl: (data?.avatar_url as string | null) ?? null,
+        avatarUrl: safeAvatarUrl(data?.avatar_url as string | null, user.id),
         email: user.email ?? null,
       };
     } catch {

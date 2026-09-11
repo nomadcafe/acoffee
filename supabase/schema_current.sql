@@ -1,4 +1,4 @@
--- acoffee — the live schema, in one file. Reflects the chain through v0.20.
+-- acoffee — the live schema, in one file. Reflects the chain through v0.21.
 --
 -- ─────────────────────────────── what this is ───────────────────────────────
 --
@@ -89,6 +89,32 @@ create table if not exists public.profiles (
   -- Bumped by the trigger below; used as the OG image's cache-bust key.
   updated_at timestamptz not null default now()
 );
+
+-- v0.21 — the two columns the browser writes directly, constrained in the
+-- DB rather than only in TypeScript. `profiles_write_own` settles *whose*
+-- row may be written, not what goes in it, and UPDATE is granted table-wide
+-- to `authenticated` (AvatarUpload PATCHes avatar_url from the browser by
+-- design) — so without these, one PostgREST call bypasses both rules. Named
+-- constraints added separately rather than inline, so a fresh bootstrap and
+-- a database migrated through schema_v21.sql end up identical. See that
+-- file for what each one prevents.
+alter table public.profiles
+  drop constraint if exists profiles_handle_format;
+alter table public.profiles
+  add constraint profiles_handle_format
+  check (handle ~ '^[a-z0-9_]{3,20}$');
+
+alter table public.profiles
+  drop constraint if exists profiles_avatar_url_own;
+alter table public.profiles
+  add constraint profiles_avatar_url_own
+  check (
+    avatar_url is null
+    or avatar_url ~ (
+         '^https://[a-z0-9-]+\.supabase\.co/storage/v1/object/public/avatars/'
+         || id::text || '/'
+       )
+  );
 
 create index if not exists profiles_city_idx
   on public.profiles (lower(city))

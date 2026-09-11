@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { safeAvatarUrl } from "@/lib/avatar";
 import { getLocale } from "@/lib/i18n";
 import { t } from "@/lib/i18n/dict";
 import { deriveDisplayName, parseChatKinds } from "@/lib/profile";
@@ -70,7 +71,7 @@ async function fetchCard(handle: string): Promise<CardForOg | null> {
   const supabase = await createSupabaseServer();
   const { data } = await supabase
     .from("profiles")
-    .select("handle, bio, city, coffee_chat_kinds, avatar_url")
+    .select("id, handle, bio, city, coffee_chat_kinds, avatar_url")
     .eq("handle", handle.toLowerCase())
     .maybeSingle();
   if (!data) return null;
@@ -81,7 +82,15 @@ async function fetchCard(handle: string): Promise<CardForOg | null> {
     city: (data.city as string | null) ?? null,
     status: (data.bio as string | null) ?? null,
     kinds: parseChatKinds(data.coffee_chat_kinds),
-    avatarUrl: (data.avatar_url as string | null) ?? null,
+    // This is the route where the check earns its keep: ImageResponse
+    // renders the <img> on the server, so the value below decides what URL
+    // *our runtime* fetches — and this route is public and unauthenticated,
+    // so anyone can trigger it. `id` is selected solely to bind the URL to
+    // its owner. See lib/avatar.ts.
+    avatarUrl: safeAvatarUrl(
+      data.avatar_url as string | null,
+      data.id as string,
+    ),
   };
 }
 
