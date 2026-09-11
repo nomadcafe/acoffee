@@ -953,10 +953,17 @@ export async function addSlot(
   if (when.getTime() > Date.now() + 2 * 365 * 24 * 60 * 60 * 1000) {
     return { status: "error", message: "That's too far in the future." };
   }
-  const tz =
-    typeof timezone === "string" && timezone.trim().length > 0
-      ? timezone.trim().slice(0, 64)
-      : null;
+  // Validate the zone before it can reach `profiles.timezone` below — the
+  // same rule updateProfile and duplicateSlotsNextWeek already apply, and
+  // for the same reason: this value is a bare action argument, so a
+  // hand-rolled call could otherwise bootstrap junk into the column and make
+  // formatSlot fall back to the *server's* zone for every visitor reading
+  // this host's slots, silently and permanently. `isValidTimeZone` caps
+  // length too, so the old slice(0, 64) is folded into it. Invalid → treated
+  // as "no zone offered", exactly like an absent one: the slot still saves,
+  // it just doesn't get to define the host's display zone.
+  const tzRaw = typeof timezone === "string" ? timezone.trim() : "";
+  const tz = tzRaw && isValidTimeZone(tzRaw) ? tzRaw : null;
 
   const supabase = await createSupabaseServer();
   const {
