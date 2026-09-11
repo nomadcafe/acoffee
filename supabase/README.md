@@ -24,7 +24,7 @@ Four tables, all with RLS enabled:
 | Table | Purpose | RLS shape |
 |---|---|---|
 | `profiles` | one row per auth user; the card | public read (column-restricted), owner writes |
-| `invites` | visitor → host coffee requests | host reads/updates own; public insert |
+| `invites` | visitor → host coffee requests | host reads/updates own; **no insert policy** — service role only |
 | `availability_slots` | host's opt-in bookable times | public read, owner insert/delete |
 | `rate_limit_hits` | one row per throttled request | RLS on with **no policies** — service role only |
 
@@ -64,10 +64,14 @@ schema_v09.sql  …  schema_v17.sql
 schema_v18.sql
 schema_v18_1.sql
 schema_v19.sql
+schema_v20.sql
 ```
 
-`schema_v18_1.sql` goes last, and on an *existing* deployment it goes after the
-app code that matches it — see below.
+`schema_v18_1.sql` is the one with an ordering constraint: it must follow every
+change to `profiles` (it rebuilds the column allow-list from the live catalog),
+and on an *existing* deployment it goes after the app code that matches it —
+see below. `schema_v20.sql` only revokes a privilege on `invites`, so it can go
+anywhere after the table exists.
 
 ## Migrating an existing database
 
@@ -121,6 +125,12 @@ select has_table_privilege ('anon', 'public.profiles', 'select')                
        has_column_privilege('anon', 'public.profiles', 'telegram_handle', 'select') as telegram,      -- false
        has_column_privilege('anon', 'public.profiles', 'has_contact',     'select') as has_contact,   -- true
        has_column_privilege('anon', 'public.profiles', 'handle',          'select') as handle;        -- true
+
+-- Nobody but the service role may write an invite (v0.20). A `true` here means
+-- the whole of createInvite — CAPTCHA, all three rate-limit keys, the global
+-- ceiling — can be skipped with the anon key that ships in the browser bundle.
+select has_table_privilege('anon',          'public.invites', 'insert') as anon,  -- false
+       has_table_privilege('authenticated', 'public.invites', 'insert') as auth;  -- false
 
 -- Durable rate limiting is live (v0.19). Without it the app still runs — the
 -- limiter silently falls back to its per-instance in-memory window and logs

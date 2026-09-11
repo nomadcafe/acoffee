@@ -26,8 +26,14 @@ import {
 // Visitor-side action backing the InviteForm on /[handle]. No auth required
 // — visitors don't have accounts. The server is the gateway: validates the
 // payload, rate-limits per IP, looks up the host by handle, inserts the
-// row via the service-role client (RLS allows public insert anyway but
-// admin keeps the path predictable), then emails the host.
+// row via the service-role client, then emails the host.
+//
+// v0.20 — that service-role insert is now the *only* way a row reaches
+// `invites`: the public INSERT policy this action used to share the table
+// with is gone (schema_v20.sql). It has to be. Every control below lives in
+// this function, and the anon key ships in the browser bundle, so for as
+// long as PostgREST accepted an anonymous insert the whole of it could be
+// skipped by posting the row directly and then GETting the confirm link.
 
 const InviteSchema = z.object({
   handle: z
@@ -264,10 +270,10 @@ export async function createInvite(
     };
   }
 
-  // Admin client — bypasses RLS for the host lookup + insert. The public
-  // INSERT policy would work too, but going through admin lets us read the
-  // host's email + handle in the same query without exposing them in a
-  // chatty client-side flow.
+  // Admin client — bypasses RLS for the host lookup + insert. Required, not
+  // preferred: since v0.20 there is no INSERT policy on `invites` at all, so
+  // this is the only role that can write one. It also lets us read the
+  // host's id + handle in the same query without a chatty client-side flow.
   const admin = createSupabaseAdmin();
   const { data: host, error: hostErr } = await admin
     .from("profiles")

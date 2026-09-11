@@ -139,6 +139,28 @@ Any of the first three coming back true means every user's contact details
 are readable by anyone holding the anon key, which ships in the browser
 bundle.
 
+The other privilege that matters is who may *write* an invite. Since v0.20
+the answer is "only the service role" — there is no INSERT policy on
+`invites` at all:
+
+```sql
+select has_table_privilege('anon',          'public.invites', 'insert') as anon,  -- false
+       has_table_privilege('authenticated', 'public.invites', 'insert') as auth;  -- false
+
+select policyname, cmd from pg_policies
+ where schemaname = 'public' and tablename = 'invites'
+ order by policyname;
+-- expect exactly: invites_read_own (SELECT), invites_update_own (UPDATE)
+```
+
+Either coming back true, or an INSERT policy reappearing, means every control
+in `createInvite` is optional: the CAPTCHA, all three rate-limit keys and the
+global ceiling live in that server action, and a row posted straight to
+PostgREST with the anon key never enters it. The symptom to watch for is §6's
+counts not tracking §1's — invites arriving that left no `rate_limit_hits`
+row behind — because a bypassed invite is otherwise indistinguishable from a
+real one once it's in the table.
+
 ## 5. Testing the front door by hand
 
 Queries only show what already happened. Once a quarter, or after touching

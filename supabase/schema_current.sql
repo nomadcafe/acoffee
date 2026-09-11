@@ -1,4 +1,4 @@
--- acoffee — the live schema, in one file. Reflects the chain through v0.19.
+-- acoffee — the live schema, in one file. Reflects the chain through v0.20.
 --
 -- ─────────────────────────────── what this is ───────────────────────────────
 --
@@ -331,16 +331,22 @@ drop policy if exists availability_slots_delete_own on public.availability_slots
 create policy availability_slots_delete_own
   on public.availability_slots for delete using (host_id = auth.uid());
 
--- invites: the host reads and decides their own; anyone may insert, because
--- visitors have no session. The server action is the real gate (validation,
--- CAPTCHA, rate limit); RLS here just permits the write to happen at all.
+-- invites: the host reads and decides their own. There is deliberately NO
+-- insert policy — visitors have no session, so the row is written by the
+-- service role from `createInvite`, which bypasses RLS. A public insert
+-- policy lived here through v0.19 and was a hole, not a convenience: the
+-- anon key ships in the browser bundle, so anyone could POST a row straight
+-- to PostgREST with a `confirm_token` of their choosing, then GET
+-- /invite/confirm/<token> to make the app mail the host — skipping the
+-- CAPTCHA, all three rate-limit keys and the global ceiling in one go. See
+-- schema_v20.sql. Nothing in src/ inserts with the anon key; if that ever
+-- changes, the fix is a narrow policy, not `with check (true)`.
 drop policy if exists invites_read_own on public.invites;
 create policy invites_read_own on public.invites for select
   using (auth.uid() = host_id);
 
 drop policy if exists invites_insert_public on public.invites;
-create policy invites_insert_public on public.invites for insert
-  to public with check (true);
+revoke insert on public.invites from anon, authenticated;
 
 drop policy if exists invites_update_own on public.invites;
 create policy invites_update_own on public.invites for update

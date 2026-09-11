@@ -1,0 +1,79 @@
+-- v0.20 — close the anonymous INSERT path on `invites`.
+--
+-- Safe to apply immediately, and it needs no matching app change: the only
+-- INSERT into `invites` anywhere in src/ is `src/app/[handle]/actions.ts`,
+-- and it goes through the service-role client, which bypasses RLS. This is
+-- the restricting half of a migration whose additive half landed in v0.8,
+-- when that insert moved to `createSupabaseAdmin()` — the policy has been
+-- redundant ever since. Idempotent.
+--
+-- ─────────────────────────── what this fixes ───────────────────────────
+--
+-- `invites_insert_public` is `for insert to public with check (true)`. Its
+-- comment in schema_current.sql reads: "the server action is the real gate
+-- (validation, CAPTCHA, rate limit); RLS here just permits the write to
+-- happen at all."
+--
+-- A gate is only a gate when the path around it is closed. It isn't. The
+-- anon key ships inside the browser bundle by construction, PostgREST is
+-- reachable with it, and `profiles.id` is in the v0.18 column allow-list —
+-- so the whole of `createInvite` can be skipped in two requests:
+--
+--   1. GET  /rest/v1/profiles?handle=eq.<any>&select=id
+--   2. POST /rest/v1/invites   { host_id, requester_name, requester_email,
+--                                requester_topic, status: 'unconfirmed',
+--                                confirm_token: '<attacker's own uuid>',
+--                                expires_at: '<any future instant>' }
+--   3. GET  /invite/confirm/<that token>
+--
+-- Step 3 is the one that costs. The confirm page promotes the row and fires
+-- `emailNewInvite` to the host, so the loop sends unbounded mail to any host
+-- — past Turnstile, past `invite:<ip>`, past `invite:to:<email>`, and past
+-- the `invite:global` ceiling added in v0.19, every one of which lives in a
+-- server action that was never entered. The ceiling in particular exists to
+-- protect the sending domain's reputation in aggregate; a bypass of it is a
+-- bypass of the only control that was aggregate in the first place.
+--
+-- Two cheaper abuses ride along, no confirm step needed. `status` defaults to
+-- 'pending' and `expires_at` to now() + 7 days, so a bare insert lands
+-- directly in a host's inbox looking like a real request; and an insert
+-- carrying `slot_id` holds that slot for a week (invites_slot_active_idx
+-- stops a second booking of the same slot, not a first booking of every
+-- slot), which empties a host's public picker without sending anything.
+--
+-- ─────────────────────────────── the fix ───────────────────────────────
+--
+-- Drop the policy, then revoke the privilege. Both halves matter: dropping
+-- the policy alone is enough while RLS is on (an empty policy set for INSERT
+-- denies), but the revoke is what survives someone later adding a broad
+-- policy or a `grant all` — the same belt-and-braces reasoning as
+-- `rate_limit_hits`.
+--
+-- SELECT and UPDATE are untouched: `invites_read_own` and
+-- `invites_update_own` are how the host reads their inbox and accepts or
+-- declines, both under the request's own JWT.
+
+drop policy if exists invites_insert_public on public.invites;
+
+revoke insert on public.invites from anon, authenticated;
+
+-- Verification:
+--
+--   -- No INSERT policy left on invites; read/update remain.
+--   select policyname, cmd from pg_policies
+--    where schemaname = 'public' and tablename = 'invites'
+--    order by policyname;
+--   -- expect: invites_read_own (SELECT), invites_update_own (UPDATE)
+--
+--   select has_table_privilege('anon',          'public.invites', 'insert') as anon,  -- false
+--          has_table_privilege('authenticated', 'public.invites', 'insert') as auth;  -- false
+--
+--   -- End to end, with the anon key (not the service key):
+--   --   curl -sS -X POST "$SUPABASE_URL/rest/v1/invites" \
+--   --     -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" \
+--   --     -H 'Content-Type: application/json' \
+--   --     -d '{"host_id":"<uuid>","requester_name":"x",
+--   --          "requester_email":"x@example.com","requester_topic":"x"}'
+--   -- expect: 401/403 with code 42501, where it used to return 201.
+--   -- The invite form on /[handle] must still work — it inserts as the
+--   -- service role and never touched this grant.
