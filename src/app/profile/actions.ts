@@ -132,18 +132,16 @@ const ProfileSchema = z.object({
 // platform-dependent) but still needs a field-error slot so the form
 // can surface "Instagram: username only — …" inline.
 type ExtraFields = "socialLinks" | "interests";
-export type ProfileEventName = "signup_completed" | "card_published";
+// No `events` channel here: onboarding completion redirects to
+// /{handle}?welcome=1 and WelcomeBeacon fires `signup_completed` off that
+// query, so the funnel event never travels back through this state. A field
+// for it was declared and then never written or read on either side.
 export type ProfileState = {
   status: "idle" | "saved" | "error";
   message?: string;
   fieldErrors?: Partial<
     Record<keyof z.infer<typeof ProfileSchema> | ExtraFields, string>
   >;
-  // Funnel events for the client to fire post-save. Server detects
-  // transitions (auto-handle → real handle, incomplete → publishable)
-  // and pushes the event names back so the GA bridge doesn't have to
-  // mirror the same diff logic on the client.
-  events?: ProfileEventName[];
 };
 
 function trimOrUndefined(v: FormDataEntryValue | null): string | undefined {

@@ -17,6 +17,18 @@ export async function proxy(request: NextRequest) {
   // Tag the locale onto the forwarded request so RSC/route handlers can
   // read it via headers(). Only set when the URL itself encodes locale —
   // otherwise getLocale() falls through to cookie + Accept-Language.
+  //
+  // Deleted first, unconditionally. This header is an internal channel:
+  // downstream, getLocale() treats it as authoritative *because* the proxy
+  // wrote it, and outranks both the cookie and Accept-Language on that
+  // basis. Nothing strips inbound request headers of the same name, so
+  // without the delete a caller could simply send `x-url-locale: ja` to a
+  // path with no prefix and pick the render themselves. The blast radius is
+  // only the language, but a header whose whole meaning is "the proxy
+  // established this" must not be forgeable, or the next thing carried on it
+  // inherits the hole. (`x-pathname` below is already safe for the same
+  // reason — it is set on every request, so an inbound value can't survive.)
+  request.headers.delete("x-url-locale");
   const urlLocaleMatch = URL_LOCALE_RE.exec(request.nextUrl.pathname);
   const urlLocale = urlLocaleMatch?.[1] ?? null;
   if (urlLocale) {

@@ -12,6 +12,21 @@ export function isAuthConfigured(): boolean {
   );
 }
 
+// True when the service-role key is available, i.e. createSupabaseAdmin()
+// will construct rather than throw. Callers on a path that *cannot* work
+// without it use this to fail with their own message instead of letting the
+// throw surface as a 500 — see createInvite, where the write has been
+// service-role-only since v0.20 and there is no longer an anon INSERT policy
+// to fall back to. It is not a general precondition: most admin call sites
+// are inside flows that are already broken in more visible ways if the key
+// is absent, and a throw is the right signal for those.
+export function isServiceRoleConfigured(): boolean {
+  return (
+    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    !!process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+}
+
 // Service-role admin client. Bypasses RLS — use ONLY for genuine admin
 // operations (e.g. auth.admin.deleteUser, which is the only way to remove
 // an auth.users row server-side). Throws when SUPABASE_SERVICE_ROLE_KEY

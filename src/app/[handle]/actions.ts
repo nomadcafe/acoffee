@@ -15,6 +15,7 @@ import {
   createSupabaseAdmin,
   createSupabaseServer,
   isAuthConfigured,
+  isServiceRoleConfigured,
 } from "@/lib/supabase/server";
 import {
   COFFEE_CHAT_KINDS,
@@ -91,6 +92,31 @@ export async function createInvite(
     return {
       status: "error",
       message: "Invites aren't configured on this server.",
+    };
+  }
+
+  // Checked here, at the top, rather than left to createSupabaseAdmin() to
+  // throw from two hundred lines down. Since v0.20 the insert is
+  // service-role-only — there is no anon INSERT policy to fall back to — so
+  // a missing key isn't a degraded invite, it's no invite at all, and the
+  // throw would 500 the form *after* the visitor solved a CAPTCHA and spent
+  // rate-limit budget on a submission that could never have landed. Same
+  // reason the CAPTCHA sits ahead of the limiter: don't charge someone for
+  // work that was never going to succeed.
+  //
+  // console.error, not warn: unlike the missing Turnstile secret or the
+  // missing rate-limit RPC, both of which degrade to something that still
+  // works, this one takes the product's only inbound feature offline.
+  if (!isServiceRoleConfigured()) {
+    console.error(
+      "[invite] SUPABASE_SERVICE_ROLE_KEY is not set — invites cannot be " +
+        "written at all (no anon INSERT policy since v0.20). Every " +
+        "submission will be refused until it is configured.",
+    );
+    return {
+      status: "error",
+      message:
+        "Invites aren't available right now — we're looking into it. Please try again later.",
     };
   }
 
