@@ -263,6 +263,55 @@ export async function createInvite(
     }
   }
 
+  // Admin client — bypasses RLS for the host lookup + insert. Required, not
+  // preferred: since v0.20 there is no INSERT policy on `invites` at all, so
+  // this is the only role that can write one. It also lets us read the
+  // host's id + handle in the same query without a chatty client-side flow.
+  const admin = createSupabaseAdmin();
+  const { data: host, error: hostErr } = await admin
+    .from("profiles")
+    .select("id, handle, city_until, timezone")
+    .eq("handle", parsed.data.handle.toLowerCase())
+    .maybeSingle();
+  if (hostErr || !host) {
+    return { status: "error", message: "Card not found." };
+  }
+  const hostId = host.id as string;
+  const hostHandle = host.handle as string;
+
+  // Block a signed-in user from inviting themselves — silly + would
+  // pollute their own inbox. Anonymous visitors can't trigger this
+  // because we wouldn't know the visitor identity.
+  if (visitor && visitor.id === hostId) {
+    return { status: "error", message: "You can't invite yourself." };
+  }
+
+  // Per-host limit. Every window above counts the sender or the address
+  // being mailed, so nothing bounded how many invites one *host* receives:
+  // signed-in visitors skip the CAPTCHA and the recipient window, and
+  // rotating IPs + throwaway addresses defeats the rest. Each confirmed
+  // invite is a mail to the host, so an unbounded count is a way to flood
+  // one person's inbox through us. 8/hour, 20/day is far above any real
+  // card's traffic. Both paths count; checked after the host lookup (it
+  // needs the id) and before the global ceiling, so a rejection here
+  // doesn't spend shared budget.
+  const hostLimit = await checkRateLimitDurable(`invite:host:${hostId}`, [
+    { max: 8, windowMs: 60 * 60 * 1000 },
+    { max: 20, windowMs: 24 * 60 * 60 * 1000 },
+  ]);
+  if (!hostLimit.allowed) {
+    console.warn("[invite] host rate-limited", {
+      ip,
+      handle: hostHandle,
+      retryAfterSec: hostLimit.retryAfterSec,
+    });
+    return {
+      status: "error",
+      message:
+        "This card has received a lot of invites lately. Please try again later.",
+    };
+  }
+
   // Global ceiling. Everything above is per-something, so nothing bounded
   // the total — and a sending domain's reputation is an aggregate. This is
   // a circuit breaker, not a throttle: at ~7 invites all-time, 60/hour is
@@ -294,29 +343,6 @@ export async function createInvite(
       message:
         "Invites are paused for a moment while we catch up. Please try again shortly.",
     };
-  }
-
-  // Admin client — bypasses RLS for the host lookup + insert. Required, not
-  // preferred: since v0.20 there is no INSERT policy on `invites` at all, so
-  // this is the only role that can write one. It also lets us read the
-  // host's id + handle in the same query without a chatty client-side flow.
-  const admin = createSupabaseAdmin();
-  const { data: host, error: hostErr } = await admin
-    .from("profiles")
-    .select("id, handle, city_until, timezone")
-    .eq("handle", parsed.data.handle.toLowerCase())
-    .maybeSingle();
-  if (hostErr || !host) {
-    return { status: "error", message: "Card not found." };
-  }
-  const hostId = host.id as string;
-  const hostHandle = host.handle as string;
-
-  // Block a signed-in user from inviting themselves — silly + would
-  // pollute their own inbox. Anonymous visitors can't trigger this
-  // because we wouldn't know the visitor identity.
-  if (visitor && visitor.id === hostId) {
-    return { status: "error", message: "You can't invite yourself." };
   }
 
   // v0.18 — retire this host's timed-out invites before we try to write.
