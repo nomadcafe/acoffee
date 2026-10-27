@@ -23,8 +23,8 @@ Four tables, all with RLS enabled:
 
 | Table | Purpose | RLS shape |
 |---|---|---|
-| `profiles` | one row per auth user; the card | public read (column-restricted), owner writes |
-| `invites` | visitor → host coffee requests | host reads/updates own; **no insert policy** — service role only |
+| `profiles` | one row per auth user; the card | public read (column-restricted); browser writes `avatar_url`/`locale` only, the rest via the service role |
+| `invites` | visitor → host coffee requests | host reads own, updates `status`/`decided_at` only (transition-guarded); **no insert policy** — service role only |
 | `availability_slots` | host's opt-in bookable times | public read, owner insert/delete |
 | `rate_limit_hits` | one row per throttled request | RLS on with **no policies** — service role only |
 
@@ -66,6 +66,7 @@ schema_v18_1.sql
 schema_v19.sql
 schema_v20.sql
 schema_v21.sql
+schema_v22.sql
 ```
 
 `schema_v18_1.sql` is the one with an ordering constraint: it must follow every
@@ -73,7 +74,8 @@ change to `profiles` (it rebuilds the column allow-list from the live catalog),
 and on an *existing* deployment it goes after the app code that matches it —
 see below. `schema_v20.sql` (a privilege revoke on `invites`) and
 `schema_v21.sql` (two CHECK constraints on `profiles`) can go anywhere after
-their tables exist.
+their tables exist. `schema_v22.sql` (column-level UPDATE grants) must run
+*after* the app code that moved profile writes to the service role.
 
 ## Migrating an existing database
 
@@ -95,14 +97,15 @@ access the running code still depends on (v0.18 is the example), the additive
 half ships first, then the code, then the restricting half. Each such file
 says so in its header.
 
-**RLS says whose row, never what's in it.** `profiles_write_own` scopes writes
-to the owner, and UPDATE is granted table-wide to `authenticated` — the v0.18
-block narrows SELECT only, because AvatarUpload writes `avatar_url` straight
-from the browser by design. So any column-shape rule that lives only in
-`ProfileSchema` is enforced on a path a signed-in user can skip with one
-PATCH to PostgREST. `handle` and `avatar_url` got CHECK constraints in
-`schema_v21.sql` for that reason; a new column the app validates and the DB
-doesn't is the same gap again.
+**RLS says whose row, never what's in it.** `profiles_write_own` and
+`invites_update_own` scope writes to the owner; they say nothing about which
+columns or values. Since `schema_v22.sql`, UPDATE is granted per column:
+`authenticated` writes `profiles.avatar_url` / `profiles.locale` (both
+CHECK-constrained) and `invites.status` / `invites.decided_at` (guarded by the
+`invites_guard_host_update` trigger). Everything else is written by the
+service role after server-side validation. Granting `authenticated` another
+column means that column's shape rule must live in the DB too — a rule that
+lives only in TypeScript is skipped with one PATCH to PostgREST.
 
 **`rate_limit_hits` has no policies, and that is the point.** An empty policy
 set under RLS denies everything to `anon` and `authenticated`; only the service

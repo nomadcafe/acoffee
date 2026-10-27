@@ -11,7 +11,6 @@ import {
   emailWelcome,
   type SendResult,
 } from "@/lib/email";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   createSupabaseAdmin,
   createSupabaseServer,
@@ -344,7 +343,11 @@ export async function updateProfile(
   const timezonePatch =
     rawTimezone !== undefined ? { timezone: rawTimezone } : {};
 
-  const { error } = await supabase
+  // Service role, scoped to the verified caller. Since v0.22 the browser
+  // session can only UPDATE avatar_url + locale (schema_v22.sql): every
+  // rule above lives here in TypeScript, so this action has to be the only
+  // writer of the columns it validates — a direct PATCH would skip them.
+  const { error } = await createSupabaseAdmin()
     .from("profiles")
     .update({
       handle: parsed.data.handle,
@@ -726,7 +729,7 @@ async function decideInvite(
       });
       // Persist the hand-off outcome so the inbox can flag a failed
       // delivery + offer a resend even after the host navigates away.
-      await recordContactEmail(supabase, inviteId, send);
+      await recordContactEmail(user.id, inviteId, send);
       revalidatePath("/profile");
       return { status: "ok", emailDelivered: send.ok };
     }
@@ -753,21 +756,24 @@ async function decideInvite(
 // Persist the outcome of an accept-email send onto the invite row. On
 // success: stamp contact_emailed_at + clear any prior error. On failure:
 // record a (truncated) reason and leave contact_emailed_at null so the
-// inbox flags it for resend. RLS scopes the update to the host's own row.
+// inbox flags it for resend. Scoped to the host's own row by host_id.
 // Fire-and-forget shape — a write failure here is logged, never thrown,
 // so it can't undo an already-committed accept.
 async function recordContactEmail(
-  supabase: SupabaseClient,
+  hostId: string,
   inviteId: string,
   send: SendResult,
 ): Promise<void> {
   const patch = send.ok
     ? { contact_emailed_at: new Date().toISOString(), last_email_error: null }
     : { contact_emailed_at: null, last_email_error: send.error.slice(0, 300) };
-  const { error } = await supabase
+  // Service role since v0.22 — the host session may only write status /
+  // decided_at. Scoped by host_id as well as id, since RLS no longer is.
+  const { error } = await createSupabaseAdmin()
     .from("invites")
     .update(patch)
-    .eq("id", inviteId);
+    .eq("id", inviteId)
+    .eq("host_id", hostId);
   if (error) {
     console.warn("[recordContactEmail] update failed (non-fatal)", error);
   }
@@ -859,7 +865,7 @@ export async function resendAcceptedContact(
     meetingTime,
     locale: requesterLocale,
   });
-  await recordContactEmail(supabase, inviteId, send);
+  await recordContactEmail(user.id, inviteId, send);
 
   revalidatePath("/profile");
   if (!send.ok) {
@@ -1012,8 +1018,10 @@ export async function addSlot(
 
   // Stamp the host's tz on first use so slots render in one consistent
   // zone. Only when not already set — don't clobber a deliberate value.
+  // Service role: timezone isn't browser-writable since v0.22, and `tz`
+  // was validated above.
   if (tz) {
-    await supabase
+    await createSupabaseAdmin()
       .from("profiles")
       .update({ timezone: tz })
       .eq("id", user.id)

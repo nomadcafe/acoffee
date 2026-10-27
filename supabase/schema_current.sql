@@ -1,4 +1,4 @@
--- acoffee — the live schema, in one file. Reflects the chain through v0.21.
+-- acoffee — the live schema, in one file. Reflects the chain through v0.22.
 --
 -- ─────────────────────────────── what this is ───────────────────────────────
 --
@@ -343,6 +343,12 @@ drop policy if exists profiles_write_own on public.profiles;
 create policy profiles_write_own on public.profiles for update
   using (auth.uid() = id) with check (auth.uid() = id);
 
+-- v0.22 — the browser session writes only what it writes directly
+-- (AvatarUpload → avatar_url, setLocale → locale). Everything else goes
+-- through updateProfile's validation and is written by the service role.
+revoke update on public.profiles from anon, authenticated;
+grant update (avatar_url, locale) on public.profiles to authenticated;
+
 -- availability_slots: public read (the invite form's picker needs them),
 -- owner writes.
 drop policy if exists availability_slots_read on public.availability_slots;
@@ -377,6 +383,46 @@ revoke insert on public.invites from anon, authenticated;
 drop policy if exists invites_update_own on public.invites;
 create policy invites_update_own on public.invites for update
   using (auth.uid() = host_id) with check (auth.uid() = host_id);
+
+-- v0.22 — the policy picks the row; these pick the columns and the values.
+-- Table-wide UPDATE let a host rewrite requester_email on their own invite
+-- and have resendAcceptedContact mail anyone (schema_v22.sql). The host
+-- session now writes `status` / `decided_at` only, through the transitions
+-- below; delivery bookkeeping is service-role.
+revoke update on public.invites from anon, authenticated;
+grant update (status, decided_at) on public.invites to authenticated;
+
+create or replace function public.guard_invite_host_update()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if current_user <> 'authenticated' then
+    return new;
+  end if;
+
+  if new.status is distinct from old.status then
+    if old.status = 'pending' and new.status in ('accepted', 'declined') then
+      return new;
+    end if;
+    if old.status = 'pending' and new.status = 'expired'
+       and old.expires_at < now() then
+      return new;
+    end if;
+    raise exception 'invites: % -> % is not a host transition',
+      old.status, new.status
+      using errcode = '42501';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists invites_guard_host_update on public.invites;
+create trigger invites_guard_host_update
+  before update on public.invites
+  for each row execute function public.guard_invite_host_update();
 
 -- ═══════════════════════════ avatars storage ══════════════════════════════
 -- Public read (the card's <img> and the OG renderer fetch without auth),
